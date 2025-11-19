@@ -4,17 +4,15 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
-// Placeholder configuration. 
-// LOCALDE ÇALIŞIRKEN KENDİ API KEYLERİNİZİ BURAYA YAZINIZ.
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "FIREBASE_API_KEY",
-  authDomain: "expense-tracker-1dc73.firebaseapp.com",
-  databaseURL: "https://expense-tracker-1dc73-default-rtdb.firebaseio.com",
-  projectId: "expense-tracker-1dc73",
-  storageBucket: "expense-tracker-1dc73.firebasestorage.app",
-  messagingSenderId: "523163959305",
-  appId: "1:523163959305:web:d034cbfd632658f572b8d8",
-  measurementId: "G-GX1V6DFQ9K"
+  apiKey: "AIzaSyD8tzJ-ByET-_eQD4PyF68uTqLsiaIAhlg",
+  authDomain: "expense-tracker-v2-f5a0b.firebaseapp.com",
+  projectId: "expense-tracker-v2-f5a0b",
+  storageBucket: "expense-tracker-v2-f5a0b.firebasestorage.app",
+  messagingSenderId: "774300681132",
+  appId: "1:774300681132:web:7a76bc298443638c5b3009",
+  measurementId: "G-DW40K8BL6P"
 };
 
 // Initialize app

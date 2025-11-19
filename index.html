@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
   <head>
@@ -5,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Finans Asistanı Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 
+      NOT: VS Code'da geliştirme yaparken bu CDN satırı sarı uyarı verebilir.
+      Canlıya (Firebase Hosting) deploy etmeden önce bu script satırını silebilirsiniz, 
+      çünkü Vite build işlemi CSS'i otomatik oluşturacaktır. 
+      Ancak şu an önizlemede ekranı düzgün görmeniz için geri ekledim.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,16 +20,11 @@
           extend: {
             animation: {
               'fade-in': 'fadeIn 0.5s ease-out',
-              'fade-in-up': 'fadeInUp 0.5s ease-out',
             },
             keyframes: {
               fadeIn: {
                 '0%': { opacity: '0' },
                 '100%': { opacity: '1' },
-              },
-              fadeInUp: {
-                '0%': { opacity: '0', transform: 'translateY(20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
               }
             }
           }
