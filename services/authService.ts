@@ -55,7 +55,6 @@ export const subscribeToAuth = (callback: (user: User | null) => void) => {
 };
 
 export const createGuestUser = (uid?: string): User => {
-    // Fake Firebase User Object for Guest
     return {
         uid: uid || ('guest_' + Math.random().toString(36).substr(2, 9)),
         displayName: 'Misafir Kullanıcı',

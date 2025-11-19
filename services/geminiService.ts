@@ -1,28 +1,32 @@
 import { GoogleGenAI } from "@google/genai";
 import { Transaction } from "../types";
 
-// Initialize Gemini Client
-// NOTE: process.env.API_KEY is injected by the environment.
-// In a real production app, consider using a backend proxy to hide the key.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
 
-const MODEL_NAME = 'gemini-2.5-flash';
+if (!apiKey) {
+    console.error("VITE_GEMINI_API_KEY tanımlı değil. .env.local dosyanı kontrol et.");
+}
+
+const ai = new GoogleGenAI({ apiKey });
+
+const MODEL_NAME = "gemini-2.5-flash";
 
 export const analyzeFinances = async (transactions: Transaction[]): Promise<string> => {
-  if (transactions.length === 0) {
-    return "Analiz için yeterli veri yok. Lütfen önce birkaç harcama veya gelir ekleyin.";
-  }
+    if (transactions.length === 0) {
+        return "Analiz için yeterli veri yok. Lütfen önce birkaç harcama veya gelir ekleyin.";
+    }
 
-  // Prepare data for the model
-  const dataSummary = JSON.stringify(transactions.map(t => ({
-    date: t.date,
-    type: t.type,
-    category: t.category,
-    amount: t.amount,
-    desc: t.description
-  })));
+    const dataSummary = JSON.stringify(
+        transactions.map((t) => ({
+            date: t.date,
+            type: t.type,
+            category: t.category,
+            amount: t.amount,
+            desc: t.description,
+        }))
+    );
 
-  const prompt = `
+    const prompt = `
     Sen uzman bir finans danışmanısın. Aşağıdaki JSON formatındaki işlem geçmişini analiz et.
     
     Veri:
@@ -37,26 +41,26 @@ export const analyzeFinances = async (transactions: Transaction[]): Promise<stri
     Cevabı Markdown formatında ver.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-      }
-    });
-    
-    return response.text || "Analiz oluşturulamadı.";
-  } catch (error) {
-    console.error("Gemini AI Error:", error);
-    return "Üzgünüm, şu anda yapay zeka servisine ulaşılamıyor. Lütfen API anahtarınızı kontrol edin veya daha sonra tekrar deneyin.";
-  }
+    try {
+        const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: prompt,
+            config: {
+                temperature: 0.7,
+            },
+        });
+
+        return response.text || "Analiz oluşturulamadı.";
+    } catch (error) {
+        console.error("Gemini AI Error:", error);
+        return "Üzgünüm, şu anda yapay zeka servisine ulaşılamıyor. Lütfen API anahtarınızı kontrol edin veya daha sonra tekrar deneyin.";
+    }
 };
 
 export const askFinancialAdvisor = async (history: Transaction[], question: string): Promise<string> => {
-  const context = JSON.stringify(history.slice(-20)); // Last 20 transactions for context
-  
-  const prompt = `
+    const context = JSON.stringify(history.slice(-20)); // Last 20 transactions for context
+
+    const prompt = `
     Aşağıda kullanıcının son finansal işlemleri bulunmaktadır:
     ${context}
 
@@ -65,14 +69,14 @@ export const askFinancialAdvisor = async (history: Transaction[], question: stri
     Bu verilere dayanarak, bir finans uzmanı gibi samimi ve yardımsever bir dille Türkçe cevap ver.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-    });
-    return response.text || "Cevap oluşturulamadı.";
-  } catch (error) {
-    console.error(error);
-    return "Bir hata oluştu.";
-  }
+    try {
+        const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: prompt,
+        });
+        return response.text || "Cevap oluşturulamadı.";
+    } catch (error) {
+        console.error(error);
+        return "Bir hata oluştu.";
+    }
 };
