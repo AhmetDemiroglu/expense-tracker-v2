@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./logo/logo2.png" alt="Fintel Logo" width="160" />
+  <img src="./logo/logo2.png" alt="Fintel Logo" width="250" />
 </div>
 
 # **FINTEL – Akıllı Finans Asistanı**
@@ -28,7 +28,7 @@ Bu proje, **Gemini tarafından otomatik oluşturulan V1 uygulamasının**, tamam
 
 Arayüz, kullanıcı deneyimi, Nova entegrasyonu, sohbet sistemi, dönem hesaplama mantığı, AI prompt mimarisi ve tüm iş akışları **manüel olarak yeniden tasarlanmıştır**.
 
-> Bu repo, "AI + Human Vibe" yaklaşımının başarılı bir örneğidir.
+> Bu repo, "AI + Human Vibe" yaklaşımının bir örneğidir.
 
 ---
 
@@ -63,7 +63,7 @@ Arayüz, kullanıcı deneyimi, Nova entegrasyonu, sohbet sistemi, dönem hesapla
 ## **📁 Kısaltılmış Proje Yapısı**
 
 ```txt
-src/
+main/
  ├─ components/
  │   ├─ AIAdvisor.tsx
  │   ├─ Dashboard.tsx
@@ -77,16 +77,13 @@ src/
  │   └─ firestoreService.ts
  ├─ types/
  ├─ App.tsx
- └─ main.tsx
-
-public/
- ├─ favicon.ico
+ └─ index.tsx
  └─ logo/
-      ├─ logo1.png
-      └─ logo2.png
-```
+     ├─ favicon.ico
+     ├─ logo1.png
+     └─ logo2.png
 
----
+```
 
 ## **🚀 Uygulamayı Çalıştırma**
 
