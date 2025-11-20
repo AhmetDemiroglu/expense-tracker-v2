@@ -2,13 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { Transaction, UserSettings } from "../types";
 import { analyzeFinances, askFinancialAdvisor } from "../services/geminiService";
 import ReactMarkdown from "react-markdown";
+import { User } from "firebase/auth";
 
 interface AIAdvisorProps {
     transactions: Transaction[];
     userSettings: UserSettings;
+    user: User;
 }
 
-export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings }) => {
+export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
+    const userName = user.displayName || user.email?.split("@")[0] || "Değerli Kullanıcı";
     const [analysis, setAnalysis] = useState<string | null>(() => {
         return sessionStorage.getItem("nova_analysis");
     });
@@ -73,7 +76,8 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setLoading(true);
         setAnalysis(null);
         try {
-            const result = await analyzeFinances(transactions, userSettings);
+            // userName parametresi eklendi
+            const result = await analyzeFinances(transactions, userSettings, userName);
             setAnalysis(result);
         } catch (error) {
             setAnalysis("Üzgünüm, şu an analiz yapamıyorum. Lütfen daha sonra tekrar dene.");
@@ -92,7 +96,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setLoading(true);
 
         try {
-            const response = await askFinancialAdvisor(transactions, userSettings, userQ);
+            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName);
             setChatHistory((prev) => [...prev, { role: "ai", text: response }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);

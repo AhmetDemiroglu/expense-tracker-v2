@@ -415,7 +415,7 @@ const App: React.FC = () => {
 
                             {activeTab === "ai" && userSettings && (
                                 <div className="animate-fade-in h-[calc(100vh-200px)] min-h-[500px]">
-                                    <AIAdvisor transactions={transactions} userSettings={userSettings} />
+                                    <AIAdvisor transactions={transactions} userSettings={userSettings} user={user} />
                                 </div>
                             )}
                         </Suspense>

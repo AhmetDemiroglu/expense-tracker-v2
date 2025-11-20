@@ -11,17 +11,15 @@ const ai = new GoogleGenAI({ apiKey });
 const MODEL_NAME = "gemini-2.0-flash";
 
 // Yardımcı: İşlemleri ve DÖNEM BİLGİSİNİ özetle
-const summarizeContext = (transactions: Transaction[], settings: UserSettings) => {
+const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string) => {
     // 1. Dönem Hesaplamaları
     const start = new Date(settings.periodStartDate);
     const end = new Date(settings.periodEndDate);
     const now = new Date();
 
-    // Kalan gün
     const diffTime = Math.abs(end.getTime() - now.getTime());
     const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Bakiye Durumu
     const txIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
     const txExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
 
@@ -48,6 +46,11 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings) =
         .join("\n");
 
     return `
+    KULLANICI PROFİLİ:
+    - İsim: ${userName}
+    - HİTAP KURALI: Kullanıcıya ASLA "Bey", "Hanım" veya "Sayın" diye hitap etme. Sadece ismiyle hitap et.
+    - TON: Çok samimi, esprili ve yakın bir arkadaş gibi konuş. Resmiyet kesinlikle yasak.
+    
     AKTİF DÖNEM BİLGİLERİ (Kullanıcının Bütçe Çerçevesi):
     - Dönem Adı: ${settings.periodName}
     - Tarih Aralığı: ${settings.periodStartDate} ile ${settings.periodEndDate} arasında.
@@ -68,8 +71,8 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings) =
   `;
 };
 
-export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings): Promise<string> => {
-    const summary = summarizeContext(transactions, settings);
+export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string): Promise<string> => {
+    const summary = summarizeContext(transactions, settings, userName);
 
     const prompt = `
     Sen "Nova" adında, arkadaş canlısı, samimi ve uzman bir finans asistanısın.
@@ -106,8 +109,8 @@ export const analyzeFinances = async (transactions: Transaction[], settings: Use
     }
 };
 
-export const askFinancialAdvisor = async (transactions: Transaction[], settings: UserSettings, question: string): Promise<string> => {
-    const summary = summarizeContext(transactions, settings);
+export const askFinancialAdvisor = async (transactions: Transaction[], settings: UserSettings, question: string, userName: string): Promise<string> => {
+    const summary = summarizeContext(transactions, settings, userName);
 
     const prompt = `
     Sen Nova. Kullanıcının samimi finans asistanısın.

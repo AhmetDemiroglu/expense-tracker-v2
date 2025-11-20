@@ -179,9 +179,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user, 
                     {/* User Footer */}
                     <div className="p-4 border-t border-slate-800 bg-slate-900/50">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-white">{user.email ? user.email[0].toUpperCase() : "M"}</div>
+                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs text-white font-bold">
+                                {user.displayName ? user.displayName[0].toUpperCase() : user.email ? user.email[0].toUpperCase() : "M"}
+                            </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white truncate">{user.isAnonymous ? "Misafir Kullanıcı" : user.email}</p>
+                                <p className="text-sm font-medium text-white truncate">{user.displayName || (user.isAnonymous ? "Misafir Kullanıcı" : user.email)}</p>
+                                {user.displayName && !user.isAnonymous && <p className="text-[10px] text-slate-500 truncate">{user.email}</p>}
                             </div>
                         </div>
                         <button
