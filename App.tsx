@@ -224,7 +224,7 @@ const App: React.FC = () => {
                         <div>
                             <h2 className="text-2xl font-bold text-white capitalize">
                                 {activeTab === "ai"
-                                    ? "AI Finans Uzmanı"
+                                    ? "Nova AI"
                                     : activeTab === "calendar"
                                     ? "Takvim Yönetimi"
                                     : activeTab === "settings"
@@ -235,8 +235,21 @@ const App: React.FC = () => {
                                     ? "Dönem Geçmişi"
                                     : "İşlem Listesi"}
                             </h2>
-                            <p className="text-slate-400 text-sm">Hoş geldin, finansal hedeflerine bugün bir adım daha yaklaş.</p>
+                            <p className="text-slate-400 text-sm">
+                                {activeTab === "ai"
+                                    ? "Akıllı finans asistanın Nova burada. Harcamalarını analiz eder, sorularını yanıtlar ve sana özel öneriler üretir."
+                                    : activeTab === "calendar"
+                                    ? "Harcamalarını gün gün takip edebilir, belirli tarihlere hızlıca işlem ekleyebilirsin."
+                                    : activeTab === "settings"
+                                    ? "Aylık bütçeni, sabit giderlerini ve finansal hedeflerini burada belirle. Nova buna göre hesaplamalarını optimize eder."
+                                    : activeTab === "dashboard"
+                                    ? "Finansal durumunun hızlı bir özeti burada. Bugünkü limitin ve dönem performansın tamamen senin kontrolünde."
+                                    : activeTab === "history"
+                                    ? "Geçmiş dönem performansını analiz ederek bütçe alışkanlıklarını daha iyi yönetebilirsin."
+                                    : "Tüm gelir ve gider kayıtların burada listeleniyor. Dilersen düzenleyebilir veya silebilirsin."}
+                            </p>
                         </div>
+
                         <div className="flex items-center gap-4">
                             {/* Limit göstergesi sadece Dashboard/Calendar'da kalsın */}
                             {userSettings && (activeTab === "dashboard" || activeTab === "calendar") && (
@@ -325,7 +338,7 @@ const App: React.FC = () => {
                                 <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
                                         <p className="text-indigo-200 text-sm font-medium mb-1">
-                                            Aktif Dönem:{" "}
+                                            Aktif Dönem:
                                             <span className="text-white font-bold">
                                                 {stats.cycleStartDate} - {stats.cycleEndDate}
                                             </span>
@@ -344,8 +357,12 @@ const App: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-
-                                <Dashboard transactions={transactions} stats={stats} />
+                                <Dashboard
+                                    transactions={transactions}
+                                    stats={stats}
+                                    userId={user.uid}
+                                    userSettings={userSettings}
+                                />
                             </div>
                         )}
 
