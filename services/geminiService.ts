@@ -8,7 +8,7 @@ if (!apiKey) {
 }
 
 const ai = new GoogleGenAI({ apiKey });
-const MODEL_NAME = "gemini-2.0-flash";
+const MODEL_NAME = "gemini-2.5-flash";
 
 // Yardımcı: İşlemleri ve DÖNEM BİLGİSİNİ özetle
 const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string) => {
