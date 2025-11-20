@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { User } from "firebase/auth";
+import { User, updateProfile } from "firebase/auth";
 import { updateUserPassword, setInitialPassword } from "../services/authService";
-
+import { useToast } from "../context/ToastContext";
 interface AccountSettingsProps {
     user: User;
 }
@@ -10,27 +10,42 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const { showToast } = useToast();
+    const [displayName, setDisplayName] = useState(user.displayName || "");
+    const [loadingProfile, setLoadingProfile] = useState(false);
 
     const isPasswordSet = user.providerData.some((p) => p.providerId === "password");
 
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!displayName.trim()) return;
+
+        setLoadingProfile(true);
+        try {
+            await updateProfile(user, { displayName: displayName });
+            showToast("Profil bilgileri güncellendi.", "success");
+        } catch (error) {
+            showToast("Profil güncellenirken hata oluştu.", "error");
+        } finally {
+            setLoadingProfile(false);
+        }
+    };
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPassword.length < 6) {
-            setMessage({ type: "error", text: "Yeni şifre en az 6 karakter olmalıdır." });
+            showToast("Yeni şifre en az 6 karakter olmalıdır.", "warning");
             return;
         }
 
         setLoading(true);
-        setMessage(null);
 
         try {
             if (isPasswordSet) {
                 await updateUserPassword(currentPassword, newPassword);
-                setMessage({ type: "success", text: "Şifreniz başarıyla güncellendi." });
+                showToast("Şifreniz başarıyla güncellendi.", "success");
             } else {
                 await setInitialPassword(newPassword);
-                setMessage({ type: "success", text: "Şifreniz oluşturuldu. Artık e-posta ve şifrenizle de giriş yapabilirsiniz." });
+                showToast("Şifreniz oluşturuldu.", "success");
             }
 
             setCurrentPassword("");
@@ -38,15 +53,15 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
         } catch (error: any) {
             console.error(error);
             if (error.code === "auth/wrong-password") {
-                setMessage({ type: "error", text: "Mevcut şifrenizi yanlış girdiniz." });
+                showToast("Mevcut şifrenizi yanlış girdiniz.", "error");
             } else if (error.code === "auth/too-many-requests") {
-                setMessage({ type: "error", text: "Çok fazla deneme yaptınız, lütfen bekleyin." });
+                showToast("Çok fazla deneme yaptınız, lütfen bekleyin.", "warning");
             } else if (error.code === "auth/requires-recent-login") {
-                setMessage({ type: "error", text: "Güvenlik gereği yeniden giriş yapmanız gerekiyor." });
+                showToast("Güvenlik gereği yeniden giriş yapmanız gerekiyor.", "error");
             } else if (error.code === "auth/popup-closed-by-user") {
-                setMessage({ type: "error", text: "İşlem iptal edildi." });
+                showToast("İşlem iptal edildi.", "info");
             } else {
-                setMessage({ type: "error", text: "İşlem başarısız oldu. Lütfen tekrar deneyin." });
+                showToast("İşlem başarısız oldu. Lütfen tekrar deneyin.", "error");
             }
         } finally {
             setLoading(false);
@@ -85,6 +100,35 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
                 </div>
             </div>
 
+            {/* İsim Güncelleme Formu */}
+            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profil Bilgileri
+                </h3>
+                <form onSubmit={handleProfileUpdate} className="flex gap-3 items-end">
+                    <div className="flex-1">
+                        <label className="block text-xs font-medium text-slate-400 mb-1">Ad Soyad</label>
+                        <input
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder="Adınız Soyadınız"
+                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-600"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loadingProfile || !displayName.trim() || displayName === user.displayName}
+                        className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loadingProfile ? "..." : "Kaydet"}
+                    </button>
+                </form>
+            </div>
+
             {/* Şifre Formu */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <h3 className="text-white font-bold mb-4 flex items-center gap-2">
@@ -93,16 +137,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
                     </svg>
                     {isPasswordSet ? "Şifre Değiştir" : "Şifre Oluştur"}
                 </h3>
-
-                {message && (
-                    <div
-                        className={`p-3 mb-4 rounded-lg text-sm ${
-                            message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                        }`}
-                    >
-                        {message.text}
-                    </div>
-                )}
 
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     {/* Sadece şifresi varsa mevcut şifreyi sor */}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { loginWithGoogle, loginWithEmail, registerWithEmail, createGuestUser, resetPassword } from "../services/authService";
+import { useToast } from "../context/ToastContext";
 import logo1 from "../logo/logo1.png";
 
 interface AuthModalProps {
@@ -10,23 +11,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
     const [mode, setMode] = useState<"login" | "register" | "reset">("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [info, setInfo] = useState("");
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
 
     const handlePasswordReset = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
-        setInfo("");
         setLoading(true);
 
         try {
             await resetPassword(email);
-            setInfo("Sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin.");
+            showToast("Sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin.", "success");
             setTimeout(() => setMode("login"), 3000);
         } catch (err: any) {
-            if (err.code === "auth/user-not-found") setError("Bu e-posta ile kayıtlı kullanıcı bulunamadı.");
-            else setError("İşlem başarısız. Lütfen tekrar deneyin.");
+            if (err.code === "auth/user-not-found") showToast("Bu e-posta ile kayıtlı kullanıcı bulunamadı.", "error");
+            else showToast("İşlem başarısız. Lütfen tekrar deneyin.", "error");
         } finally {
             setLoading(false);
         }
@@ -36,11 +34,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
         try {
             setLoading(true);
             await loginWithGoogle();
+            // Başarılı girişte bir şey yapmaya gerek yok, listener halleder.
         } catch (err: any) {
             if (err.code === "auth/unauthorized-domain") {
-                setError(`Domain yetkilendirme hatası! ${window.location.hostname} adresini Firebase'e ekleyin.`);
+                showToast(`Domain yetkilendirme hatası! ${window.location.hostname} adresini Firebase'e ekleyin.`, "error");
+            } else if (err.code === "auth/popup-closed-by-user") {
+                showToast("Giriş işlemi iptal edildi.", "info");
             } else {
-                setError("Google ile giriş başarısız.");
+                showToast("Google ile giriş başarısız.", "error");
             }
             setLoading(false);
         }
@@ -48,14 +49,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
-        setInfo("");
         setLoading(true);
 
         try {
             if (mode === "register") {
                 await registerWithEmail(email, password);
-                setInfo("Kayıt başarılı! Hesabınız oluşturuldu. Lütfen giriş yapın.");
+                showToast("Kayıt başarılı! Hesabınız oluşturuldu. Lütfen giriş yapın.", "success");
                 setMode("login");
                 setPassword("");
             } else {
@@ -64,15 +63,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
         } catch (err: any) {
             console.error("Auth Hatası:", err);
             if (err.code === "auth/email-already-in-use") {
-                setError("Bu e-posta adresi zaten kullanımda.");
+                showToast("Bu e-posta adresi zaten kullanımda.", "warning");
             } else if (err.code === "auth/invalid-email") {
-                setError("Geçersiz e-posta formatı.");
+                showToast("Geçersiz e-posta formatı.", "warning");
             } else if (err.code === "auth/weak-password") {
-                setError("Şifre çok zayıf (en az 6 karakter olmalı).");
+                showToast("Şifre çok zayıf (en az 6 karakter olmalı).", "warning");
             } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-                setError("E-posta veya şifre hatalı.");
+                showToast("E-posta veya şifre hatalı.", "error");
             } else {
-                setError("Giriş yapılamadı. Lütfen tekrar deneyin.");
+                showToast("Giriş yapılamadı. Lütfen tekrar deneyin.", "error");
             }
         } finally {
             setLoading(false);
@@ -108,8 +107,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                         <button
                             onClick={() => {
                                 setMode("login");
-                                setError("");
-                                setInfo("");
                             }}
                             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "login" ? "bg-slate-700 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
                         >
@@ -118,8 +115,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                         <button
                             onClick={() => {
                                 setMode("register");
-                                setError("");
-                                setInfo("");
                             }}
                             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "register" ? "bg-slate-700 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
                         >
@@ -127,9 +122,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                         </button>
                     </div>
                 )}
-
-                {error && <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm text-center">{error}</div>}
-                {info && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm text-center">{info}</div>}
 
                 {mode === "reset" ? (
                     <form onSubmit={handlePasswordReset} className="space-y-4 animate-fade-in">
@@ -154,7 +146,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                             type="button"
                             onClick={() => {
                                 setMode("login");
-                                setError("");
                             }}
                             className="w-full text-slate-400 hover:text-white text-sm font-medium transition-colors"
                         >
@@ -191,8 +182,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                                     type="button"
                                     onClick={() => {
                                         setMode("reset");
-                                        setError("");
-                                        setInfo("");
                                     }}
                                     className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                                 >

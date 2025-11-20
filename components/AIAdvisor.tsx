@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Transaction } from "../types";
+import { Transaction, UserSettings } from "../types";
 import { analyzeFinances, askFinancialAdvisor } from "../services/geminiService";
 import ReactMarkdown from "react-markdown";
 
 interface AIAdvisorProps {
     transactions: Transaction[];
+    userSettings: UserSettings;
 }
 
-export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
+export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings }) => {
     const [analysis, setAnalysis] = useState<string | null>(() => {
         return sessionStorage.getItem("nova_analysis");
     });
@@ -38,12 +39,29 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatHistory, analysis]);
 
-    // Hızlı İstatistikler (Context Paneli İçin)
-    const totalExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
-    const totalIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatHistory, analysis]);
+
+    // --- İSTATİSTİKLER ---
+    // 1. İşlem Toplamları
+    const txIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+    const txExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+
+    // 2. Genel Toplam (Sabitler Dahil)
+    const totalIncome = txIncome + userSettings.monthlyIncome;
+    const totalExpense = txExpense + userSettings.fixedExpenses;
+
+    // 3. Dönem Bilgisi
+    const endDate = new Date(userSettings.periodEndDate);
+    const now = new Date();
+    const diffTime = endDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const displayDays = daysRemaining < 0 ? 0 : daysRemaining;
+
     const transactionCount = transactions.length;
 
-    // En çok harcama yapılan kategori
+    // 4. Kategori Analizi
     const expenses = transactions.filter((t) => t.type === "expense");
     const categoryTotals = expenses.reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
@@ -53,9 +71,9 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
 
     const handleAnalyze = async () => {
         setLoading(true);
-        setAnalysis(null); // Önceki analizi temizle
+        setAnalysis(null);
         try {
-            const result = await analyzeFinances(transactions);
+            const result = await analyzeFinances(transactions, userSettings);
             setAnalysis(result);
         } catch (error) {
             setAnalysis("Üzgünüm, şu an analiz yapamıyorum. Lütfen daha sonra tekrar dene.");
@@ -71,11 +89,10 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
         const userQ = question;
         setQuestion("");
         setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
-        setLoading(true); // Chat için loading state'i ortak kullanıyoruz
+        setLoading(true);
 
         try {
-            // Geçici "yazıyor..." mesajı eklenebilir ama loading spinner yeterli
-            const response = await askFinancialAdvisor(transactions, userQ);
+            const response = await askFinancialAdvisor(transactions, userSettings, userQ);
             setChatHistory((prev) => [...prev, { role: "ai", text: response }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);
@@ -86,33 +103,53 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
 
     return (
         <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
-            {/* SOL PANEL: Context & Özet */}
-            <div className="lg:w-1/3 bg-slate-900/50 rounded-2xl border border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+            {/* SOL PANEL */}
+            <div className="lg:w-1/3 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                        <span className="text-xl">🤖</span> Nova Ne Görüyor?
+                        <span className="text-2xl">🤖</span> Nova Ne Görüyor?
                     </h3>
+
                     <div className="space-y-3">
-                        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                            <p className="text-xs text-slate-400">Analiz Edilen İşlem</p>
-                            <p className="text-xl font-bold text-white">{transactionCount} Adet</p>
+                        {/* Dönem Bilgisi Kartı */}
+                        <div className="bg-indigo-900/20 rounded-xl p-4 border border-indigo-500/30">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-xs text-indigo-300 uppercase font-bold">Aktif Dönem</span>
+                                <span className="text-xs text-indigo-200 bg-indigo-500/20 px-2 py-0.5 rounded">{displayDays} Gün Kaldı</span>
+                            </div>
+                            <p className="text-white font-bold">{userSettings.periodName}</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                {new Date(userSettings.periodStartDate).toLocaleDateString("tr-TR")} - {new Date(userSettings.periodEndDate).toLocaleDateString("tr-TR")}
+                            </p>
                         </div>
+
+                        {/* İşlem Sayısı */}
+                        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex justify-between items-center">
+                            <span className="text-xs text-slate-400">Analiz Edilen İşlem</span>
+                            <span className="text-xl font-bold text-white">{transactionCount} Adet</span>
+                        </div>
+
+                        {/* Gelir / Gider (Sabitler Dahil) */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                                <p className="text-xs text-slate-400">Gelir</p>
-                                <p className="text-emerald-400 font-bold">+{totalIncome.toLocaleString()}₺</p>
+                                <p className="text-xs text-slate-400 mb-1">Toplam Gelir</p>
+                                <p className="text-emerald-400 font-bold text-sm">+{totalIncome.toLocaleString()}₺</p>
+                                <span className="text-[9px] text-slate-500 block mt-0.5">(Maaş Dahil)</span>
                             </div>
                             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                                <p className="text-xs text-slate-400">Gider</p>
-                                <p className="text-rose-400 font-bold">-{totalExpense.toLocaleString()}₺</p>
+                                <p className="text-xs text-slate-400 mb-1">Toplam Gider</p>
+                                <p className="text-rose-400 font-bold text-sm">-{totalExpense.toLocaleString()}₺</p>
+                                <span className="text-[9px] text-slate-500 block mt-0.5">(Sabitler Dahil)</span>
                             </div>
                         </div>
+
+                        {/* Kategori */}
                         {topCategory && (
-                            <div className="bg-indigo-900/20 rounded-xl p-4 border border-indigo-500/30">
-                                <p className="text-xs text-indigo-300">En Çok Harcama</p>
+                            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                                <p className="text-xs text-slate-400 mb-1">En Çok Harcama</p>
                                 <div className="flex justify-between items-end">
-                                    <p className="text-white font-bold">{topCategory[0]}</p>
-                                    <p className="text-indigo-400 font-bold">{topCategory[1].toLocaleString()}₺</p>
+                                    <p className="text-white font-bold text-sm">{topCategory[0]}</p>
+                                    <p className="text-rose-400 font-bold text-sm">{topCategory[1].toLocaleString()}₺</p>
                                 </div>
                             </div>
                         )}
@@ -146,7 +183,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions }) => {
             {/* SAĞ PANEL: Chat & Rapor */}
             <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl">
                 {/* Mesaj Alanı */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-900/30">
+                <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-slate-900/30">
                     {/* Karşılama / Boş State */}
                     {!analysis && chatHistory.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-60">

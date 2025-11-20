@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { User } from "firebase/auth";
-import { UserSettings, Transaction } from "../types";
-import { calculateHistorySummaries } from "../services/storageService";
+import { UserSettings, Transaction, BudgetPeriod } from "../types";
+import { calculateHistorySummaries, fetchBudgetPeriods } from "../services/storageService";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import logo1 from "../logo/logo1.png";
@@ -21,12 +21,17 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user, userSettings, transactions, onLogout, onDateSelect, isOpen, onClose }) => {
-    // Geçmiş dönemleri hesapla
-    const historyCycles = useMemo(() => {
-        if (!userSettings) return [];
-        return calculateHistorySummaries(transactions, userSettings);
-    }, [transactions, userSettings]);
+    const [periods, setPeriods] = useState<BudgetPeriod[]>([]);
 
+    useEffect(() => {
+        if (user && user.uid) {
+            fetchBudgetPeriods(user.uid).then(setPeriods);
+        }
+    }, [user]);
+
+    const historyCycles = useMemo(() => {
+        return calculateHistorySummaries(transactions, periods);
+    }, [transactions, periods]);
     const menuItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
         {
             id: "dashboard",
@@ -153,16 +158,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user, 
                                             key={cycle.id}
                                             onClick={() => {
                                                 onTabChange("calendar");
-                                                // Parse start date string to Date object
-                                                const [day, month, year] = cycle.startDate.split(".");
-                                                const date = new Date(Number(year), Number(month) - 1, Number(day));
+                                                const date = new Date(cycle.startDate);
                                                 onDateSelect(date);
                                                 onClose();
                                             }}
-                                            className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors group"
+                                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors group text-left"
                                         >
-                                            <span>{cycle.startDate}</span>
-                                            <span className={`w-2 h-2 rounded-full ${cycle.balance >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className="font-medium text-slate-300 truncate">{cycle.name}</span>
+                                                <span className="text-[10px] text-slate-600 group-hover:text-slate-500">{cycle.startDate}</span>
+                                            </div>
+                                            <span className={`w-2 h-2 shrink-0 rounded-full ${cycle.balance >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}></span>
                                         </button>
                                     ))}
                                 </div>

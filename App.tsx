@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Transaction, DashboardStats, UserSettings } from "./types";
 import { fetchTransactions, addTransaction, deleteTransaction, deleteGuestTransaction, saveUserSettings, getUserSettings } from "./services/storageService";
 import { logout, subscribeToAuth, createGuestUser } from "./services/authService";
-import { Dashboard } from "./components/Dashboard";
-import { TransactionList } from "./components/TransactionList";
+const Dashboard = React.lazy(() => import("./components/Dashboard").then((module) => ({ default: module.Dashboard })));
+const TransactionList = React.lazy(() => import("./components/TransactionList").then((module) => ({ default: module.TransactionList })));
 import { TransactionForm } from "./components/TransactionForm";
-import { AIAdvisor } from "./components/AIAdvisor";
+const AIAdvisor = React.lazy(() => import("./components/AIAdvisor").then((module) => ({ default: module.AIAdvisor })));
 import { CalendarView } from "./components/CalendarView";
-import { BudgetPlanner } from "./components/BudgetPlanner";
+const BudgetPlanner = React.lazy(() => import("./components/BudgetPlanner").then((module) => ({ default: module.BudgetPlanner })));
 import { AuthModal } from "./components/AuthModal";
-import { HistoryView } from "./components/HistoryView";
+const HistoryView = React.lazy(() => import("./components/HistoryView").then((module) => ({ default: module.HistoryView })));
 import { Sidebar } from "./components/Sidebar";
 import { User } from "firebase/auth";
 import logo1 from "./logo/logo1.png";
 import { AccountSettings } from "./components/AccountSettings";
+import { startOfDay, differenceInCalendarDays, parseISO } from "date-fns";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
@@ -82,44 +83,42 @@ const App: React.FC = () => {
                 cycleEndDate: "",
             };
 
-        // USER SETTINGS'DEN GELEN MANUEL TARİHLERİ KULLAN
         const start = new Date(userSettings.periodStartDate);
         const end = new Date(userSettings.periodEndDate);
         const now = new Date();
+        const todayStart = startOfDay(now);
 
-        // Sadece bu tarih aralığındaki işlemleri filtrele
         const cycleTxs = transactions.filter((t) => {
-            const tDate = new Date(t.date);
-            // Tarih karşılaştırması için saatleri sıfırla
-            const tTime = new Date(tDate.getFullYear(), tDate.getMonth(), tDate.getDate()).getTime();
-            const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-            const endTime = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
-            return tTime >= startTime && tTime <= endTime;
+            const tDate = parseISO(t.date);
+            return tDate >= startOfDay(start) && tDate <= end;
         });
 
-        const totalExpense = cycleTxs.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
-        const totalIncome = cycleTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+        const txExpense = cycleTxs.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+        const txIncome = cycleTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
 
-        const netBaseIncome = userSettings.monthlyIncome - userSettings.fixedExpenses;
-        const totalAvailableBudget = netBaseIncome + totalIncome;
-        const balance = totalAvailableBudget - totalExpense;
+        const totalIncome = txIncome + userSettings.monthlyIncome;
+        const totalExpense = txExpense + userSettings.fixedExpenses;
+        const balance = totalIncome - totalExpense;
 
-        const oneDay = 24 * 60 * 60 * 1000;
-        // Bugün dahil kalan gün
-        let daysRemaining = Math.ceil((end.getTime() - now.getTime()) / oneDay);
+        const txExpenseBeforeToday = cycleTxs.filter((t) => t.type === "expense" && parseISO(t.date) < todayStart).reduce((acc, t) => acc + t.amount, 0);
+        const disposableIncome = totalIncome - userSettings.fixedExpenses;
+
+        const budgetAtStartOfDay = disposableIncome - txExpenseBeforeToday;
+
+        let daysRemaining = differenceInCalendarDays(end, now) + 1;
+
         if (daysRemaining < 0) daysRemaining = 0;
-        if (now.getTime() < start.getTime()) {
-            // Dönem henüz başlamadıysa tüm süreyi göster
-            daysRemaining = Math.ceil((end.getTime() - start.getTime()) / oneDay);
+        if (now < start) {
+            daysRemaining = differenceInCalendarDays(end, start) + 1;
         }
 
         const safeDays = daysRemaining === 0 ? 1 : daysRemaining;
-        const dailyLimit = balance / safeDays;
+        const dailyLimit = budgetAtStartOfDay / safeDays;
 
         return {
-            totalIncome: totalIncome + userSettings.monthlyIncome,
-            totalExpense: totalExpense + userSettings.fixedExpenses,
-            balance: balance,
+            totalIncome,
+            totalExpense,
+            balance,
             dailyLimit,
             daysRemaining,
             cycleStartDate: start.toLocaleDateString("tr-TR"),
@@ -290,122 +289,136 @@ const App: React.FC = () => {
 
                     {/* Tab Content */}
                     <div className="pb-20 md:pb-0">
-                        {activeTab === "settings" && (
-                            <div className="animate-fade-in max-w-4xl mx-auto space-y-6 pb-12">
-                                {/* 1. BÖLÜM: Bütçe Planlaması */}
-                                <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden" open>
-                                    <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                                        <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                            <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
-                                            Bütçe Planlaması
-                                        </h2>
-                                        <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </summary>
-                                    <div className="p-6 border-t border-slate-800 animate-fade-in">
-                                        <BudgetPlanner
-                                            userId={user.uid}
-                                            currentSettings={userSettings}
-                                            onSave={(newSettings) => {
-                                                setUserSettings(newSettings);
-                                            }}
-                                        />
-                                    </div>
-                                </details>
-
-                                {/* 2. BÖLÜM: Hesap Güvenliği */}
-                                <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                                    <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                                        <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                            <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
-                                            Hesap Güvenliği
-                                        </h2>
-                                        <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </summary>
-                                    <div className="p-6 border-t border-slate-800 animate-fade-in">
-                                        <AccountSettings user={user} />
-                                    </div>
-                                </details>
-                            </div>
-                        )}
-
-                        {activeTab === "dashboard" && userSettings && (
-                            <div className="animate-fade-in space-y-6">
-                                {/* Motivation Banner */}
-                                <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-indigo-200 text-sm font-medium mb-1">
-                                            Aktif Dönem:
-                                            <span className="text-white font-bold">
-                                                {stats.cycleStartDate} - {stats.cycleEndDate}
-                                            </span>
-                                        </p>
-                                        <p className="text-white font-bold text-lg md:text-xl">
-                                            Dönem bitişine <span className="text-indigo-400">{stats.daysRemaining} gün</span> kaldı.
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700">
-                                        <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl ${stats.balance >= 0 ? "bg-indigo-600" : "bg-rose-600"}`}>
-                                            {stats.balance >= 0 ? "🎯" : "🚨"}
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-400">Kalan Bütçe</p>
-                                            <p className={`font-bold ${stats.balance >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{stats.balance.toLocaleString()} ₺</p>
-                                        </div>
-                                    </div>
+                        <Suspense
+                            fallback={
+                                <div className="flex items-center justify-center h-64">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
                                 </div>
-                                <Dashboard
-                                    transactions={transactions}
-                                    stats={stats}
-                                    userId={user.uid}
-                                    userSettings={userSettings}
-                                />
-                            </div>
-                        )}
+                            }
+                        >
+                            {activeTab === "settings" && (
+                                <div className="animate-fade-in max-w-4xl mx-auto space-y-6 pb-12">
+                                    {/* 1. BÖLÜM: Bütçe Planlaması */}
+                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden" open>
+                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+                                                Bütçe Planlaması
+                                            </h2>
+                                            <svg
+                                                className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </summary>
+                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                            <BudgetPlanner
+                                                userId={user.uid}
+                                                currentSettings={userSettings}
+                                                onSave={(newSettings) => {
+                                                    setUserSettings(newSettings);
+                                                }}
+                                            />
+                                        </div>
+                                    </details>
 
-                        {activeTab === "calendar" && userSettings && (
-                            <div className="animate-fade-in max-w-4xl mx-auto">
-                                <CalendarView
-                                    currentDate={currentDate}
-                                    onChangeMonth={setCurrentDate}
-                                    transactions={transactions}
-                                    settings={userSettings}
-                                    onAddTransaction={(date) => {
-                                        setFormInitialDate(date);
-                                        setIsFormOpen(true);
-                                    }}
-                                    onDeleteTransaction={handleDeleteTransaction}
-                                />
-                            </div>
-                        )}
+                                    {/* 2. BÖLÜM: Hesap Güvenliği */}
+                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
+                                                Hesap Güvenliği
+                                            </h2>
+                                            <svg
+                                                className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </summary>
+                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                            <AccountSettings user={user} />
+                                        </div>
+                                    </details>
+                                </div>
+                            )}
 
-                        {activeTab === "history" && userSettings && (
-                            <div className="animate-fade-in max-w-4xl mx-auto">
-                                <HistoryView
-                                    transactions={transactions}
-                                    settings={userSettings}
-                                    onSelectCycle={(startDate) => {
-                                        setCurrentDate(startDate);
-                                        setActiveTab("calendar");
-                                    }}
-                                />
-                            </div>
-                        )}
+                            {activeTab === "dashboard" && userSettings && (
+                                <div className="animate-fade-in space-y-6">
+                                    {/* Motivation Banner */}
+                                    <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-indigo-200 text-sm font-medium mb-1">
+                                                Aktif Dönem:{" "}
+                                                <span className="text-white font-bold">
+                                                    {stats.cycleStartDate} - {stats.cycleEndDate}
+                                                </span>
+                                            </p>
+                                            <p className="text-white font-bold text-lg md:text-xl">
+                                                Dönem bitişine <span className="text-indigo-400">{stats.daysRemaining} gün</span> kaldı.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700">
+                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl ${stats.balance >= 0 ? "bg-indigo-600" : "bg-rose-600"}`}>
+                                                {stats.balance >= 0 ? "🎯" : "🚨"}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-400">Kalan Bütçe</p>
+                                                <p className={`font-bold ${stats.balance >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{stats.balance.toLocaleString()} ₺</p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                        {activeTab === "transactions" && (
-                            <div className="animate-fade-in max-w-4xl mx-auto">
-                                <TransactionList transactions={transactions} onDelete={handleDeleteTransaction} />
-                            </div>
-                        )}
+                                    <Dashboard transactions={transactions} stats={stats} userId={user.uid} userSettings={userSettings} />
+                                </div>
+                            )}
 
-                        {activeTab === "ai" && (
-                            <div className="animate-fade-in h-[calc(100vh-200px)] min-h-[500px]">
-                                <AIAdvisor transactions={transactions} />
-                            </div>
-                        )}
+                            {activeTab === "calendar" && userSettings && (
+                                <div className="animate-fade-in max-w-4xl mx-auto">
+                                    <CalendarView
+                                        currentDate={currentDate}
+                                        onChangeMonth={setCurrentDate}
+                                        transactions={transactions}
+                                        settings={userSettings}
+                                        onAddTransaction={(date) => {
+                                            setFormInitialDate(date);
+                                            setIsFormOpen(true);
+                                        }}
+                                        onDeleteTransaction={handleDeleteTransaction}
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === "history" && userSettings && (
+                                <div className="animate-fade-in max-w-4xl mx-auto">
+                                    <HistoryView
+                                        transactions={transactions}
+                                        userId={user.uid}
+                                        onSelectCycle={(startDate) => {
+                                            setCurrentDate(startDate);
+                                            setActiveTab("calendar");
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === "transactions" && (
+                                <div className="animate-fade-in max-w-4xl mx-auto">
+                                    <TransactionList transactions={transactions} onDelete={handleDeleteTransaction} />
+                                </div>
+                            )}
+
+                            {activeTab === "ai" && userSettings && (
+                                <div className="animate-fade-in h-[calc(100vh-200px)] min-h-[500px]">
+                                    <AIAdvisor transactions={transactions} userSettings={userSettings} />
+                                </div>
+                            )}
+                        </Suspense>
                     </div>
                 </main>
             </div>

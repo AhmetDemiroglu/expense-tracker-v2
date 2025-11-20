@@ -74,7 +74,8 @@ export interface DashboardStats {
 }
 
 export interface CycleSummary {
-  id: string; // "2023-10" gibi dönem kimliği
+  id: string;
+  name: string;
   startDate: string;
   endDate: string;
   totalIncome: number;
