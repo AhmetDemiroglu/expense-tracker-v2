@@ -105,6 +105,15 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         }
     };
 
+    const handleClearChat = () => {
+        if (window.confirm("Tüm konuşma geçmişi ve analiz raporu silinecek. Emin misin?")) {
+            setChatHistory([]);
+            setAnalysis(null);
+            sessionStorage.removeItem("nova_chat_history");
+            sessionStorage.removeItem("nova_analysis");
+        }
+    };
+
     return (
         <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
             {/* SOL PANEL */}
@@ -186,6 +195,27 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
 
             {/* SAĞ PANEL: Chat & Rapor */}
             <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl">
+                {/* YENİ: Chat Header */}
+                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                        <h3 className="text-white font-bold text-sm">Nova AI Sohbet</h3>
+                    </div>
+                    {(chatHistory.length > 0 || analysis) && (
+                        <button onClick={handleClearChat} className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-rose-500/10">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                            </svg>
+                            Temizle
+                        </button>
+                    )}
+                </div>
+
                 {/* Mesaj Alanı */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-slate-900/30">
                     {/* Karşılama / Boş State */}
