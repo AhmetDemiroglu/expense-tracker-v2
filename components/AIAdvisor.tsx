@@ -3,6 +3,20 @@ import { Transaction, UserSettings } from "../types";
 import { analyzeFinances, askFinancialAdvisor } from "../services/geminiService";
 import ReactMarkdown from "react-markdown";
 import { User } from "firebase/auth";
+import novaIcon from "../logo/nova.ico";
+import novaSleep from "../logo/nova_sleep.ico";
+import novaThinking from "../logo/nova_thinking.ico";
+import novaWarning from "../logo/nova_warning.ico";
+import novaShows from "../logo/nova_shows_analyze.ico";
+import novaSad from "../logo/nova_sad.ico";
+import novaHappy from "../logo/nova_happy.ico";
+import novaSuccess from "../logo/nova_success.ico";
+import novaAnalyzePos from "../logo/nova_analyze_positive.ico";
+import novaAnalyzeNeg from "../logo/nova_analyze_negative.ico";
+
+const getDataSignature = (transactions: Transaction[], settings: UserSettings) => {
+    return `${transactions.length}-${transactions[0]?.id || "empty"}-${settings.monthlyIncome}-${settings.fixedExpenses}`;
+};
 
 interface AIAdvisorProps {
     transactions: Transaction[];
@@ -12,18 +26,49 @@ interface AIAdvisorProps {
 
 export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
     const userName = user.displayName || user.email?.split("@")[0] || "Değerli Kullanıcı";
+    const currentSignature = getDataSignature(transactions, userSettings);
+
     const [analysis, setAnalysis] = useState<string | null>(() => {
         return sessionStorage.getItem("nova_analysis");
     });
 
-    const [loading, setLoading] = useState(false);
+    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+    const [loadingChat, setLoadingChat] = useState(false);
     const [question, setQuestion] = useState("");
+    const [staleData, setStaleData] = useState(false);
 
-    const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string }[]>(() => {
+    const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string; type?: "report" | "text" }[]>(() => {
         const saved = sessionStorage.getItem("nova_chat_history");
         return saved ? JSON.parse(saved) : [];
     });
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    const getNovaMood = () => {
+        if (loadingAnalysis || loadingChat) return novaThinking;
+        if (staleData) return novaWarning;
+
+        const lastMsg = chatHistory[chatHistory.length - 1];
+        if (!lastMsg) return novaSleep;
+
+        if (lastMsg.role === 'ai') {
+            const text = lastMsg.text.toLowerCase();
+
+            if (lastMsg.type === 'report') {
+                if (text.includes("🚨") || text.includes("dikkat") || text.includes("kritik")) return novaAnalyzeNeg;
+                return novaAnalyzePos;
+            }
+
+            if (text.includes("üzgünüm") || text.includes("maalesef") || text.includes("kötü haber") || text.includes("risk")) return novaSad;
+            if (text.includes("harika") || text.includes("tebrik") || text.includes("süper") || text.includes("başardın")) return novaHappy;
+            if (text.includes("tamamdır") || text.includes("hallettim") || text.includes("kaydettim")) return novaSuccess;
+            if (text.includes("hesap") || text.includes("yüzde") || text.includes("oran") || text.includes("toplam") || text.match(/\d+/)) return novaShows;
+
+            return novaIcon;
+        }
+
+        return novaIcon;
+    };
+    const currentMood = getNovaMood();
 
     useEffect(() => {
         if (analysis) {
@@ -33,11 +78,54 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         }
     }, [analysis]);
 
+    const stats = React.useMemo(() => {
+        const txIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+        const txExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+        const totalIncome = txIncome + userSettings.monthlyIncome;
+        const totalExpense = txExpense + userSettings.fixedExpenses;
+
+        const endDate = new Date(userSettings.periodEndDate);
+        const now = new Date();
+        const diffTime = endDate.getTime() - now.getTime();
+        const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const displayDays = daysRemaining < 0 ? 0 : daysRemaining;
+
+        const expenses = transactions.filter((t) => t.type === "expense");
+        const categoryTotals = expenses.reduce((acc, t) => {
+            acc[t.category] = (acc[t.category] || 0) + t.amount;
+            return acc;
+        }, {} as Record<string, number>);
+        const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+
+        return { txIncome, txExpense, totalIncome, totalExpense, displayDays, transactionCount: transactions.length, topCategory };
+    }, [transactions, userSettings]);
+
+    const handleQuickPrompt = (promptText: string) => {
+        if (loadingChat) return;
+        const userQ = promptText;
+        setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
+        setLoadingChat(true);
+
+        askFinancialAdvisor(transactions, userSettings, userQ, userName)
+            .then((response) => setChatHistory((prev) => [...prev, { role: "ai", text: response }]))
+            .catch(() => setChatHistory((prev) => [...prev, { role: "ai", text: "Hata oluştu." }]))
+            .finally(() => setLoadingChat(false));
+    };
+
+    const prevSignatureRef = useRef(currentSignature);
+    useEffect(() => {
+        if (prevSignatureRef.current !== currentSignature) {
+            if (analysis) {
+                setStaleData(true);
+            }
+            prevSignatureRef.current = currentSignature;
+        }
+    }, [currentSignature, analysis]);
+
     useEffect(() => {
         sessionStorage.setItem("nova_chat_history", JSON.stringify(chatHistory));
     }, [chatHistory]);
 
-    // Otomatik scroll
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatHistory, analysis]);
@@ -73,27 +161,26 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
     const handleAnalyze = async () => {
-        setLoading(true);
-        setAnalysis(null);
+        setLoadingAnalysis(true);
         try {
-            // userName parametresi eklendi
             const result = await analyzeFinances(transactions, userSettings, userName);
-            setAnalysis(result);
+            setChatHistory(prev => [...prev, { role: "ai", text: result, type: "report" }]);
+            setStaleData(false);
         } catch (error) {
-            setAnalysis("Üzgünüm, şu an analiz yapamıyorum. Lütfen daha sonra tekrar dene.");
+            setChatHistory(prev => [...prev, { role: "ai", text: "Üzgünüm, analiz servisine ulaşamadım.", type: "text" }]);
         } finally {
-            setLoading(false);
+            setLoadingAnalysis(false);
         }
     };
 
     const handleAsk = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!question.trim() || loading) return;
+        if (!question.trim() || loadingChat) return;
 
         const userQ = question;
         setQuestion("");
         setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
-        setLoading(true);
+        setLoadingChat(true);
 
         try {
             const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName);
@@ -101,7 +188,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);
         } finally {
-            setLoading(false);
+            setLoadingChat(false);
         }
     };
 
@@ -117,10 +204,11 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     return (
         <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
             {/* SOL PANEL */}
-            <div className="lg:w-1/3 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+            <div className="lg:w-1/3 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
                 <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                        <span className="text-2xl">🤖</span> Nova Ne Görüyor?
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+                        <img src={currentMood} alt="Nova" className={`w-10 h-10 transition-all duration-500 drop-shadow-lg ${loadingAnalysis || loadingChat ? "animate-pulse" : "hover:scale-110"}`} />
+                        Nova Ne Görüyor?
                     </h3>
 
                     <div className="space-y-3">
@@ -128,7 +216,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                         <div className="bg-indigo-900/20 rounded-xl p-4 border border-indigo-500/30">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-xs text-indigo-300 uppercase font-bold">Aktif Dönem</span>
-                                <span className="text-xs text-indigo-200 bg-indigo-500/20 px-2 py-0.5 rounded">{displayDays} Gün Kaldı</span>
+                                <span className="text-xs text-indigo-200 bg-indigo-500/20 px-2 py-0.5 rounded">{stats.displayDays} Gün Kaldı</span>
                             </div>
                             <p className="text-white font-bold">{userSettings.periodName}</p>
                             <p className="text-xs text-slate-400 mt-1">
@@ -139,43 +227,44 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                         {/* İşlem Sayısı */}
                         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex justify-between items-center">
                             <span className="text-xs text-slate-400">Analiz Edilen İşlem</span>
-                            <span className="text-xl font-bold text-white">{transactionCount} Adet</span>
+                            <span className="text-xl font-bold text-white">{stats.transactionCount} Adet</span>
                         </div>
 
-                        {/* Gelir / Gider (Sabitler Dahil) */}
+                        {/* Gelir / Gider */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
                                 <p className="text-xs text-slate-400 mb-1">Toplam Gelir</p>
-                                <p className="text-emerald-400 font-bold text-sm">+{totalIncome.toLocaleString()}₺</p>
+                                <p className="text-emerald-400 font-bold text-sm">+{stats.totalIncome.toLocaleString()}₺</p>
                                 <span className="text-[9px] text-slate-500 block mt-0.5">(Maaş Dahil)</span>
                             </div>
                             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
                                 <p className="text-xs text-slate-400 mb-1">Toplam Gider</p>
-                                <p className="text-rose-400 font-bold text-sm">-{totalExpense.toLocaleString()}₺</p>
+                                <p className="text-rose-400 font-bold text-sm">-{stats.totalExpense.toLocaleString()}₺</p>
                                 <span className="text-[9px] text-slate-500 block mt-0.5">(Sabitler Dahil)</span>
                             </div>
                         </div>
 
                         {/* Kategori */}
-                        {topCategory && (
+                        {stats.topCategory && (
                             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
                                 <p className="text-xs text-slate-400 mb-1">En Çok Harcama</p>
                                 <div className="flex justify-between items-end">
-                                    <p className="text-white font-bold text-sm">{topCategory[0]}</p>
-                                    <p className="text-rose-400 font-bold text-sm">{topCategory[1].toLocaleString()}₺</p>
+                                    <p className="text-white font-bold text-sm">{stats.topCategory[0]}</p>
+                                    <p className="text-rose-400 font-bold text-sm">{stats.topCategory[1].toLocaleString()}₺</p>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
 
+                {/* Analiz Butonu */}
                 <div className="mt-auto">
                     <button
                         onClick={handleAnalyze}
-                        disabled={loading}
+                        disabled={loadingAnalysis}
                         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-4 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                        {loading && !question ? (
+                        {loadingAnalysis ? (
                             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path
@@ -195,7 +284,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
 
             {/* SAĞ PANEL: Chat & Rapor */}
             <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl">
-                {/* YENİ: Chat Header */}
+                {/* Chat Header */}
                 <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -217,7 +306,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                 </div>
 
                 {/* Mesaj Alanı */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-slate-900/30">
+                <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-0 custom-scrollbar bg-slate-900/30">
                     {/* Karşılama / Boş State */}
                     {!analysis && chatHistory.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-60">
@@ -233,36 +322,36 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                         </div>
                     )}
 
-                    {/* Analiz Raporu (Varsa en üstte gösterilir) */}
-                    {analysis && (
-                        <div className="animate-fade-in-up">
-                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 shadow-lg">
-                                <h4 className="text-indigo-300 font-bold mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                                    Finansal Durum Raporu
-                                </h4>
-                                <div className="prose prose-invert prose-sm max-w-none">
-                                    <ReactMarkdown>{analysis}</ReactMarkdown>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Chat Geçmişi */}
                     {chatHistory.map((msg, i) => (
                         <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
-                            <div
-                                className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${
-                                    msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"
-                                }`}
-                            >
-                                <ReactMarkdown>{msg.text}</ReactMarkdown>
-                            </div>
+                            {/* Rapor İse Özel Tasarım */}
+                            {msg.type === "report" ? (
+                                <div className="max-w-[95%] w-full animate-fade-in-up">
+                                    <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 shadow-lg">
+                                        <h4 className="text-indigo-300 font-bold mb-4 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                                            Finansal Durum Raporu
+                                            <span className="text-[10px] text-slate-500 font-normal ml-auto">
+                                                {new Date().toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </h4>
+                                        <div className="prose prose-invert prose-sm max-w-none">
+                                            <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Normal Mesaj */
+                                <div className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"}`}>
+                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                </div>
+                            )}
                         </div>
                     ))}
 
-                    {/* Loading Indicator (Chat için) */}
-                    {loading && question === "" && (
+                    {/* Chat Loading */}
+                    {(loadingChat || loadingAnalysis) && (
                         <div className="flex justify-start animate-fade-in">
                             <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 flex gap-1 items-center">
                                 <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
@@ -275,6 +364,49 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                     <div ref={chatEndRef} />
                 </div>
 
+                {/* Stale Data Uyarısı */}
+                {staleData && !loadingAnalysis && (
+                    <div className="px-2 pt-2 animate-fade-in-up">
+                        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-amber-400 text-xl">⚠️</span>
+                                <span className="text-amber-200 text-xs font-bold">Veriler Değişti</span>
+                            </div>
+                            <button
+                                onClick={handleAnalyze}
+                                className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+                            >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                Yeni Rapor Al
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Hızlı Soru Butonları (Quick Prompts) */}
+                {!loadingChat && !loadingAnalysis && (
+                    <div className="justify-center p-2 flex gap-2 overflow-x-auto custom-scrollbar">
+                        <button
+                            onClick={() => handleQuickPrompt("Genel durumum nasıl?")}
+                            className="whitespace-nowrap bg-slate-700/50 hover:bg-indigo-600/20 hover:text-indigo-300 border border-slate-600 hover:border-indigo-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
+                        >
+                            📊 Durumum Nasıl?
+                        </button>
+                        <button
+                            onClick={() => handleQuickPrompt("Tasarruf için ne önerirsin?")}
+                            className="whitespace-nowrap bg-slate-700/50 hover:bg-emerald-600/20 hover:text-emerald-300 border border-slate-600 hover:border-emerald-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
+                        >
+                            💡 Tasarruf Önerisi
+                        </button>
+                        <button
+                            onClick={() => handleQuickPrompt("Dönem sonuna ne kadar kalır?")}
+                            className="whitespace-nowrap bg-slate-700/50 hover:bg-purple-600/20 hover:text-purple-300 border border-slate-600 hover:border-purple-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
+                        >
+                            📅 Dönem Sonu Tahmini
+                        </button>
+                    </div>
+                )}
+
                 {/* Input Alanı */}
                 <form onSubmit={handleAsk} className="p-4 bg-slate-800 border-t border-slate-700 flex gap-3">
                     <input
@@ -282,16 +414,21 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
                         placeholder="Örn: Gelecek ay nasıl tasarruf edebilirim?"
-                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none placeholder:text-slate-500 transition-all"
+                        disabled={loadingChat}
+                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none placeholder:text-slate-500 transition-all disabled:opacity-50"
                     />
                     <button
                         type="submit"
-                        disabled={!question.trim() || loading}
+                        disabled={!question.trim() || loadingChat}
                         className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-12 h-12"
                     >
-                        <svg className="w-6 h-6 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
+                        {loadingChat ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        ) : (
+                            <svg className="w-6 h-6 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        )}
                     </button>
                 </form>
             </div>
