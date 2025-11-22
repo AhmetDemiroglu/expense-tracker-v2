@@ -10,9 +10,19 @@ if (!apiKey) {
 const ai = new GoogleGenAI({ apiKey });
 const MODEL_NAME = "gemini-2.5-flash";
 
-// Yardımcı: İşlemleri ve DÖNEM BİLGİSİNİ özetle
+const getStyleInstruction = (style: "short" | "balanced" | "detailed") => {
+    switch (style) {
+        case "short":
+            return "CEVAP STİLİ: Çok kısa, net ve öz ol. Maksimum 3-5 cümle kullan. Detaylara boğma.";
+        case "detailed":
+            return "CEVAP STİLİ: Detaylı, eğitici ve kapsamlı ol. Konuyu neden-sonuç ilişkisiyle ele al.";
+        case "balanced":
+        default:
+            return "CEVAP STİLİ: Dengeli ol. Ne çok kısa ne çok uzun, tam kararında ve anlaşılır açıkla.";
+    }
+};
+
 const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string) => {
-    // 1. Dönem Hesaplamaları
     const start = new Date(settings.periodStartDate);
     const end = new Date(settings.periodEndDate);
     const now = new Date();
@@ -27,7 +37,6 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     const totalExpense = txExpense + settings.fixedExpenses;
     const balance = totalIncome - totalExpense;
 
-    // 2. İşlem Detayları
     const expenses = transactions.filter((t) => t.type === "expense");
     const categories: Record<string, number> = {};
     expenses.forEach((t) => {
@@ -71,13 +80,15 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
   `;
 };
 
-export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string): Promise<string> => {
+export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string, style: "short" | "balanced" | "detailed" = "balanced"): Promise<string> => {
     const summary = summarizeContext(transactions, settings, userName);
+    const styleInstruction = getStyleInstruction(style);
 
     const prompt = `
     Sen "Nova" adında, kullanıcının (adı: ${userName}) en yakın finansal dostusun.
     Rolün: Samimi, esprili ama yeri geldiğinde net uyarılar yapan, lafı dolandırmayan bir finans koçu.
     Asla robotik veya aşırı resmi konuşma. "Bey/Hanım" gibi ekler kullanma.
+    ${styleInstruction}
 
     KULLANICI VERİLERİ:
     ${summary}
@@ -116,12 +127,20 @@ export const analyzeFinances = async (transactions: Transaction[], settings: Use
     }
 };
 
-export const askFinancialAdvisor = async (transactions: Transaction[], settings: UserSettings, question: string, userName: string): Promise<string> => {
+export const askFinancialAdvisor = async (
+    transactions: Transaction[],
+    settings: UserSettings,
+    question: string,
+    userName: string,
+    style: "short" | "balanced" | "detailed" = "balanced"
+): Promise<string> => {
     const summary = summarizeContext(transactions, settings, userName);
+    const styleInstruction = getStyleInstruction(style);
 
     const prompt = `
     Sen Nova. Kullanıcının (Adı: ${userName}) finansal yol arkadaşısın.
     Tarzın: Samimi, net, çözüm odaklı ve hafif esprili.
+    ${styleInstruction}
 
     BAĞLAM (Kullanıcının Verileri):
     ${summary}

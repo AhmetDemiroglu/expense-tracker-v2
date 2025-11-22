@@ -13,6 +13,7 @@ import novaHappy from "../logo/nova_happy.ico";
 import novaSuccess from "../logo/nova_success.ico";
 import novaAnalyzePos from "../logo/nova_analyze_positive.ico";
 import novaAnalyzeNeg from "../logo/nova_analyze_negative.ico";
+import { useToast } from "../context/ToastContext";
 
 const getDataSignature = (transactions: Transaction[], settings: UserSettings) => {
     return `${transactions.length}-${transactions[0]?.id || "empty"}-${settings.monthlyIncome}-${settings.fixedExpenses}`;
@@ -25,6 +26,7 @@ interface AIAdvisorProps {
 }
 
 export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
+    const { showToast } = useToast();
     const userName = user.displayName || user.email?.split("@")[0] || "Değerli Kullanıcı";
     const currentSignature = getDataSignature(transactions, userSettings);
 
@@ -32,6 +34,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         return sessionStorage.getItem("nova_analysis");
     });
 
+    const [responseStyle, setResponseStyle] = useState<"short" | "balanced" | "detailed">("balanced");
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
     const [loadingChat, setLoadingChat] = useState(false);
     const [question, setQuestion] = useState("");
@@ -106,7 +109,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
         setLoadingChat(true);
 
-        askFinancialAdvisor(transactions, userSettings, userQ, userName)
+        askFinancialAdvisor(transactions, userSettings, userQ, userName, responseStyle)
             .then((response) => setChatHistory((prev) => [...prev, { role: "ai", text: response }]))
             .catch(() => setChatHistory((prev) => [...prev, { role: "ai", text: "Hata oluştu." }]))
             .finally(() => setLoadingChat(false));
@@ -163,7 +166,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     const handleAnalyze = async () => {
         setLoadingAnalysis(true);
         try {
-            const result = await analyzeFinances(transactions, userSettings, userName);
+            const result = await analyzeFinances(transactions, userSettings, userName, responseStyle);
             setChatHistory(prev => [...prev, { role: "ai", text: result, type: "report" }]);
             setStaleData(false);
         } catch (error) {
@@ -183,7 +186,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setLoadingChat(true);
 
         try {
-            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName);
+            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName, responseStyle);
             setChatHistory((prev) => [...prev, { role: "ai", text: response }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);
@@ -201,6 +204,15 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         }
     };
 
+    const handleCopy = async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast("Metin panoya kopyalandı", "success");
+        } catch (err) {
+            console.error("Kopyalama hatası:", err);
+            showToast("Kopyalama başarısız oldu", "error");
+        }
+    };
     return (
         <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
             {/* SOL PANEL */}
@@ -286,23 +298,41 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
             <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    {/* SOL: Başlık */}
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <h3 className="text-white font-bold text-sm">Nova AI Sohbet</h3>
+                        <h3 className="text-white font-bold text-sm">Nova AI</h3>
                     </div>
-                    {(chatHistory.length > 0 || analysis) && (
-                        <button onClick={handleClearChat} className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-rose-500/10">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                            </svg>
-                            Temizle
-                        </button>
-                    )}
+
+                    {/* SAĞ: Aksiyonlar (Stil Seçici + Temizle) */}
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
+                            {(["short", "balanced", "detailed"] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => setResponseStyle(s)}
+                                    className={`px-2 py-1 text-[10px] rounded-md transition-all ${responseStyle === s ? "bg-indigo-600 text-white shadow-sm" : "text-slate-400 hover:text-indigo-300"}`}>{s === "short" ? "Kısa" : s === "balanced" ? "Dengeli" : "Detaylı"}
+                                </button>
+                            ))}
+                        </div>
+
+                        {(chatHistory.length > 0 || analysis) && (
+                            <button
+                                onClick={handleClearChat}
+                                className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-rose-500/10"
+                                title="Sohbeti Temizle"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Mesaj Alanı */}
@@ -327,15 +357,26 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                         <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
                             {/* Rapor İse Özel Tasarım */}
                             {msg.type === "report" ? (
-                                <div className="max-w-[95%] w-full animate-fade-in-up">
-                                    <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 shadow-lg">
-                                        <h4 className="text-indigo-300 font-bold mb-4 flex items-center gap-2">
-                                            <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                                            Finansal Durum Raporu
-                                            <span className="text-[10px] text-slate-500 font-normal ml-auto">
-                                                {new Date().toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </h4>
+                                <div className="max-w-[95%] w-full animate-fade-in-up group">
+                                    <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="text-indigo-300 font-bold flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                                                Finansal Durum Raporu
+                                            </h4>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] text-slate-500 font-normal">
+                                                    {new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleCopy(msg.text)}
+                                                    className="text-slate-500 hover:text-white transition-colors"
+                                                    title="Raporu Kopyala"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div className="prose prose-invert prose-sm max-w-none">
                                             <ReactMarkdown>{msg.text}</ReactMarkdown>
                                         </div>
@@ -343,8 +384,17 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                                 </div>
                             ) : (
                                 /* Normal Mesaj */
-                                <div className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"}`}>
+                                <div className={`relative group max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"}`}>
                                     <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                    {msg.role === "ai" && (
+                                        <button
+                                            onClick={() => handleCopy(msg.text)}
+                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white bg-slate-800/50 rounded p-1"
+                                            title="Kopyala"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

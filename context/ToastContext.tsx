@@ -46,7 +46,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 {toasts.map((toast) => (
                     <div
                         key={toast.id}
-                        onClick={() => removeToast(toast.id)} // Tıklayınca kapat
+                        onClick={() => removeToast(toast.id)} 
                         className={`
               pointer-events-auto cursor-pointer min-w-[300px] max-w-md p-4 rounded-xl shadow-2xl border flex items-center gap-3 transform transition-all duration-300 animate-slide-in
               ${toast.type === "success" ? "bg-slate-900 border-emerald-500/50 text-emerald-400" : ""}
