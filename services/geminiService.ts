@@ -220,3 +220,45 @@ export const askFinancialAdvisor = async (
         return "Bağlantıda sorun oluştu.";
     }
 };
+
+const receiptSchema = {
+    type: "OBJECT",
+    properties: {
+        amount: { type: "NUMBER", description: "Fişin genel toplam tutarı." },
+        date: { type: "STRING", description: "Fiş tarihi (YYYY-MM-DD formatında)." },
+        description: { type: "STRING", description: "Satıcının adı veya kısa işlem açıklaması." },
+        category: { type: "STRING", description: "Harcamanın kategorisi (Gıda, Ulaşım, Giyim, Sağlık, Eğlence, Fatura vb.)." },
+    },
+    required: ["amount", "description", "category"],
+};
+
+export const parseReceipt = async (base64Image: string): Promise<{ amount: number; date?: string; description: string; category: string } | null> => {
+    const prompt = `
+    GÖREV: Bu fiş görselini analiz et ve aşağıdaki bilgileri çıkar.
+    1. Tarih: DD-MM-YYYY formatında olmalı. Eğer yıl yoksa mevcut yılı (2025) kullan.
+    2. Kategori: Harcamanın türüne göre genel bir kategori belirle (Türkçe).
+    3. Tutar: İndirimler düşülmüş ÖDENECEK GENEL TOPLAM.
+    4. Açıklama: İşyeri adı.
+    `;
+
+    try {
+        const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+
+        const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } }] }],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: receiptSchema,
+            },
+        });
+
+        const textResponse = response.text || null;
+        if (!textResponse) return null;
+
+        return JSON.parse(textResponse);
+    } catch (error) {
+        console.error("Fiş okuma hatası:", error);
+        return null;
+    }
+};
