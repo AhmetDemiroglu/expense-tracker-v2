@@ -65,11 +65,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
     // İstatistikleri Hesapla (Sabit Gelir/Gider Dahil)
     const viewStats = useMemo(() => {
         // A) İşlemlerden gelen toplamlar
-        // Not: Burada typeFilter'dan bağımsız olarak o dönemin genel toplamını hesaplıyoruz
-        // Ancak filtrelenmiş array zaten elimizde olduğu için onu kullanmak yerine
-        // dönemin ham transactions verisine (typeFilter='all' gibi) ihtiyacımız var.
-        // Doğru hesaplama için 'selectedRange' içindeki TÜM işlemleri tekrar çekelim:
-
         let relevantTransactions = transactions;
         if (selectedRange) {
             relevantTransactions = transactions.filter((t) => {
@@ -156,8 +151,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                                 {selectedPeriodId === "active"
                                     ? `Aktif Dönem (${stats.cycleStartDate} - ${stats.cycleEndDate})`
                                     : periods.find((p) => p.id === selectedPeriodId)
-                                    ? `${periods.find((p) => p.id === selectedPeriodId)?.name} (${new Date(periods.find((p) => p.id === selectedPeriodId)!.startDate).toLocaleDateString("tr-TR")}...)`
-                                    : "Dönem Seçiniz"}
+                                        ? `${periods.find((p) => p.id === selectedPeriodId)?.name} (${new Date(periods.find((p) => p.id === selectedPeriodId)!.startDate).toLocaleDateString("tr-TR")}...)`
+                                        : "Dönem Seçiniz"}
                             </span>
                             <svg className={`w-4 h-4 text-slate-400 transition-transform ${isPeriodOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -175,9 +170,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                                                 setSelectedPeriodId("active");
                                                 setIsPeriodOpen(false);
                                             }}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                                selectedPeriodId === "active" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
-                                            }`}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === "active" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
+                                                }`}
                                         >
                                             <span className="font-bold block">Aktif Dönem</span>
                                             <span className="text-xs opacity-70">
@@ -194,9 +188,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                                                     setSelectedPeriodId(p.id);
                                                     setIsPeriodOpen(false);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                                    selectedPeriodId === p.id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
-                                                }`}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === p.id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
+                                                    }`}
                                             >
                                                 <span className="font-medium block">{p.name}</span>
                                                 <span className="text-xs opacity-70">

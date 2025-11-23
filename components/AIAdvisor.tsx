@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Transaction, UserSettings } from "../types";
+import { Transaction, UserSettings, AnalysisReport } from "../types";
 import { analyzeFinances, askFinancialAdvisor } from "../services/geminiService";
 import ReactMarkdown from "react-markdown";
 import { User } from "firebase/auth";
@@ -14,6 +14,9 @@ import novaSuccess from "../logo/nova_success.ico";
 import novaAnalyzePos from "../logo/nova_analyze_positive.ico";
 import novaAnalyzeNeg from "../logo/nova_analyze_negative.ico";
 import { useToast } from "../context/ToastContext";
+import { fetchBudgetPeriods, calculateHistorySummaries } from "../services/storageService";
+import { CycleSummary } from "../types";
+import { NovaReportCard } from "./NovaReportCard";
 
 const getDataSignature = (transactions: Transaction[], settings: UserSettings) => {
     return `${transactions.length}-${transactions[0]?.id || "empty"}-${settings.monthlyIncome}-${settings.fixedExpenses}`;
@@ -27,7 +30,21 @@ interface AIAdvisorProps {
 
 export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
     const { showToast } = useToast();
-    const userName = user.displayName || user.email?.split("@")[0] || "Değerli Kullanıcı";
+    const getUserName = () => {
+        if (user.displayName) {
+            return user.displayName.split(" ")[0];
+        }
+        if (user.email) {
+            const rawName = user.email.split("@")[0];
+            const match = rawName.match(/^([a-zA-ZğüşıöçĞÜŞİÖÇ]+)/);
+            if (match && match[0]) {
+                return match[0].charAt(0).toUpperCase() + match[0].slice(1).toLowerCase();
+            }
+            return rawName;
+        }
+        return "Değerli Kullanıcı";
+    };
+    const userName = getUserName();
     const currentSignature = getDataSignature(transactions, userSettings);
 
     const [analysis, setAnalysis] = useState<string | null>(() => {
@@ -35,15 +52,22 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     });
 
     const [responseStyle, setResponseStyle] = useState<"short" | "balanced" | "detailed">("balanced");
+    const [prevPeriodStats, setPrevPeriodStats] = useState<CycleSummary | null>(null);
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
     const [loadingChat, setLoadingChat] = useState(false);
     const [question, setQuestion] = useState("");
     const [staleData, setStaleData] = useState(false);
 
-    const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; text: string; type?: "report" | "text" }[]>(() => {
+    const [chatHistory, setChatHistory] = useState<{
+        role: "user" | "ai";
+        text: string;
+        type?: "report" | "text";
+        reportData?: AnalysisReport;
+    }[]>(() => {
         const saved = sessionStorage.getItem("nova_chat_history");
         return saved ? JSON.parse(saved) : [];
     });
+
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const getNovaMood = () => {
@@ -72,6 +96,24 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         return novaIcon;
     };
     const currentMood = getNovaMood();
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            const periods = await fetchBudgetPeriods(user.uid);
+            if (periods.length > 0) {
+                const summaries = calculateHistorySummaries(transactions, periods);
+                const currentStart = new Date(userSettings.periodStartDate).getTime();
+                const pastPeriods = summaries
+                    .filter(s => new Date(s.endDate).getTime() < currentStart)
+                    .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
+
+                if (pastPeriods.length > 0) {
+                    setPrevPeriodStats(pastPeriods[0]);
+                }
+            }
+        };
+        loadHistory();
+    }, [user.uid, userSettings.periodStartDate, transactions]);
 
     useEffect(() => {
         if (analysis) {
@@ -116,14 +158,17 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     };
 
     const prevSignatureRef = useRef(currentSignature);
+
+    const hasReport = chatHistory.some(msg => msg.type === "report");
+
     useEffect(() => {
         if (prevSignatureRef.current !== currentSignature) {
-            if (analysis) {
+            if (hasReport) {
                 setStaleData(true);
             }
             prevSignatureRef.current = currentSignature;
         }
-    }, [currentSignature, analysis]);
+    }, [currentSignature, hasReport]);
 
     useEffect(() => {
         sessionStorage.setItem("nova_chat_history", JSON.stringify(chatHistory));
@@ -166,9 +211,19 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     const handleAnalyze = async () => {
         setLoadingAnalysis(true);
         try {
-            const result = await analyzeFinances(transactions, userSettings, userName, responseStyle);
-            setChatHistory(prev => [...prev, { role: "ai", text: result, type: "report" }]);
-            setStaleData(false);
+            const report = await analyzeFinances(transactions, userSettings, userName, responseStyle, prevPeriodStats);
+
+            if (report) {
+                setChatHistory(prev => [...prev, {
+                    role: "ai",
+                    text: report.periodStatus.summary,
+                    type: "report",
+                    reportData: report
+                }]);
+                setStaleData(false);
+            } else {
+                setChatHistory(prev => [...prev, { role: "ai", text: "Üzgünüm, rapor oluşturulurken teknik bir sorun oluştu.", type: "text" }]);
+            }
         } catch (error) {
             setChatHistory(prev => [...prev, { role: "ai", text: "Üzgünüm, analiz servisine ulaşamadım.", type: "text" }]);
         } finally {
@@ -198,9 +253,8 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     const handleClearChat = () => {
         if (window.confirm("Tüm konuşma geçmişi ve analiz raporu silinecek. Emin misin?")) {
             setChatHistory([]);
-            setAnalysis(null);
+            setStaleData(false);
             sessionStorage.removeItem("nova_chat_history");
-            sessionStorage.removeItem("nova_analysis");
         }
     };
 
@@ -295,7 +349,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
             </div>
 
             {/* SAĞ PANEL: Chat & Rapor */}
-            <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl">
+            <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl relative">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
                     {/* SOL: Başlık */}
@@ -356,30 +410,21 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                     {chatHistory.map((msg, i) => (
                         <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
                             {/* Rapor İse Özel Tasarım */}
-                            {msg.type === "report" ? (
-                                <div className="max-w-[95%] w-full animate-fade-in-up group">
-                                    <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="text-indigo-300 font-bold flex items-center gap-2">
-                                                <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                                                Finansal Durum Raporu
-                                            </h4>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] text-slate-500 font-normal">
-                                                    {new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                                                </span>
-                                                <button
-                                                    onClick={() => handleCopy(msg.text)}
-                                                    className="text-slate-500 hover:text-white transition-colors"
-                                                    title="Raporu Kopyala"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="prose prose-invert prose-sm max-w-none">
-                                            <ReactMarkdown>{msg.text}</ReactMarkdown>
-                                        </div>
+                            {msg.type === "report" && msg.reportData ? (
+                                <div className="max-w-[100%] w-full group">
+                                    <NovaReportCard data={msg.reportData} transactions={transactions} />
+                                    <div className="flex justify-end mt-1">
+                                        <button
+                                            onClick={() => handleCopy(
+                                                `DURUM: ${msg.reportData!.periodStatus.summary}\n\n` +
+                                                `HARCAMALAR:\n${msg.reportData!.spendingHabits.items.map(i => `- ${i}`).join('\n')}\n\n` +
+                                                `ÖNERİLER:\n${msg.reportData!.savingsTips.map(i => `- ${i.title}: ${i.description} (Hedef: %${i.suggestedCut} Kısıntı)`).join('\n')}`
+                                            )}
+                                            className="text-[10px] text-slate-500 hover:text-indigo-400 flex items-center gap-1 px-2 py-1"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                            Özeti Kopyala
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -416,25 +461,28 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
 
                 {/* Stale Data Uyarısı */}
                 {staleData && !loadingAnalysis && (
-                    <div className="px-2 pt-2 animate-fade-in-up">
-                        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-center justify-between gap-3">
+                    <div className="absolute bottom-[80px] left-0 right-0 z-20 px-4 py-4 animate-fade-in-up">
+                        <div className="bg-amber-900/40 backdrop-blur-md border border-amber-500/50 p-3 rounded-xl flex items-center justify-between gap-3 shadow-2xl">
                             <div className="flex items-center gap-2">
-                                <span className="text-amber-400 text-xl">⚠️</span>
-                                <span className="text-amber-200 text-xs font-bold">Veriler Değişti</span>
+                                <span className="text-amber-400 text-xl animate-pulse">⚠️</span>
+                                <div>
+                                    <p className="text-amber-200 text-xs font-bold">Veriler Değişti</p>
+                                    <p className="text-amber-200/70 text-[10px]">Rapor güncelliğini yitirdi.</p>
+                                </div>
                             </div>
                             <button
                                 onClick={handleAnalyze}
-                                className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+                                className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-md whitespace-nowrap"
                             >
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                Yeni Rapor Al
+                                Yenile
                             </button>
                         </div>
                     </div>
                 )}
 
                 {/* Hızlı Soru Butonları (Quick Prompts) */}
-                {!loadingChat && !loadingAnalysis && (
+                {!loadingChat && !loadingAnalysis && !staleData && (
                     <div className="justify-center p-2 flex gap-2 overflow-x-auto custom-scrollbar">
                         <button
                             onClick={() => handleQuickPrompt("Genel durumum nasıl?")}

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { Transaction, UserSettings } from "../types";
+import { Transaction, UserSettings, CycleSummary, AnalysisReport } from "../types";
+import { FINANCIAL_GOALS, SAVINGS_STYLES, RISK_TOLERANCE } from "../constants";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
 
@@ -9,6 +10,43 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey });
 const MODEL_NAME = "gemini-2.5-flash";
+
+const analysisSchema = {
+    type: "OBJECT",
+    properties: {
+        periodStatus: {
+            type: "OBJECT",
+            properties: {
+                summary: { type: "STRING", description: "Dönem durumunun 2-3 cümlelik özeti." },
+                mood: { type: "STRING", enum: ["positive", "critical", "neutral"], description: "Durumun genel havası." },
+            },
+            required: ["summary", "mood"],
+        },
+        spendingHabits: {
+            type: "OBJECT",
+            properties: {
+                items: { type: "ARRAY", items: { type: "STRING" }, description: "Harcama alışkanlıkları ile ilgili en fazla 4 tespit." },
+            },
+            required: ["items"],
+        },
+        savingsTips: {
+            type: "ARRAY",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    title: { type: "STRING", description: "Önerinin kısa başlığı (Örn: Kahve Molası)." },
+                    description: { type: "STRING", description: "Önerinin detaylı açıklaması." },
+                    targetCategory: { type: "STRING", description: "Bu öneri hangi harcama kategorisiyle ilgili? (Kullanıcının veri setindeki kategori ismini kullanmaya çalış)." },
+                    suggestedCut: { type: "NUMBER", description: "Bu harcamada yüzde kaç kısıntı öneriyorsun? (Örn: 15 için 15 yaz)." },
+                },
+                required: ["title", "description"],
+            },
+            description: "Bu verilere özel somut 2-3 tasarruf önerisi.",
+        },
+        novaNote: { type: "STRING", description: "Kısa, motive edici kapanış notu." },
+    },
+    required: ["periodStatus", "spendingHabits", "savingsTips", "novaNote"],
+};
 
 const getStyleInstruction = (style: "short" | "balanced" | "detailed") => {
     switch (style) {
@@ -20,6 +58,19 @@ const getStyleInstruction = (style: "short" | "balanced" | "detailed") => {
         default:
             return "CEVAP STİLİ: Dengeli ol. Ne çok kısa ne çok uzun, tam kararında ve anlaşılır açıkla.";
     }
+};
+
+const getProfileInstructions = (settings: UserSettings) => {
+    const goal = FINANCIAL_GOALS.find((g) => g.value === settings.financialGoal)?.prompt || "";
+    const style = SAVINGS_STYLES.find((s) => s.value === settings.savingsStyle)?.prompt || "";
+    const risk = RISK_TOLERANCE.find((r) => r.value === settings.riskTolerance)?.prompt || "";
+
+    return `
+    KİŞİSELLEŞTİRİLMİŞ DAVRANIŞ KURALLARI (BUNLARA KESİN UY):
+    1. HEDEF ODAĞI: ${goal}
+    2. ÜSLUP/TARZ: ${style}
+    3. RİSK YAKLAŞIMI: ${risk}
+    `;
 };
 
 const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string) => {
@@ -80,50 +131,50 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
   `;
 };
 
-export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string, style: "short" | "balanced" | "detailed" = "balanced"): Promise<string> => {
+export const analyzeFinances = async (
+    transactions: Transaction[],
+    settings: UserSettings,
+    userName: string,
+    style: "short" | "balanced" | "detailed" = "balanced",
+    prevStats: CycleSummary | null = null
+): Promise<AnalysisReport | null> => {
     const summary = summarizeContext(transactions, settings, userName);
     const styleInstruction = getStyleInstruction(style);
+    const profileInstruction = getProfileInstructions(settings);
+
+    let historyContext = "";
+    if (prevStats) {
+        historyContext = `GEÇMİŞ DÖNEM: ${prevStats.balance} TL Bakiye, %${prevStats.savingsRate} Tasarruf. Kıyasla.`;
+    }
 
     const prompt = `
-    Sen "Nova" adında, kullanıcının (adı: ${userName}) en yakın finansal dostusun.
-    Rolün: Samimi, esprili ama yeri geldiğinde net uyarılar yapan, lafı dolandırmayan bir finans koçu.
-    Asla robotik veya aşırı resmi konuşma. "Bey/Hanım" gibi ekler kullanma.
+    Sen "Nova". Kullanıcı: ${userName}.
+    GÖREV: Verilen finansal verileri analiz et ve JSON formatında raporla.
+    
     ${styleInstruction}
+    ${profileInstruction}
 
-    KULLANICI VERİLERİ:
+    VERİLER:
     ${summary}
-
-    GÖREV:
-    Aşağıdaki başlıklarda, Markdown formatında kısa ve çarpıcı bir rapor hazırla.
-    Her madde kısa, net ve eyleme dönük olmalı. Uzun paragraflardan kaçın.
-
-    ### 📊 Dönem Durumu
-    - Mevcut durumu (kalan gün vs bakiye dengesi) 2-3 cümleyle özetle.
-    - Durum kritikse 🚨, iyiyse ⭐ emojisiyle başla.
-
-    ### 💸 Harcama Alışkanlıkları
-    - En çok harcanan kategorileri yorumla.
-    - "Gereksiz" veya "Dikkat çekici" gördüğün bir detay varsa samimiyetle uyar.
-    - Maksimum 4 madde.
-
-    ### 💡 Tasarruf Önerileri
-    - Genel geçer değil, BU harcamalara özel, somut 2 veya 3 öneri ver.
-    - Örnek: "Dışarıda yemeği azalt" yerine "Restoran harcaması X TL olmuş, haftada bir evde yiyerek Y TL cepte kalır" gibi.
-
-    ### 🎯 Nova'nın Notu
-    - Motive edici, kısa bir kapanış cümlesi veya günün finansal mottosu.
+    ${historyContext}
     `;
 
     try {
         const response = await ai.models.generateContent({
             model: MODEL_NAME,
             contents: prompt,
-            config: { temperature: 0.7 },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: analysisSchema,
+            },
         });
-        return response.text || "Analiz oluşturulamadı.";
+
+        const textResponse = response.text || null;
+        if (!textResponse) return null;
+        return JSON.parse(textResponse) as AnalysisReport;
     } catch (error) {
         console.error("Gemini AI Hatası:", error);
-        return "Analiz servisine şu an ulaşılamıyor.";
+        return null;
     }
 };
 
@@ -136,11 +187,14 @@ export const askFinancialAdvisor = async (
 ): Promise<string> => {
     const summary = summarizeContext(transactions, settings, userName);
     const styleInstruction = getStyleInstruction(style);
+    const profileInstruction = getProfileInstructions(settings);
 
     const prompt = `
     Sen Nova. Kullanıcının (Adı: ${userName}) finansal yol arkadaşısın.
     Tarzın: Samimi, net, çözüm odaklı ve hafif esprili.
+    
     ${styleInstruction}
+    ${profileInstruction}
 
     BAĞLAM (Kullanıcının Verileri):
     ${summary}

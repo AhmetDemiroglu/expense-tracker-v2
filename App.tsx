@@ -14,6 +14,7 @@ import { Sidebar } from "./components/Sidebar";
 import { User } from "firebase/auth";
 import logo1 from "./logo/logo1.png";
 import { AccountSettings } from "./components/AccountSettings";
+import { NovaProfileSettings } from "./components/NovaProfileSettings";
 import { startOfDay, differenceInCalendarDays, parseISO } from "date-fns";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
@@ -225,27 +226,27 @@ const App: React.FC = () => {
                                 {activeTab === "ai"
                                     ? "Nova AI"
                                     : activeTab === "calendar"
-                                    ? "Takvim Yönetimi"
-                                    : activeTab === "settings"
-                                    ? "Ayarlar"
-                                    : activeTab === "dashboard"
-                                    ? "Genel Bakış"
-                                    : activeTab === "history"
-                                    ? "Dönem Geçmişi"
-                                    : "İşlem Listesi"}
+                                        ? "Takvim Yönetimi"
+                                        : activeTab === "settings"
+                                            ? "Ayarlar"
+                                            : activeTab === "dashboard"
+                                                ? "Genel Bakış"
+                                                : activeTab === "history"
+                                                    ? "Dönem Geçmişi"
+                                                    : "İşlem Listesi"}
                             </h2>
                             <p className="text-slate-400 text-sm">
                                 {activeTab === "ai"
                                     ? "Akıllı finans asistanın Nova burada. Harcamalarını analiz eder, sorularını yanıtlar ve sana özel öneriler üretir."
                                     : activeTab === "calendar"
-                                    ? "Harcamalarını gün gün takip edebilir, belirli tarihlere hızlıca işlem ekleyebilirsin."
-                                    : activeTab === "settings"
-                                    ? "Aylık bütçeni, sabit giderlerini ve finansal hedeflerini burada belirle. Nova buna göre hesaplamalarını optimize eder."
-                                    : activeTab === "dashboard"
-                                    ? "Finansal durumunun hızlı bir özeti burada. Bugünkü limitin ve dönem performansın tamamen senin kontrolünde."
-                                    : activeTab === "history"
-                                    ? "Geçmiş dönem performansını analiz ederek bütçe alışkanlıklarını daha iyi yönetebilirsin."
-                                    : "Tüm gelir ve gider kayıtların burada listeleniyor. Dilersen düzenleyebilir veya silebilirsin."}
+                                        ? "Harcamalarını gün gün takip edebilir, belirli tarihlere hızlıca işlem ekleyebilirsin."
+                                        : activeTab === "settings"
+                                            ? "Aylık bütçeni, sabit giderlerini ve finansal hedeflerini burada belirle. Nova buna göre hesaplamalarını optimize eder."
+                                            : activeTab === "dashboard"
+                                                ? "Finansal durumunun hızlı bir özeti burada. Bugünkü limitin ve dönem performansın tamamen senin kontrolünde."
+                                                : activeTab === "history"
+                                                    ? "Geçmiş dönem performansını analiz ederek bütçe alışkanlıklarını daha iyi yönetebilirsin."
+                                                    : "Tüm gelir ve gider kayıtların burada listeleniyor. Dilersen düzenleyebilir veya silebilirsin."}
                             </p>
                         </div>
 
@@ -324,8 +325,29 @@ const App: React.FC = () => {
                                             />
                                         </div>
                                     </details>
+                                    {/* 2. BÖLÜM: Nova Profil Ayarları */}
+                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-visible">
+                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors rounded-2xl group-open:rounded-b-none">
+                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                                Nova Profili & Kişiselleştirme
+                                            </h2>
+                                            <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </summary>
+                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                            {userSettings && (
+                                                <NovaProfileSettings
+                                                    userId={user.uid}
+                                                    currentSettings={userSettings}
+                                                    onSave={(newSettings) => setUserSettings(newSettings)}
+                                                />
+                                            )}
+                                        </div>
+                                    </details>
 
-                                    {/* 2. BÖLÜM: Hesap Güvenliği */}
+                                    {/* 3.BÖLÜM: Hesap Güvenliği */}
                                     <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
                                         <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
                                             <h2 className="text-xl font-bold text-white flex items-center gap-3">
