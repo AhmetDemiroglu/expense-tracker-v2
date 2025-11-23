@@ -187,15 +187,40 @@ export const askFinancialAdvisor = async (
     settings: UserSettings,
     question: string,
     userName: string,
-    style: "short" | "balanced" | "detailed" = "balanced"
+    history: { role: "user" | "ai"; text: string }[] = [],
+    style: "short" | "balanced" | "detailed" = "balanced",
+    mode: "advisor" | "tutor" = "advisor"
 ): Promise<string> => {
     const summary = summarizeContext(transactions, settings, userName);
     const styleInstruction = getStyleInstruction(style);
     const profileInstruction = getProfileInstructions(settings);
 
+    let roleDefinition = "";
+    if (mode === "tutor") {
+        roleDefinition = `
+        MOD: FİNANS EĞİTMENİ (TUTOR MODE) 🎓
+        Sen bir Finans Profesörüsün ama 5 yaşındaki bir çocuğa anlatır gibi basit ve metaforlarla konuşuyorsun.
+        
+        GÖREVLERİN:
+        1. Kullanıcının sorduğu finansal terimi veya konuyu (Örn: Enflasyon, Bileşik Faiz, Borsa) en basit haliyle açıkla.
+        2. Mutlaka günlük hayattan bir benzetme/metafor kullan.
+        3. EN ÖNEMLİSİ: Konuyu anlattıktan sonra, kullanıcının MEVCUT VERİLERİNE bağla. 
+           (Örn: "Enflasyon canavarı parayı yer, senin de geçen ay Market harcaman artmış, bu yüzden...")
+        `;
+    } else {
+        roleDefinition = `
+        MOD: FİNANSAL DANIŞMAN (ADVISOR MODE) 💼
+        Sen Nova. Kullanıcının finansal yol arkadaşısın. Tarzın: Samimi, net, çözüm odaklı ve hafif esprili.
+        `;
+    }
+
+    const recentHistory = history
+        .slice(-10)
+        .map((msg) => `${msg.role === "user" ? "KULLANICI" : "NOVA"}: ${msg.text}`)
+        .join("\n");
+
     const prompt = `
-    Sen Nova. Kullanıcının (Adı: ${userName}) finansal yol arkadaşısın.
-    Tarzın: Samimi, net, çözüm odaklı ve hafif esprili.
+    ${roleDefinition}
     
     ${styleInstruction}
     ${profileInstruction}
@@ -203,20 +228,22 @@ export const askFinancialAdvisor = async (
     BAĞLAM (Kullanıcının Verileri):
     ${summary}
 
-    KULLANICININ SORUSU:
+    ÖNCEKİ KONUŞMALAR (Hafıza):
+    ${recentHistory}
+
+    KULLANICININ YENİ SORUSU:
     "${question}"
 
     KURALLAR:
-    1. Veri Soruları: "Ne kadar kaldı?", "Durumum ne?" gibi sorularda, yukarıdaki verileri kullanarak KESİN rakamlarla konuş. Yuvarlama yapma.
-    2. Tavsiye Soruları: Kısa, uygulanabilir ve motive edici cevaplar ver.
-    3. Finans Dışı: "Ben sadece finansal konulara bakıyorum ama senin için bir istisna yapabilirim..." gibi esprili bir dille konuyu finansa bağlamaya çalış veya kısa kes.
-    4. Format: Cevabı Markdown olarak ver. Önemli yerleri **kalın** yaz.
+    1. Cevabı Markdown olarak ver.
+    2. Önceki konuşmalara referans verebilirsin (Örn: "Az önce bahsettiğim gibi...").
+    3. Kullanıcı zamir kullanırsa (Örn: "O ne demek?", "Bunu nasıl yaparım?") önceki konuşmadan bağlamı çıkar.
   `;
 
     try {
         const response = await ai.models.generateContent({
-            model: MODEL_NAME,
-            contents: prompt,
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
         return response.text || "Cevap oluşturulamadı.";
     } catch (error) {
@@ -313,26 +340,27 @@ export const parseReceipt = async (base64Image: string): Promise<{ amount: numbe
     }
 
     const prompt = `
-    GÖREV: Bu görsel bir alışveriş fişi veya hizmet faturasıdır. Görseli analiz et ve aşağıdaki JSON şemasına uygun veriyi çıkar.
+        GÖREV: Bu görsel bir alışveriş fişi veya hizmet faturasıdır. Görseli analiz et ve aşağıdaki JSON şemasına uygun veriyi çıkar.
 
-    KURALLAR:
-    1. Tutar (amount): 
-       - Belgedeki "Total", "Genel Toplam", "Ödenecek Tutar" veya "Grand Total" değerini bul.
-       - "TRY", "TL", "$", "€" gibi para birimi simgelerini VE harfleri temizle. SADECE sayı döndür (Örn: "TRY 100.00" -> 100.00).
-       - Ondalık ayracı olarak nokta (.) kullan.
-    
-    2. Tarih (date): 
-       - "November 20, 2025", "20.11.2025" gibi formatları algıla.
-       - Mutlaka "YYYY-MM-DD" formatına çevir (Örn: 2025-11-20).
-       - Tarih yoksa bugünün tarihini kullan.
+        KURALLAR:
+        1. Tutar (amount): 
+        - Belgedeki "Total", "Genel Toplam", "Ödenecek Tutar" veya "Grand Total" değerini bul.
+        - "TRY", "TL", "$", "€" gibi para birimi simgelerini VE harfleri temizle. SADECE sayı döndür.
+        - Ondalık ayracı olarak nokta (.) kullan.
+        
+        2. Tarih (date): 
+        - "November 20, 2025", "20.11.2025" gibi formatları algıla.
+        - Mutlaka "YYYY-MM-DD" formatına çevir.
+        - Tarih yoksa bugünün tarihini kullan.
 
-    3. Açıklama (description):
-       - Satıcı/Marka adını bul (Örn: "Canva", "Migros", "Apple").
-       - Eğer fatura ise hizmet adını ekleyebilirsin (Örn: "Canva - Subscription").
+        3. Açıklama (description):
+        - DİKKAT: Görselde birden fazla marka olabilir (Örn: Ürün etiketi vs.). Sen sadece FİŞİ KESEN KURUMU bul.
+        - Genelde "A.Ş.", "LTD. ŞTİ.", "Mağazacılık" gibi ibareler içeren veya belgenin EN ÜSTÜNDE ORTADA yer alan ismi al.
+        - Örn: "BİM Birleşik Mağazalar", "Migros", "Shell".
+        - Asla ürün markasını (Örn: Coca Cola, AC&Co) satıcı olarak yazma.
 
-    4. Kategori (category):
-       - Harcamanın türüne göre şu kategorilerden birini seç: "Gıda & Market", "Yeme & İçme", "Ulaşım", "Giyim", "Ev & Yaşam", "Teknoloji", "Eğlence", "Sağlık", "Eğitim", "Faturalar", "Diğer".
-       - Örn: Canva için "Teknoloji" veya "Faturalar" seç.
+        4. Kategori (category):
+        - Harcamanın türüne göre şu kategorilerden birini seç: "Gıda & Market", "Yeme & İçme", "Ulaşım", "Giyim", "Ev & Yaşam", "Teknoloji", "Eğlence", "Sağlık", "Eğitim", "Faturalar", "Diğer".
     `;
 
     try {

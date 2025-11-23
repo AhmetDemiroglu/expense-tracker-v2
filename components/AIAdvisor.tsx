@@ -52,6 +52,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     });
 
     const [responseStyle, setResponseStyle] = useState<"short" | "balanced" | "detailed">("balanced");
+    const [aiMode, setAiMode] = useState<"advisor" | "tutor">("advisor");
     const [prevPeriodStats, setPrevPeriodStats] = useState<CycleSummary | null>(null);
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
     const [loadingChat, setLoadingChat] = useState(false);
@@ -151,7 +152,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
         setLoadingChat(true);
 
-        askFinancialAdvisor(transactions, userSettings, userQ, userName, responseStyle)
+        askFinancialAdvisor(transactions, userSettings, userQ, userName, chatHistory, responseStyle, aiMode)
             .then((response) => setChatHistory((prev) => [...prev, { role: "ai", text: response }]))
             .catch(() => setChatHistory((prev) => [...prev, { role: "ai", text: "Hata oluştu." }]))
             .finally(() => setLoadingChat(false));
@@ -241,7 +242,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setLoadingChat(true);
 
         try {
-            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName, responseStyle);
+            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName, chatHistory, responseStyle, aiMode);
             setChatHistory((prev) => [...prev, { role: "ai", text: response }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);
@@ -352,11 +353,47 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
             <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl relative">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
-                    {/* SOL: Başlık */}
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <h3 className="text-white font-bold text-sm">Nova AI</h3>
-                    </div>
+                    {/* SOL: Bütünleşik Nova Başlığı ve Mod Değiştirici */}
+                    <button
+                        onClick={() => setAiMode(prev => prev === "advisor" ? "tutor" : "advisor")}
+                        className="group flex items-center gap-3 transition-all active:scale-95 focus:outline-none"
+                    >
+                        {/* Logo / Avatar Kısmı */}
+                        <div className="relative">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl
+                                ${aiMode === "tutor"
+                                    ? "bg-gradient-to-br from-purple-600 to-indigo-600"
+                                    : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                }`}>
+                                {/* Emoji yerine Image */}
+                                <img
+                                    src={aiMode === "tutor" ? novaShows : novaIcon}
+                                    alt="Mod İkonu"
+                                    className="w-7 h-7 object-contain drop-shadow-md transform transition-transform duration-500 group-hover:rotate-12"
+                                />
+                            </div>
+                            {/* Online Dot */}
+                            <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${aiMode === "tutor" ? "bg-purple-400" : "bg-emerald-400"}`}></span>
+                                <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-slate-800 ${aiMode === "tutor" ? "bg-purple-500" : "bg-emerald-500"}`}></span>
+                            </span>
+                        </div>
+
+                        {/* Metin Kısmı */}
+                        <div className="text-left">
+                            <h3 className="text-white font-bold text-sm leading-tight group-hover:text-indigo-200 transition-colors">
+                                Nova AI
+                            </h3>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${aiMode === "tutor" ? "text-purple-400" : "text-emerald-400"}`}>
+                                {aiMode === "tutor" ? "Eğitmen Modu" : "Danışman Modu"}
+                            </span>
+                        </div>
+
+                        {/* Değiştir İkonu (Hoverda Çıkar) */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity -ml-1 text-slate-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                        </div>
+                    </button>
 
                     {/* SAĞ: Aksiyonlar (Stil Seçici + Temizle) */}
                     <div className="flex items-center gap-3">
