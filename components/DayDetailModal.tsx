@@ -22,15 +22,14 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
             <div className="bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
                 {/* Header with Status Color */}
                 <div
-                    className={`p-6 border-b flex justify-between items-center ${
-                        data.status === "success"
+                    className={`p-6 border-b flex justify-between items-center ${data.status === "success"
                             ? "bg-emerald-900/20 border-emerald-900/50"
                             : data.status === "warning"
-                            ? "bg-amber-900/20 border-amber-900/50"
-                            : data.status === "danger"
-                            ? "bg-rose-900/20 border-rose-900/50"
-                            : "bg-slate-800 border-slate-700"
-                    }`}
+                                ? "bg-amber-900/20 border-amber-900/50"
+                                : data.status === "danger"
+                                    ? "bg-rose-900/20 border-rose-900/50"
+                                    : "bg-slate-800 border-slate-700"
+                        }`}
                 >
                     <div>
                         <h2 className="text-2xl font-bold text-white">{format(dateObj, "d MMMM yyyy", { locale: tr })}</h2>
@@ -56,17 +55,16 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
                 </div>
 
                 {/* Status Message Banner */}
-                <div className="px-6 pb-2">
+                <div className="px-6 pt-6">
                     <div
-                        className={`w-full p-3 rounded-lg flex items-center gap-3 text-sm font-medium ${
-                            data.status === "success"
+                        className={`w-full p-3 rounded-lg flex items-center gap-3 text-sm font-medium ${data.status === "success"
                                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : data.status === "warning"
-                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                : data.status === "danger"
-                                ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                                : "bg-slate-800 text-slate-400"
-                        }`}
+                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                    : data.status === "danger"
+                                        ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                        : "bg-slate-800 text-slate-400"
+                            }`}
                     >
                         {data.status === "success" && (
                             <>
@@ -95,7 +93,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
                 </div>
 
                 {/* Transactions List */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-6 pb-6 pt-6 space-y-3 custom-scrollbar">
                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Günün İşlemleri</h3>
                     {dayTxs.length === 0 ? (
                         <div className="text-center py-8 border-2 border-dashed border-slate-800 rounded-xl text-slate-600">
@@ -106,9 +104,8 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
                             <div key={t.id} className="flex items-center justify-between p-4 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500/30 transition-colors group">
                                 <div className="flex items-center gap-4">
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-lg ${
-                                            t.type === "income" ? "bg-emerald-500/20 text-emerald-400 shadow-emerald-500/10" : "bg-rose-500/20 text-rose-400 shadow-rose-500/10"
-                                        }`}
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-lg ${t.type === "income" ? "bg-emerald-500/20 text-emerald-400 shadow-emerald-500/10" : "bg-rose-500/20 text-rose-400 shadow-rose-500/10"
+                                            }`}
                                     >
                                         {t.type === "income" ? "↓" : "↑"}
                                     </div>
