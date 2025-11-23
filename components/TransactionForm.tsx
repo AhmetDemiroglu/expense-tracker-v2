@@ -4,6 +4,7 @@ import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../context/ToastContext";
 import { parseReceipt } from "../services/geminiService";
+import { processReceiptFile } from "../services/geminiService";
 
 interface TransactionFormProps {
     onAdd: (transaction: Omit<Transaction, "userId" | "createdAt">) => void;
@@ -28,34 +29,34 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
 
     const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast("Dosya boyutu çok yüksek (Max 5MB).", "warning");
+            return;
+        }
 
         setIsScanning(true);
         try {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
+            const result = await processReceiptFile(file);
 
-            reader.onload = async () => {
-                const base64 = reader.result as string;
+            if (result) {
+                setAmount(result.amount.toString());
+                setDescription(result.description);
+                if (result.category) setCategory(result.category);
+                if (result.date) setDate(result.date);
+                setType("expense");
 
-                const result = await parseReceipt(base64);
-
-                if (result) {
-                    setAmount(result.amount.toString());
-                    setDescription(result.description);
-                    setCategory(result.category);
-                    if (result.date) setDate(result.date);
-                    setType("expense");
-
-                    showToast("Fiş başarıyla okundu! Lütfen bilgileri kontrol et.", "success");
-                } else {
-                    showToast("Fişten veri okunamadı.", "error");
-                }
-                setIsScanning(false);
-            };
+                showToast("Fiş/Fatura başarıyla okundu!", "success");
+            } else {
+                showToast("Belgeden anlamlı veri çıkarılamadı.", "error");
+            }
         } catch (error) {
-            console.error(error);
-            showToast("Bir hata oluştu.", "error");
+            console.error("Upload hatası:", error);
+            showToast("İşlem sırasında hata oluştu.", "error");
+        } finally {
             setIsScanning(false);
         }
     };
@@ -161,7 +162,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                 </div>
 
                 <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                    {/* YENİ: Fiş Yükleme Alanı */}
+                    {/* Fiş Yükleme Alanı */}
                     <div className="relative group">
                         <label className={`
                             flex items-center justify-center gap-3 w-full p-4 rounded-xl border border-dashed border-slate-600 
@@ -170,7 +171,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                         `}>
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/*,application/pdf"
                                 onChange={handleReceiptUpload}
                                 disabled={isScanning}
                                 className="hidden"
@@ -179,19 +180,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                             {isScanning ? (
                                 <div className="flex flex-col items-center gap-2 text-indigo-400">
                                     <div className="animate-spin h-6 w-6 border-2 border-current border-t-transparent rounded-full" />
-                                    <span className="text-xs font-bold animate-pulse">Fiş Analiz Ediliyor...</span>
+                                    <span className="text-xs font-bold animate-pulse">Belge Analiz Ediliyor...</span>
                                 </div>
                             ) : (
                                 <>
                                     <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform group-hover:bg-indigo-500/20">
                                         <svg className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            {/* Belge ikonu */}
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">Fişten Otomatik Doldur</span>
-                                        <span className="text-[10px] text-slate-500">Yapay zeka ile saniyeler içinde formu eksiksiz doldur</span>
+                                        <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">
+                                            Fiş veya Fatura Yükle
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">
+                                            Resim (JPG, PNG) veya PDF
+                                        </span>
                                     </div>
                                 </>
                             )}

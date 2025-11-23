@@ -1,6 +1,10 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, UserSettings, CycleSummary, AnalysisReport } from "../types";
 import { FINANCIAL_GOALS, SAVINGS_STYLES, RISK_TOLERANCE } from "../constants";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
 
@@ -222,43 +226,137 @@ export const askFinancialAdvisor = async (
 };
 
 const receiptSchema = {
-    type: "OBJECT",
+    type: Type.OBJECT,
     properties: {
-        amount: { type: "NUMBER", description: "Fişin genel toplam tutarı." },
-        date: { type: "STRING", description: "Fiş tarihi (YYYY-MM-DD formatında)." },
-        description: { type: "STRING", description: "Satıcının adı veya kısa işlem açıklaması." },
-        category: { type: "STRING", description: "Harcamanın kategorisi (Gıda, Ulaşım, Giyim, Sağlık, Eğlence, Fatura vb.)." },
+        amount: {
+            type: Type.NUMBER,
+            description: "Fişin genel toplam tutarı.",
+        },
+        date: {
+            type: Type.STRING,
+            description: "Fiş tarihi (YYYY-MM-DD formatında).",
+        },
+        description: {
+            type: Type.STRING,
+            description: "Satıcının adı veya kısa işlem açıklaması.",
+        },
+        category: {
+            type: Type.STRING,
+            description: "Harcamanın kategorisi (Gıda, Ulaşım, Giyim, Sağlık, Eğlence, Fatura vb.).",
+        },
     },
     required: ["amount", "description", "category"],
+} as const;
+
+const convertPdfToImage = async (file: File): Promise<string> => {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+
+        const page = await pdf.getPage(1);
+
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        if (context) {
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+            };
+            await page.render(renderContext as any).promise;
+            return canvas.toDataURL("image/jpeg", 0.8);
+        }
+        throw new Error("Canvas context oluşturulamadı.");
+    } catch (error) {
+        console.error("PDF -> Resim Çevrim Hatası (Detaylı):", error);
+        throw error;
+    }
+};
+
+export const processReceiptFile = async (file: File): Promise<{ amount: number; date?: string; description: string; category: string } | null> => {
+    try {
+        let base64Image = "";
+
+        if (file.type === "application/pdf") {
+            base64Image = await convertPdfToImage(file);
+        } else if (file.type.startsWith("image/")) {
+            base64Image = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = (error) => reject(error);
+            });
+        } else {
+            throw new Error("Desteklenmeyen dosya formatı.");
+        }
+        return await parseReceipt(base64Image);
+    } catch (error) {
+        console.error("Dosya işleme hatası:", error);
+        return null;
+    }
 };
 
 export const parseReceipt = async (base64Image: string): Promise<{ amount: number; date?: string; description: string; category: string } | null> => {
+    let mimeType = "image/jpeg";
+    let dataPart = base64Image;
+
+    if (base64Image.startsWith("data:")) {
+        const [meta, data] = base64Image.split(",");
+        const match = meta.match(/data:(.*?);base64/);
+        if (match?.[1]) mimeType = match[1];
+        dataPart = data;
+    }
+
     const prompt = `
-    GÖREV: Bu fiş görselini analiz et ve aşağıdaki bilgileri çıkar.
-    1. Tarih: DD-MM-YYYY formatında olmalı. Eğer yıl yoksa mevcut yılı (2025) kullan.
-    2. Kategori: Harcamanın türüne göre genel bir kategori belirle (Türkçe).
-    3. Tutar: İndirimler düşülmüş ÖDENECEK GENEL TOPLAM.
-    4. Açıklama: İşyeri adı.
+    GÖREV: Bu görsel bir alışveriş fişi veya hizmet faturasıdır. Görseli analiz et ve aşağıdaki JSON şemasına uygun veriyi çıkar.
+
+    KURALLAR:
+    1. Tutar (amount): 
+       - Belgedeki "Total", "Genel Toplam", "Ödenecek Tutar" veya "Grand Total" değerini bul.
+       - "TRY", "TL", "$", "€" gibi para birimi simgelerini VE harfleri temizle. SADECE sayı döndür (Örn: "TRY 100.00" -> 100.00).
+       - Ondalık ayracı olarak nokta (.) kullan.
+    
+    2. Tarih (date): 
+       - "November 20, 2025", "20.11.2025" gibi formatları algıla.
+       - Mutlaka "YYYY-MM-DD" formatına çevir (Örn: 2025-11-20).
+       - Tarih yoksa bugünün tarihini kullan.
+
+    3. Açıklama (description):
+       - Satıcı/Marka adını bul (Örn: "Canva", "Migros", "Apple").
+       - Eğer fatura ise hizmet adını ekleyebilirsin (Örn: "Canva - Subscription").
+
+    4. Kategori (category):
+       - Harcamanın türüne göre şu kategorilerden birini seç: "Gıda & Market", "Yeme & İçme", "Ulaşım", "Giyim", "Ev & Yaşam", "Teknoloji", "Eğlence", "Sağlık", "Eğitim", "Faturalar", "Diğer".
+       - Örn: Canva için "Teknoloji" veya "Faturalar" seç.
     `;
 
     try {
-        const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
-
         const response = await ai.models.generateContent({
             model: MODEL_NAME,
-            contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: cleanBase64 } }] }],
+            contents: [
+                {
+                    role: "user",
+                    parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: dataPart } }],
+                },
+            ],
             config: {
+                temperature: 0.1,
                 responseMimeType: "application/json",
                 responseSchema: receiptSchema,
             },
         });
 
-        const textResponse = response.text || null;
-        if (!textResponse) return null;
+        const textResponse = response.text;
 
+        if (!textResponse) return null;
         return JSON.parse(textResponse);
     } catch (error) {
-        console.error("Fiş okuma hatası:", error);
+        console.error("Fiş okuma hatası (API):", error);
         return null;
     }
 };
