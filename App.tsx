@@ -16,10 +16,15 @@ import logo1 from "./logo/logo1.png";
 import { AccountSettings } from "./components/AccountSettings";
 import { NovaProfileSettings } from "./components/NovaProfileSettings";
 import { startOfDay, differenceInCalendarDays, parseISO } from "date-fns";
+import { clsx } from "clsx";
+import { usePlatform } from "./hooks/usePlatform";
+import { MobileBottomNav } from "./components/MobileBottomNav";
+import { useAndroidBack } from "./hooks/useAndroidBack";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
 const App: React.FC = () => {
+    const { isNative } = usePlatform();
     const [user, setUser] = useState<User | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -29,6 +34,13 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    useAndroidBack({
+        isFormOpen,
+        setIsFormOpen,
+        activeTab,
+        setActiveTab
+    });
 
     // Auth Listener
     useEffect(() => {
@@ -180,25 +192,27 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex h-screen bg-slate-950 overflow-hidden">
+        <div className="flex h-screen bg-slate-950 overflow-hidden pt-safe">
             {/* Sidebar */}
-            <Sidebar
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                user={user}
-                userSettings={userSettings}
-                transactions={transactions}
-                onLogout={handleLogout}
-                onDateSelect={(date) => {
-                    setCurrentDate(date);
-                    setActiveTab("calendar");
-                }}
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+            {!isNative && (
+                <Sidebar
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    user={user}
+                    userSettings={userSettings}
+                    transactions={transactions}
+                    onLogout={handleLogout}
+                    onDateSelect={(date) => {
+                        setCurrentDate(date);
+                        setActiveTab("calendar");
+                    }}
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                />
+            )}
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
+            <div className={clsx("flex-1 flex flex-col min-w-0 transition-all duration-300", !isNative && "md:pl-64")}>
                 {/* Mobile Header */}
                 <header className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
                     <div className="flex items-center gap-2">
@@ -210,11 +224,13 @@ const App: React.FC = () => {
                             <span className="text-[10px] text-slate-400 antialiased">Akıllı finans asistanınız</span>
                         </div>
                     </div>
-                    <button onClick={() => setIsSidebarOpen(true)} className="text-slate-400 p-2">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                    {!isNative && (
+                        <button onClick={() => setIsSidebarOpen(true)} className="text-slate-400 p-2">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    )}
                 </header>
 
                 {/* Content Scrollable Area */}
@@ -281,8 +297,10 @@ const App: React.FC = () => {
                             setFormInitialDate(undefined);
                             setIsFormOpen(true);
                         }}
-                        className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform"
-                    >
+                        className={clsx(
+                            "md:hidden fixed right-6 z-40 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform",
+                            isNative ? "bottom-24" : "bottom-6"
+                        )}                    >
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
@@ -444,6 +462,14 @@ const App: React.FC = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Native Bottom Navigation */}
+            {isNative && (
+                <MobileBottomNav
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                />
+            )}
 
             {/* Transaction Form Modal */}
             {isFormOpen && (

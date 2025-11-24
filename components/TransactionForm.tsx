@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Transaction, TransactionType, Category } from "../types";
+import { Transaction, TransactionType } from "../types";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../context/ToastContext";
-import { parseReceipt } from "../services/geminiService";
+import { selectReceiptImage } from "../services/cameraService";
 import { processReceiptFile } from "../services/geminiService";
 
 interface TransactionFormProps {
@@ -11,6 +11,18 @@ interface TransactionFormProps {
     onClose: () => void;
     initialDate?: Date;
 }
+
+const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+};
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose, initialDate }) => {
     const { showToast } = useToast();
@@ -27,19 +39,53 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
         }
     }, [initialDate]);
 
-    const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            return;
-        }
+    // const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0];
+    //     if (!file) {
+    //         return;
+    //     }
 
-        if (file.size > 5 * 1024 * 1024) {
-            showToast("Dosya boyutu çok yüksek (Max 5MB).", "warning");
-            return;
-        }
+    //     if (file.size > 5 * 1024 * 1024) {
+    //         showToast("Dosya boyutu çok yüksek (Max 5MB).", "warning");
+    //         return;
+    //     }
 
-        setIsScanning(true);
+    //     setIsScanning(true);
+    //     try {
+    //         const result = await processReceiptFile(file);
+
+    //         if (result) {
+    //             setAmount(result.amount.toString());
+    //             setDescription(result.description);
+    //             if (result.category) setCategory(result.category);
+    //             if (result.date) setDate(result.date);
+    //             setType("expense");
+
+    //             showToast("Fiş/Fatura başarıyla okundu!", "success");
+    //         } else {
+    //             showToast("Belgeden anlamlı veri çıkarılamadı.", "error");
+    //         }
+    //     } catch (error) {
+    //         console.error("Upload hatası:", error);
+    //         showToast("İşlem sırasında hata oluştu.", "error");
+    //     } finally {
+    //         setIsScanning(false);
+    //     }
+    // };
+
+    const handleScanRequest = async () => {
+        if (isScanning) return;
+
         try {
+            const base64Data = await selectReceiptImage();
+
+            setIsScanning(true);
+            const file = dataURLtoFile(base64Data, `receipt_${Date.now()}.jpg`);
+            if (file.size > 5 * 1024 * 1024) {
+                showToast("Dosya boyutu çok yüksek (Max 5MB).", "warning");
+                setIsScanning(false);
+                return;
+            }
             const result = await processReceiptFile(file);
 
             if (result) {
@@ -48,14 +94,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                 if (result.category) setCategory(result.category);
                 if (result.date) setDate(result.date);
                 setType("expense");
-
                 showToast("Fiş/Fatura başarıyla okundu!", "success");
             } else {
                 showToast("Belgeden anlamlı veri çıkarılamadı.", "error");
             }
+
         } catch (error) {
-            console.error("Upload hatası:", error);
-            showToast("İşlem sırasında hata oluştu.", "error");
+            console.log("Görsel seçimi iptal edildi veya hata:", error);
         } finally {
             setIsScanning(false);
         }
@@ -164,19 +209,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                 <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
                     {/* Fiş Yükleme Alanı */}
                     <div className="relative group">
-                        <label className={`
-                            flex items-center justify-center gap-3 w-full p-4 rounded-xl border border-dashed border-slate-600 
-                            cursor-pointer transition-all duration-300 relative overflow-hidden
-                            ${isScanning ? "bg-slate-800 opacity-80 cursor-not-allowed" : "hover:border-indigo-500 hover:bg-slate-800/50 hover:shadow-lg hover:shadow-indigo-500/10"}
-                        `}>
-                            <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={handleReceiptUpload}
-                                disabled={isScanning}
-                                className="hidden"
-                            />
-
+                        <div
+                            onClick={handleScanRequest}
+                            className={`
+                                flex items-center justify-center gap-3 w-full p-4 rounded-xl border border-dashed border-slate-600 
+                                cursor-pointer transition-all duration-300 relative overflow-hidden
+                                ${isScanning ? "bg-slate-800 opacity-80 cursor-not-allowed" : "hover:border-indigo-500 hover:bg-slate-800/50 hover:shadow-lg hover:shadow-indigo-500/10"}
+                            `}
+                        >
                             {isScanning ? (
                                 <div className="flex flex-col items-center gap-2 text-indigo-400">
                                     <div className="animate-spin h-6 w-6 border-2 border-current border-t-transparent rounded-full" />
@@ -186,20 +226,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                                 <>
                                     <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform group-hover:bg-indigo-500/20">
                                         <svg className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">
-                                            Fiş veya Fatura il Otomatik Doldur
+                                            Fiş veya Fatura ile Otomatik Doldur
                                         </span>
                                         <span className="text-[10px] text-slate-500">
-                                            Resim (JPG, PNG) veya PDF
+                                            Resim (JPG, PNG) veya PDF dosyalarını yükleyin
                                         </span>
                                     </div>
                                 </>
                             )}
-                        </label>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">

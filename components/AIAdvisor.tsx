@@ -269,11 +269,11 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         }
     };
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100dvh-120px)] lg:h-[calc(100vh-140px)] min-h-[500px] pb-8">
             {/* SOL PANEL */}
-            <div className="lg:w-1/3 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+            <div className="lg:w-1/3 shrink-0 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar max-h-[28vh] lg:max-h-full">
                 <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2 sticky top-0 bg-slate-900/90 backdrop-blur py-1 z-10">
                         <img src={currentMood} alt="Nova" className={`w-10 h-10 transition-all duration-500 drop-shadow-lg ${loadingAnalysis || loadingChat ? "animate-pulse" : "hover:scale-110"}`} />
                         Nova Ne Görüyor?
                     </h3>
@@ -290,6 +290,9 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                                 {new Date(userSettings.periodStartDate).toLocaleDateString("tr-TR")} - {new Date(userSettings.periodEndDate).toLocaleDateString("tr-TR")}
                             </p>
                         </div>
+
+                        {/* Mobilde yer kaplamaması için bazı detayları gizleyebiliriz veya scroll içinde bırakabiliriz. 
+                            Şu an scroll içinde bıraktım. */}
 
                         {/* İşlem Sayısı */}
                         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex justify-between items-center">
@@ -325,34 +328,31 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                 </div>
 
                 {/* Analiz Butonu */}
-                <div className="mt-auto">
+                <div className="mt-auto pt-2">
                     <button
                         onClick={handleAnalyze}
                         disabled={loadingAnalysis}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-4 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 lg:p-4 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {loadingAnalysis ? (
                             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         ) : (
                             <span className="text-xl">✨</span>
                         )}
-                        Genel Analiz Raporu Oluştur
+                        <span className="text-sm lg:text-base">Analiz Raporu Oluştur</span>
                     </button>
-                    <p className="text-[10px] text-slate-500 text-center mt-3">Yapay zeka, son işlemlerinizi tarayarak size özel tasarruf önerileri sunar.</p>
+                    <p className="text-[10px] text-slate-500 text-center mt-2 hidden lg:block">Yapay zeka, son işlemlerinizi tarayarak size özel tasarruf önerileri sunar.</p>
                 </div>
             </div>
 
             {/* SAĞ PANEL: Chat & Rapor */}
-            <div className="lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl relative">
+            <div className="flex-1 lg:w-2/3 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-xl relative min-h-0">
+
                 {/* Chat Header */}
-                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                <div className="p-3 lg:p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center shrink-0">
                     {/* SOL: Bütünleşik Nova Başlığı ve Mod Değiştirici */}
                     <button
                         onClick={() => setAiMode(prev => prev === "advisor" ? "tutor" : "advisor")}
@@ -360,16 +360,15 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                     >
                         {/* Logo / Avatar Kısmı */}
                         <div className="relative">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl
+                            <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl
                                 ${aiMode === "tutor"
                                     ? "bg-gradient-to-br from-purple-600 to-indigo-600"
                                     : "bg-gradient-to-br from-emerald-500 to-teal-600"
                                 }`}>
-                                {/* Emoji yerine Image */}
                                 <img
                                     src={aiMode === "tutor" ? novaShows : novaIcon}
                                     alt="Mod İkonu"
-                                    className="w-7 h-7 object-contain drop-shadow-md transform transition-transform duration-500 group-hover:rotate-12"
+                                    className="w-6 h-6 lg:w-7 lg:h-7 object-contain drop-shadow-md transform transition-transform duration-500 group-hover:rotate-12"
                                 />
                             </div>
                             {/* Online Dot */}
@@ -385,18 +384,18 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                                 Nova AI
                             </h3>
                             <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${aiMode === "tutor" ? "text-purple-400" : "text-emerald-400"}`}>
-                                {aiMode === "tutor" ? "Eğitmen Modu" : "Danışman Modu"}
+                                {aiMode === "tutor" ? "Eğitmen" : "Danışman"}
                             </span>
                         </div>
 
-                        {/* Değiştir İkonu (Hoverda Çıkar) */}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity -ml-1 text-slate-500">
+                        {/* Değiştir İkonu */}
+                        <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity -ml-1 text-slate-500">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                         </div>
                     </button>
 
-                    {/* SAĞ: Aksiyonlar (Stil Seçici + Temizle) */}
-                    <div className="flex items-center gap-3">
+                    {/* SAĞ: Aksiyonlar */}
+                    <div className="flex items-center gap-2 lg:gap-3">
                         <div className="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
                             {(["short", "balanced", "detailed"] as const).map((s) => (
                                 <button
@@ -414,12 +413,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                                 title="Sohbeti Temizle"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         )}
@@ -427,52 +421,40 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                 </div>
 
                 {/* Mesaj Alanı */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-0 custom-scrollbar bg-slate-900/30">
+                <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 lg:space-y-6 pb-2 custom-scrollbar bg-slate-900/30">
                     {/* Karşılama / Boş State */}
                     {!analysis && chatHistory.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-60">
                             <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                                />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
-                            <p>Bir soru sor veya analiz başlat...</p>
+                            <p>Nova seni bekliyor...</p>
                         </div>
                     )}
 
                     {/* Chat Geçmişi */}
                     {chatHistory.map((msg, i) => (
                         <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
-                            {/* Rapor İse Özel Tasarım */}
                             {msg.type === "report" && msg.reportData ? (
                                 <div className="max-w-[100%] w-full group">
                                     <NovaReportCard data={msg.reportData} transactions={transactions} />
                                     <div className="flex justify-end mt-1">
                                         <button
-                                            onClick={() => handleCopy(
-                                                `DURUM: ${msg.reportData!.periodStatus.summary}\n\n` +
-                                                `HARCAMALAR:\n${msg.reportData!.spendingHabits.items.map(i => `- ${i}`).join('\n')}\n\n` +
-                                                `ÖNERİLER:\n${msg.reportData!.savingsTips.map(i => `- ${i.title}: ${i.description} (Hedef: %${i.suggestedCut} Kısıntı)`).join('\n')}`
-                                            )}
+                                            onClick={() => handleCopy(`DURUM: ${msg.reportData!.periodStatus.summary}...`)}
                                             className="text-[10px] text-slate-500 hover:text-indigo-400 flex items-center gap-1 px-2 py-1"
                                         >
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                            Özeti Kopyala
+                                            Kopyala
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                /* Normal Mesaj */
-                                <div className={`relative group max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"}`}>
+                                <div className={`relative group max-w-[85%] lg:max-w-[75%] rounded-2xl px-4 py-3 lg:px-5 lg:py-4 shadow-md text-sm lg:text-base ${msg.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-slate-700 text-slate-200 rounded-bl-none"}`}>
                                     <ReactMarkdown>{msg.text}</ReactMarkdown>
                                     {msg.role === "ai" && (
                                         <button
                                             onClick={() => handleCopy(msg.text)}
                                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white bg-slate-800/50 rounded p-1"
-                                            title="Kopyala"
                                         >
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                         </button>
@@ -485,84 +467,59 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
                     {/* Chat Loading */}
                     {(loadingChat || loadingAnalysis) && (
                         <div className="flex justify-start animate-fade-in">
-                            <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 flex gap-1 items-center">
+                            <div className="bg-slate-700 rounded-2xl rounded-bl-none px-4 py-3 flex gap-1 items-center">
                                 <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
                                 <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></span>
                                 <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></span>
                             </div>
                         </div>
                     )}
-
                     <div ref={chatEndRef} />
                 </div>
 
                 {/* Stale Data Uyarısı */}
                 {staleData && !loadingAnalysis && (
-                    <div className="absolute bottom-[80px] left-0 right-0 z-20 px-4 py-4 animate-fade-in-up">
-                        <div className="bg-amber-900/40 backdrop-blur-md border border-amber-500/50 p-3 rounded-xl flex items-center justify-between gap-3 shadow-2xl">
+                    <div className="absolute bottom-[70px] lg:bottom-[80px] left-0 right-0 z-20 px-4 py-2 animate-fade-in-up">
+                        <div className="bg-amber-900/60 backdrop-blur-md border border-amber-500/50 p-3 rounded-xl flex items-center justify-between gap-3 shadow-2xl">
                             <div className="flex items-center gap-2">
-                                <span className="text-amber-400 text-xl animate-pulse">⚠️</span>
+                                <span className="text-amber-400 text-lg animate-pulse">⚠️</span>
                                 <div>
                                     <p className="text-amber-200 text-xs font-bold">Veriler Değişti</p>
-                                    <p className="text-amber-200/70 text-[10px]">Rapor güncelliğini yitirdi.</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={handleAnalyze}
-                                className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-md whitespace-nowrap"
-                            >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                Yenile
-                            </button>
+                            <button onClick={handleAnalyze} className="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg">Yenile</button>
                         </div>
                     </div>
                 )}
 
-                {/* Hızlı Soru Butonları (Quick Prompts) */}
+                {/* Hızlı Soru Butonları */}
                 {!loadingChat && !loadingAnalysis && !staleData && (
-                    <div className="justify-center p-2 flex gap-2 overflow-x-auto custom-scrollbar">
-                        <button
-                            onClick={() => handleQuickPrompt("Genel durumum nasıl?")}
-                            className="whitespace-nowrap bg-slate-700/50 hover:bg-indigo-600/20 hover:text-indigo-300 border border-slate-600 hover:border-indigo-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
-                        >
-                            📊 Durumum Nasıl?
-                        </button>
-                        <button
-                            onClick={() => handleQuickPrompt("Tasarruf için ne önerirsin?")}
-                            className="whitespace-nowrap bg-slate-700/50 hover:bg-emerald-600/20 hover:text-emerald-300 border border-slate-600 hover:border-emerald-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
-                        >
-                            💡 Tasarruf Önerisi
-                        </button>
-                        <button
-                            onClick={() => handleQuickPrompt("Dönem sonuna ne kadar kalır?")}
-                            className="whitespace-nowrap bg-slate-700/50 hover:bg-purple-600/20 hover:text-purple-300 border border-slate-600 hover:border-purple-500/50 text-slate-300 text-xs px-3 py-2 rounded-lg transition-all"
-                        >
-                            📅 Dönem Sonu Tahmini
-                        </button>
+                    <div className="shrink-0 p-2 flex gap-2 overflow-x-auto custom-scrollbar border-t border-slate-700/50 bg-slate-800/80">
+                        <button onClick={() => handleQuickPrompt("Genel durumum nasıl?")} className="whitespace-nowrap bg-slate-700/50 border border-slate-600 text-slate-300 text-[10px] lg:text-xs px-3 py-2 rounded-lg">📊 Durum</button>
+                        <button onClick={() => handleQuickPrompt("Tasarruf için ne önerirsin?")} className="whitespace-nowrap bg-slate-700/50 border border-slate-600 text-slate-300 text-[10px] lg:text-xs px-3 py-2 rounded-lg">💡 Tasarruf</button>
+                        <button onClick={() => handleQuickPrompt("Dönem sonuna ne kadar kalır?")} className="whitespace-nowrap bg-slate-700/50 border border-slate-600 text-slate-300 text-[10px] lg:text-xs px-3 py-2 rounded-lg">📅 Tahmin</button>
                     </div>
                 )}
 
                 {/* Input Alanı */}
-                <form onSubmit={handleAsk} className="p-4 bg-slate-800 border-t border-slate-700 flex gap-3">
+                <form onSubmit={handleAsk} className="p-3 lg:p-4 bg-slate-800 border-t border-slate-700 flex gap-2 lg:gap-3 shrink-0">
                     <input
                         type="text"
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="Örn: Gelecek ay nasıl tasarruf edebilirim?"
+                        placeholder="Bir soru sor..."
                         disabled={loadingChat}
-                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none placeholder:text-slate-500 transition-all disabled:opacity-50"
+                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                     />
                     <button
                         type="submit"
                         disabled={!question.trim() || loadingChat}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-12 h-12"
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center w-11 h-11 lg:w-12 lg:h-12 shrink-0"
                     >
                         {loadingChat ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         ) : (
-                            <svg className="w-6 h-6 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
+                            <svg className="w-5 h-5 lg:w-6 lg:h-6 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                         )}
                     </button>
                 </form>
