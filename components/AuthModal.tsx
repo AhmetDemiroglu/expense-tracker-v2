@@ -35,14 +35,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
         try {
             setLoading(true);
             await loginWithGoogle();
-            // Başarılı girişte bir şey yapmaya gerek yok, listener halleder.
         } catch (err: any) {
             if (err.code === "auth/unauthorized-domain") {
                 showToast(`Domain yetkilendirme hatası! ${window.location.hostname} adresini Firebase'e ekleyin.`, "error");
             } else if (err.code === "auth/popup-closed-by-user") {
                 showToast("Giriş işlemi iptal edildi.", "info");
             } else {
-                showToast("Google ile giriş başarısız.", "error");
+                showToast(
+                    "Google ile giriş başarısız: " + (err?.message || JSON.stringify(err)),
+                    "error"
+                );
             }
             setLoading(false);
         }

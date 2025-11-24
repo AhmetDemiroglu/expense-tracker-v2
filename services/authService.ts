@@ -15,25 +15,42 @@ import {
     signInWithCredential,
 } from "firebase/auth";
 import { auth } from "../firebaseConfig";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { Capacitor } from "@capacitor/core";
+import { SocialLogin } from "@capgo/capacitor-social-login";
+import type { GoogleLoginResponseOnline } from "@capgo/capacitor-social-login";
 
 export const loginWithGoogle = async () => {
     try {
         if (Capacitor.isNativePlatform()) {
-            const googleUser = await GoogleAuth.signIn();
+            const response = await SocialLogin.login({
+                provider: "google",
+                options: {},
+            });
 
-            const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-            const result = await signInWithCredential(auth, credential);
-            return result.user;
+            if (response.provider !== "google") {
+                throw new Error("Google login başarısız: provider google değil");
+            }
+
+            const result = response.result as GoogleLoginResponseOnline;
+
+            const idToken = result.idToken;
+            if (!idToken) {
+                throw new Error("Google idToken alınamadı (mode offline olabilir)");
+            }
+
+            const credential = GoogleAuthProvider.credential(idToken);
+            const userCred = await signInWithCredential(auth, credential);
+            return userCred.user;
         } else {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
             return result.user;
         }
-    } catch (error) {
-        console.error("Login failed", error);
-        throw error;
+    } catch (err: any) {
+        console.error("🔥 GOOGLE LOGIN ERROR:", err);
+        console.error("🔥 GOOGLE LOGIN ERROR RAW:", JSON.stringify(err));
+
+        throw err;
     }
 };
 

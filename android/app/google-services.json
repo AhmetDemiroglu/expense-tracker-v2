@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "774300681132-f7m53achb84q5ukn13ei2njbltgm4u89.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fintel.app",
+            "certificate_hash": "e1d9343185c929f4e9589610fff3a23991c854b1"
+          }
+        },
+        {
           "client_id": "774300681132-sau6h95p86d85489e4uq4lnchc58730a.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

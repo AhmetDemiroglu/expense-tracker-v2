@@ -20,8 +20,9 @@ import { clsx } from "clsx";
 import { usePlatform } from "./hooks/usePlatform";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { useAndroidBack } from "./hooks/useAndroidBack";
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { Capacitor } from '@capacitor/core';
+import { SocialLogin } from "@capgo/capacitor-social-login";
+import { Capacitor } from "@capacitor/core";
+
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
@@ -45,9 +46,15 @@ const App: React.FC = () => {
     });
 
     useEffect(() => {
-        if (Capacitor.isNativePlatform()) {
-            GoogleAuth.initialize();
-        }
+        if (!Capacitor.isNativePlatform()) return;
+
+        SocialLogin.initialize({
+            google: {
+                webClientId: "774300681132-sdog76j4aspnfr321obgkcve5qmcaipt.apps.googleusercontent.com",
+                iOSClientId: "IOS_CLIENT_ID.apps.googleusercontent.com",
+                mode: "online",
+            },
+        });
     }, []);
 
     // Auth Listener
@@ -224,7 +231,7 @@ const App: React.FC = () => {
                 {/* Mobile Header & Native Header */}
                 <header className={clsx(
                     "md:hidden flex items-center justify-between px-4 border-b border-slate-800 sticky top-0 z-30 bg-slate-900 transition-all",
-                    isNative ? "pt-safe pb-3 h-auto" : "h-16",
+                    isNative ? "pt-3 pb-3 h-auto" : "h-16",
                     !isNative && "py-3"
                 )}>
                     <div className="flex items-center gap-2">
@@ -411,7 +418,7 @@ const App: React.FC = () => {
                                             <AccountSettings user={user} />
                                         </div>
                                     </details>
-                                    
+
                                     {/* MOBİL ÇIKIŞ BUTONU */}
                                     {isNative && (
                                         <div className="pt-4 pb-8">
