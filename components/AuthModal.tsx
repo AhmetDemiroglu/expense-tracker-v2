@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { loginWithGoogle, loginWithEmail, registerWithEmail, createGuestUser, resetPassword } from "../services/authService";
 import { useToast } from "../context/ToastContext";
 import logo1 from "../logo/logo1.png";
+import { seedGuestData } from "../services/demoService";
 
 interface AuthModalProps {
     onLoginSuccess: (isGuest?: boolean, guestId?: string) => void;
@@ -78,10 +79,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
         }
     };
 
-    const handleGuest = () => {
-        const guest = createGuestUser();
-        localStorage.setItem("active_guest", guest.uid);
-        onLoginSuccess(true, guest.uid);
+    const handleGuestLogin = async () => {
+        try {
+            const guest = createGuestUser();
+            seedGuestData(guest.uid);
+            localStorage.setItem("active_guest", guest.uid);
+            onLoginSuccess(true, guest.uid);
+        } catch (error) {
+            console.error("Misafir girişi hatası:", error);
+        }
     };
 
     return (
@@ -220,8 +226,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLoginSuccess }) => {
                             Google ile {mode === "login" ? "Giriş" : "Kayıt"}
                         </button>
 
-                        <button onClick={handleGuest} className="w-full text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors mt-4">
-                            Misafir olarak devam et
+                        <button
+                            onClick={handleGuestLogin}
+                            className="w-full mt-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 group"
+                        >
+                            <svg className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>Misafir Olarak İncele</span>
+                            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-0.5 rounded ml-1">Örnek Veriler</span>
                         </button>
                     </>
                 )}

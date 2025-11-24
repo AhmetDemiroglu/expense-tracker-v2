@@ -1,7 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8' ?>
 <resources>
     <string name="app_name">Fintel</string>
     <string name="title_activity_main">Fintel</string>
     <string name="package_name">com.fintel.app</string>
     <string name="custom_url_scheme">com.fintel.app</string>
+    <string name="server_client_id">774300681132-sdog76j4aspnfr321obgkcve5qmcaipt.apps.googleusercontent.com</string>
 </resources>

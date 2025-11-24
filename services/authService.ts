@@ -12,13 +12,25 @@ import {
     EmailAuthProvider,
     sendPasswordResetEmail,
     reauthenticateWithPopup,
+    signInWithCredential,
 } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+import { Capacitor } from "@capacitor/core";
 
 export const loginWithGoogle = async () => {
     try {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        if (Capacitor.isNativePlatform()) {
+            const googleUser = await GoogleAuth.signIn();
+
+            const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+            const result = await signInWithCredential(auth, credential);
+            return result.user;
+        } else {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            return result.user;
+        }
     } catch (error) {
         console.error("Login failed", error);
         throw error;

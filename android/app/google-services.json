@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "774300681132",
+    "project_id": "expense-tracker-v2-f5a0b",
+    "storage_bucket": "expense-tracker-v2-f5a0b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774300681132:android:e8b467ee353999c25b3009",
+        "android_client_info": {
+          "package_name": "com.fintel.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "774300681132-sau6h95p86d85489e4uq4lnchc58730a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fintel.app",
+            "certificate_hash": "c403dff53065ab2b1c1433b37d78075f52b53b8b"
+          }
+        },
+        {
+          "client_id": "774300681132-sdog76j4aspnfr321obgkcve5qmcaipt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-slDvp7I0l_wQBX8QeJEXXh0KjzTZHI0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "774300681132-sdog76j4aspnfr321obgkcve5qmcaipt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

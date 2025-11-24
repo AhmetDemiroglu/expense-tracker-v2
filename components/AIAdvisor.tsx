@@ -17,6 +17,8 @@ import { useToast } from "../context/ToastContext";
 import { fetchBudgetPeriods, calculateHistorySummaries } from "../services/storageService";
 import { CycleSummary } from "../types";
 import { NovaReportCard } from "./NovaReportCard";
+import { clsx } from "clsx";
+import { usePlatform } from "../hooks/usePlatform";
 
 const getDataSignature = (transactions: Transaction[], settings: UserSettings) => {
     return `${transactions.length}-${transactions[0]?.id || "empty"}-${settings.monthlyIncome}-${settings.fixedExpenses}`;
@@ -30,6 +32,28 @@ interface AIAdvisorProps {
 
 export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
     const { showToast } = useToast();
+    const { isNative } = usePlatform();
+    const hasData = transactions && transactions.length > 0;
+
+    if (!hasData) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full min-h-[500px] p-6 text-center space-y-6">
+                <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center shadow-xl shadow-indigo-500/10 animate-pulse">
+                    <img src={novaIcon} alt="Nova" className="w-12 h-12 opacity-50" />
+                </div>
+                <div className="max-w-md space-y-2">
+                    <h2 className="text-2xl font-bold text-white">Henüz Tanışamadık!</h2>
+                    <p className="text-slate-400">
+                        Finansal asistanın Nova'nın sana öneriler sunabilmesi için önce birkaç harcama veya gelir eklemelisin.
+                    </p>
+                </div>
+                <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                    <p className="text-indigo-300 text-sm">👇 Aşağıdaki <b>(+)</b> butonuyla ilk işlemini ekle.</p>
+                </div>
+            </div>
+        );
+    }
+
     const getUserName = () => {
         if (user.displayName) {
             return user.displayName.split(" ")[0];
@@ -271,7 +295,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     return (
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100dvh-120px)] lg:h-[calc(100vh-140px)] min-h-[500px] pb-8">
             {/* SOL PANEL */}
-            <div className="lg:w-1/3 shrink-0 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar max-h-[28vh] lg:max-h-full">
+            <div className={clsx("lg:w-1/3 shrink-0 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar max-h-[28vh] lg:max-h-full", isNative && "pb-24")}>
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2 sticky top-0 bg-slate-900/90 backdrop-blur py-1 z-10">
                         <img src={currentMood} alt="Nova" className={`w-10 h-10 transition-all duration-500 drop-shadow-lg ${loadingAnalysis || loadingChat ? "animate-pulse" : "hover:scale-110"}`} />
