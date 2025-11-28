@@ -81,6 +81,29 @@ export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSet
             };
 
             await saveBudgetPeriod(newPeriod);
+
+            if (editingId && currentSettings) {
+                const originalPeriod = periods.find((x) => x.id === editingId);
+                const isCurrentlyActive =
+                    originalPeriod &&
+                    currentSettings.periodName === originalPeriod.name &&
+                    currentSettings.periodStartDate === originalPeriod.startDate;
+
+                if (isCurrentlyActive) {
+                    const updatedSettings: UserSettings = {
+                        ...currentSettings,
+                        periodName: newPeriod.name,
+                        periodStartDate: newPeriod.startDate,
+                        periodEndDate: newPeriod.endDate,
+                        monthlyIncome: newPeriod.monthlyIncome,
+                        fixedExpenses: newPeriod.fixedExpenses,
+                    };
+
+                    await saveUserSettings(updatedSettings);
+                    onSave(updatedSettings);
+                }
+            }
+
             await loadPeriods();
 
             showToast(editingId ? "Dönem başarıyla güncellendi." : "Yeni dönem listeye eklendi.", "success");
@@ -275,11 +298,10 @@ export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSet
                             return (
                                 <div
                                     key={p.id}
-                                    className={`relative p-5 rounded-xl border transition-all ${
-                                        isActive
+                                    className={`relative p-5 rounded-xl border transition-all ${isActive
                                             ? "bg-slate-800 border-emerald-500 ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-900/20"
                                             : "bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
-                                    }`}
+                                        }`}
                                 >
                                     {isActive && (
                                         <span className="absolute top-4 right-4 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded border border-emerald-500/30 flex items-center gap-1">

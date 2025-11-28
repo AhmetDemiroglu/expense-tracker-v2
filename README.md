@@ -35,7 +35,7 @@ Arayüz, kullanıcı deneyimi, Nova entegrasyonu, sohbet sistemi, dönem hesapla
 ## **✨ Ana Özellikler**
 
 ### **🔹 Nova – AI Finans Asistanı**
-- Gemini Flash 2.0 ile gerçek zamanlı bağlamsal analiz
+- Gemini Flash 2.5 ile gerçek zamanlı bağlamsal analiz
 - Dönem bilgilerini anlama, yorumlama ve kullanıcıya göre cevap verme
 - Esprili ve samimi sohbet
 - Markdown formatlı raporlar

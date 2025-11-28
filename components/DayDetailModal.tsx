@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Transaction, DailyStatus } from "../types";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -11,24 +12,30 @@ interface DayDetailModalProps {
     onDeleteTransaction: (id: string) => void;
 }
 
-export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactions, onClose, onAddTransaction, onDeleteTransaction }) => {
+export const DayDetailModal: React.FC<DayDetailModalProps> = ({
+    data,
+    transactions,
+    onClose,
+    onAddTransaction,
+    onDeleteTransaction
+}) => {
     const dayTxs = transactions.filter((t) => t.date === data.date);
     const dateObj = new Date(data.date);
     const isNegativeLimit = data.limit < 0;
-    const variance = data.limit - data.spent; // Pozitifse tasarruf, negatifse aşım
+    const variance = data.limit - data.spent;
 
-    return (
+    const modalContent = (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
             <div className="bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
                 {/* Header with Status Color */}
                 <div
                     className={`p-6 border-b flex justify-between items-center ${data.status === "success"
-                            ? "bg-emerald-900/20 border-emerald-900/50"
-                            : data.status === "warning"
-                                ? "bg-amber-900/20 border-amber-900/50"
-                                : data.status === "danger"
-                                    ? "bg-rose-900/20 border-rose-900/50"
-                                    : "bg-slate-800 border-slate-700"
+                        ? "bg-emerald-900/20 border-emerald-900/50"
+                        : data.status === "warning"
+                            ? "bg-amber-900/20 border-amber-900/50"
+                            : data.status === "danger"
+                                ? "bg-rose-900/20 border-rose-900/50"
+                                : "bg-slate-800 border-slate-700"
                         }`}
                 >
                     <div>
@@ -58,12 +65,12 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
                 <div className="px-6 pt-6">
                     <div
                         className={`w-full p-3 rounded-lg flex items-center gap-3 text-sm font-medium ${data.status === "success"
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                : data.status === "warning"
-                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                    : data.status === "danger"
-                                        ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                                        : "bg-slate-800 text-slate-400"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : data.status === "warning"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : data.status === "danger"
+                                    ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                    : "bg-slate-800 text-slate-400"
                             }`}
                     >
                         {data.status === "success" && (
@@ -153,4 +160,5 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ data, transactio
             </div>
         </div>
     );
+    return createPortal(modalContent, document.body);
 };
