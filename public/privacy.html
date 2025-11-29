@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Gizlilik Politikası ve Hesap Silme - Fintel</title>
+        <meta name="description" content="Fintel uygulaması gizlilik politikası, veri kullanımı ve hesap silme talimatları." />
+        <link rel="icon" type="image/png" href="https://expense-tracker-v2-f5a0b.web.app/assets/logo1-PpNc4zhV.png" />
+        <style>
+            :root {
+                --primary-color: #4f46e5;
+                --secondary-color: #1e293b;
+                --text-color: #334155;
+                --bg-color: #f8fafc;
+                --card-bg: #ffffff;
+                --danger-color: #e11d48;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.7;
+                color: var(--text-color);
+                background-color: var(--bg-color);
+                margin: 0;
+                padding: 20px;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .container {
+                max-width: 800px;
+                margin: 40px auto;
+                background-color: var(--card-bg);
+                padding: 50px 40px;
+                border-radius: 24px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            }
+
+            header {
+                text-align: center;
+                margin-bottom: 40px;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 30px;
+            }
+
+            .logo {
+                width: 80px;
+                height: 80px;
+                object-fit: contain;
+                margin-bottom: 15px;
+                border-radius: 16px;
+                box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+                background-color: white;
+                padding: 5px;
+            }
+
+            h1 {
+                color: var(--secondary-color);
+                font-size: 2rem;
+                font-weight: 800;
+                margin: 10px 0;
+            }
+
+            .brand-color {
+                color: var(--primary-color);
+            }
+
+            .date {
+                color: #64748b;
+                font-size: 0.9rem;
+                font-weight: 500;
+                background-color: #f1f5f9;
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+                margin-top: 10px;
+            }
+
+            h2 {
+                color: var(--secondary-color);
+                font-size: 1.4rem;
+                margin-top: 40px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                border-left: 4px solid var(--primary-color);
+                padding-left: 15px;
+            }
+
+            /* Veri Silme Bölümü İçin Özel Stil */
+            h2.delete-section {
+                border-left-color: var(--danger-color);
+                color: var(--danger-color);
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            li {
+                margin-bottom: 16px;
+                padding: 16px;
+                background-color: #f8fafc;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            }
+
+            strong {
+                color: var(--secondary-color);
+                font-weight: 700;
+            }
+
+            a {
+                color: var(--primary-color);
+                text-decoration: none;
+                font-weight: 600;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+
+            .btn {
+                display: inline-block;
+                background-color: var(--primary-color);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                margin-top: 10px;
+                font-size: 0.9rem;
+            }
+            .btn:hover {
+                background-color: #4338ca;
+                text-decoration: none;
+            }
+
+            .footer {
+                margin-top: 60px;
+                text-align: center;
+                font-size: 0.9em;
+                color: #94a3b8;
+                border-top: 1px solid #e2e8f0;
+                padding-top: 30px;
+            }
+
+            .alert-box {
+                background-color: #fff1f2;
+                border: 1px solid #fda4af;
+                color: #9f1239;
+                padding: 15px;
+                border-radius: 8px;
+                font-size: 0.95rem;
+                margin-top: 10px;
+            }
+
+            @media (max-width: 640px) {
+                .container {
+                    padding: 30px 20px;
+                    margin: 10px auto;
+                }
+                h1 {
+                    font-size: 1.6rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <img src="https://expense-tracker-v2-f5a0b.web.app/assets/logo1-PpNc4zhV.png" alt="Logo" class="logo" />
+                <h1><span class="brand-color">Fintel</span> Gizlilik ve Veri Politikası</h1>
+                <div class="date">Son Güncelleme: 29 Kasım 2025</div>
+            </header>
+
+            <main>
+                <p>
+                    Fintel ("Uygulama"), <strong>SeptimusLab</strong> tarafından geliştirilen bir kişisel finans asistanıdır. Bu belge, verilerinizin nasıl işlendiğini ve özellikle
+                    <strong>hesabınızı ve verilerinizi nasıl silebileceğinizi</strong> şeffaf bir şekilde açıklar.
+                </p>
+
+                <h2 class="delete-section">⚠️ Hesap Silme ve Veri Kaldırma</h2>
+                <p>
+                    Google Play Veri Güvenliği politikaları gereği, kullanıcılarımıza verileri üzerinde tam kontrol sağlıyoruz. Hesabınızı ve ilişkili tüm verileri aşağıdaki 3 yöntemden biriyle kalıcı
+                    olarak silebilirsiniz:
+                </p>
+
+                <ul>
+                    <li>
+                        <strong>Yöntem 1: Web Üzerinden Anında Silme (Önerilen)</strong>
+                        <p>Uygulamayı tekrar yüklemenize gerek kalmadan, web portalımız üzerinden hesabınızı silebilirsiniz:</p>
+                        <ol style="padding-left: 20px; margin-top: 10px">
+                            <li>
+                                <strong><a href="https://expense-tracker-v2-f5a0b.web.app" target="_blank">Fintel Web Portalına</a></strong> gidin ve giriş yapın.
+                            </li>
+                            <li><strong>Ayarlar</strong> menüsüne tıklayın.</li>
+                            <li>En alttaki kırmızı <strong>"Hesabımı Kalıcı Olarak Sil"</strong> butonuna tıklayın ve onaylayın.</li>
+                        </ol>
+                        <a href="https://expense-tracker-v2-f5a0b.web.app" class="btn" target="_blank">Web Portalına Git</a>
+                    </li>
+
+                    <li>
+                        <strong>Yöntem 2: Mobil Uygulama İçinden</strong>
+                        <p>Fintel mobil uygulaması yüklüyse: <strong>Ayarlar > Hesap > Hesabı Sil</strong> adımlarını takip ederek verilerinizi anında silebilirsiniz.</p>
+                    </li>
+
+                    <li>
+                        <strong>Yöntem 3: E-posta Talebi ile</strong>
+                        <p>Eğer yukarıdaki yöntemleri kullanamıyorsanız, geliştiriciye doğrudan ulaşarak silme talebinde bulunabilirsiniz.</p>
+                        <p>📧 <strong>E-posta:</strong> <a href="mailto:ahmetdemiroglu89@gmail.com">ahmetdemiroglu89@gmail.com</a></p>
+                        <p><em>Lütfen konu satırına "Fintel Hesap Silme Talebi" yazınız. Talebiniz 7 iş günü içinde işleme alınacaktır.</em></p>
+                    </li>
+                </ul>
+
+                <div class="alert-box">
+                    <strong>Silinen Veriler Hakkında:</strong> Hesap silme işlemi onaylandığında; E-posta adresiniz, kimlik bilgileriniz, tüm gelir/gider kayıtlarınız, bütçe planlarınız ve
+                    yüklediğiniz tüm fiş/fatura görselleri sunucularımızdan (Firebase) <strong>geri döndürülemez şekilde ve kalıcı olarak</strong> silinir. Herhangi bir veri saklama süresi uygulanmaz.
+                </div>
+
+                <h2>1. Toplanan Veriler ve Amaçları</h2>
+                <ul>
+                    <li><strong>Hesap Bilgileri:</strong> Uygulamaya giriş yapabilmeniz ve verilerinizi yedekleyebilmemiz için E-posta adresiniz toplanır.</li>
+                    <li><strong>Finansal Veriler:</strong> Bütçe takibi ve yapay zeka analizi (Nova AI) sunabilmek için girdiğiniz harcama ve gelir verileri işlenir.</li>
+                </ul>
+
+                <h2><span class="number">2</span> Cihaz İzinleri ve Kullanım Amaçları</h2>
+                <p>
+                    Fintel, size tam kapsamlı bir finansal asistan deneyimi sunabilmek için aşağıdaki cihaz izinlerine ihtiyaç duyar. Bu izinler, yalnızca siz ilgili özelliği aktif olarak
+                    kullandığınızda istenir:
+                </p>
+                <ul>
+                    <li>
+                        <div>
+                            <strong>Kamera Erişimi (CAMERA)</strong>
+                            Fiziksel fiş, makbuz ve faturalarınızın fotoğrafını çekerek sisteme yüklemeniz için gereklidir. Çekilen görüntüler, Nova AI (Yapay Zeka) motorumuz tarafından taranır;
+                            tarih, tutar ve kategori bilgileri otomatik olarak ayrıştırılır. Kamera, izniniz ve bilginiz dışında asla açılmaz.
+                        </div>
+                    </li>
+                    <li>
+                        <div>
+                            <strong>Dosya ve Medya Erişimi (READ_MEDIA / FILES)</strong>
+                            Cihazınızda kayıtlı olan <strong>PDF formatındaki e-faturaları</strong>, banka dekontlarını veya daha önce çektiğiniz fiş görsellerini uygulamaya yükleyebilmeniz için
+                            kullanılır. Uygulama, sadece sizin seçtiğiniz dosyalara erişir; cihazınızdaki diğer özel fotoğraflara veya belgelere erişim sağlamaz.
+                        </div>
+                    </li>
+                </ul>
+
+                <h2><span class="number">3</span> İletişim ve Geliştirici</h2>
+                <p>Bu gizlilik politikası, veri güvenliği veya uygulama hakkındaki görüşleriniz için bizimle iletişime geçebilirsiniz.</p>
+
+                <div style="background-color: #f1f5f9; padding: 20px; border-radius: 12px; margin-top: 20px; display: flex; align-items: center; gap: 15px">
+                    <div style="background: white; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05)">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12a3 3 0 1 0 6 0" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 0.85em; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px">Geliştirici</p>
+                        <p style="margin: 0; font-weight: 700; color: #1e293b; font-size: 1.1em">SeptimusLab</p>
+                    </div>
+                </div>
+
+                <p style="margin-top: 20px">📧 Destek E-posta: <a href="mailto:ahmetdemiroglu89@gmail.com">ahmetdemiroglu89@gmail.com</a></p>
+            </main>
+
+            <footer class="footer">&copy; 2025 Fintel by <strong>SeptimusLab</strong>. Tüm hakları saklıdır.</footer>
+        </div>
+    </body>
+</html>

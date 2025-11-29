@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { User, updateProfile } from "firebase/auth";
+import { User, updateProfile, deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from "firebase/auth";
 import { updateUserPassword, setInitialPassword } from "../services/authService";
 import { useToast } from "../context/ToastContext";
+import { auth } from "../firebaseConfig";
 interface AccountSettingsProps {
     user: User;
 }
@@ -62,6 +63,40 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
                 showToast("İşlem iptal edildi.", "info");
             } else {
                 showToast("İşlem başarısız oldu. Lütfen tekrar deneyin.", "error");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmDelete = window.confirm(
+            "DİKKAT: Hesabınızı ve tüm verilerinizi kalıcı olarak silmek üzeresiniz!\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?"
+        );
+
+        if (!confirmDelete) return;
+
+        setLoading(true);
+        try {
+            await deleteUser(user);
+            showToast("Hesabınız ve tüm verileriniz silindi. Sizi özleyeceğiz.", "info");
+        } catch (error: any) {
+            console.error("Silme hatası:", error);
+
+            if (error.code === "auth/requires-recent-login") {
+                const confirmReauth = window.confirm("Güvenlik gereği hesabınızı silmek için yeniden giriş yapmanız gerekiyor. Şimdi giriş yapmak ister misiniz?");
+                if (confirmReauth) {
+                    try {
+                        const provider = new GoogleAuthProvider();
+                        await reauthenticateWithPopup(user, provider);
+                        await deleteUser(user);
+                        showToast("Hesabınız silindi.", "success");
+                    } catch (reauthError) {
+                        showToast("Yeniden doğrulama başarısız. Lütfen çıkış yapıp tekrar girdikten sonra deneyin.", "error");
+                    }
+                }
+            } else {
+                showToast("Hesap silinirken bir hata oluştu: " + error.message, "error");
             }
         } finally {
             setLoading(false);
@@ -190,6 +225,25 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ user }) => {
                         </button>
                     </div>
                 </form>
+            </div>
+            {/* YENİ: TEHLİKELİ BÖLGE (HESAP SİLME) */}
+            <div className="bg-rose-950/20 rounded-xl p-6 border border-rose-900/50 mt-8">
+                <h3 className="text-rose-500 font-bold mb-2 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Tehlikeli Bölge
+                </h3>
+                <p className="text-rose-200/60 text-sm mb-4">
+                    Bu işlem geri alınamaz. Hesabınız, bütçe verileriniz, geçmiş işlemleriniz ve yüklediğiniz tüm fiş görselleri sunucularımızdan kalıcı olarak silinecektir.
+                </p>
+                <button
+                    onClick={handleDeleteAccount}
+                    disabled={loading}
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white px-4 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-rose-900/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {loading ? "Siliniyor..." : "Hesabımı Kalıcı Olarak Sil"}
+                </button>
             </div>
         </div>
     );
