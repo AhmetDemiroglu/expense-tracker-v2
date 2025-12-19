@@ -262,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Expense Breakdown */}
                 <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-6">Harcama Dağılımı</h3>
+                    <h3 className="text-lg font-semibold text-white mb-3">Harcama Dağılımı</h3>
                     {categoryData.length > 0 ? (
                         <div className="flex flex-col md:flex-row gap-8 h-full">
                             <div className="flex-1 min-h-[250px] relative">
@@ -311,7 +311,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
 
                 {/* Trend Chart */}
                 <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-4">{typeFilter === "income" ? "Gelir Trendi" : "Harcama Trendi"}</h3>
+                    <h3 className="text-lg font-semibold text-white mb-3">{typeFilter === "income" ? "Gelir Trendi" : "Harcama Trendi"}</h3>
                     {chartData.length > 0 ? (
                         <div className="flex-1 w-full h-64">
                             <ResponsiveContainer width="100%" height="100%">

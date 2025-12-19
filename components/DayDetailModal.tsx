@@ -128,7 +128,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
                                     </span>
                                     <button
                                         onClick={() => onDeleteTransaction(t.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                                        className="md:opacity-0 md:group-hover:opacity-100 p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path

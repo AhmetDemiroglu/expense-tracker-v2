@@ -295,7 +295,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     return (
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100dvh-120px)] lg:h-[calc(100vh-140px)] min-h-[500px] pb-8">
             {/* SOL PANEL */}
-            <div className={clsx("lg:w-1/3 shrink-0 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar max-h-[28vh] lg:max-h-full", isNative && "pb-24")}>
+            <div className={clsx("lg:w-1/3 shrink-0 bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar max-h-[28vh] lg:max-h-full", isNative && "pb-2")}>
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2 sticky top-0 bg-slate-900/90 backdrop-blur py-1 z-10">
                         <img src={currentMood} alt="Nova" className={`w-10 h-10 transition-all duration-500 drop-shadow-lg ${loadingAnalysis || loadingChat ? "animate-pulse" : "hover:scale-110"}`} />

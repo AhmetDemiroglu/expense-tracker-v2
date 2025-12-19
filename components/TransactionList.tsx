@@ -42,7 +42,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
                         <span className={`font-bold ${t.type === "income" ? "text-emerald-400" : "text-white"}`}>
                             {t.type === "income" ? "+" : "-"} {t.amount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺
                         </span>
-                        <button onClick={() => onDelete(t.id)} className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-500 transition-all p-2" title="Sil">
+                        <button onClick={() => onDelete(t.id)} className="md:opacity-0 md:group-hover:opacity-100 text-slate-500 hover:text-rose-500 transition-all p-2" title="Sil">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     strokeLinecap="round"

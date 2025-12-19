@@ -22,7 +22,7 @@ import { MobileBottomNav } from "./components/MobileBottomNav";
 import { useAndroidBack } from "./hooks/useAndroidBack";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Capacitor } from "@capacitor/core";
-
+import { OnboardingSlider } from "./components/OnboardingSlider";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
@@ -37,6 +37,9 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(() => {
+        return !localStorage.getItem("fintel_onboarding_completed");
+    });
 
     useAndroidBack({
         isFormOpen,
@@ -200,6 +203,10 @@ const App: React.FC = () => {
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500"></div>
             </div>
         );
+    }
+
+    if (showOnboarding) {
+        return <OnboardingSlider onComplete={() => setShowOnboarding(false)} />;
     }
 
     if (!user) {
@@ -421,7 +428,7 @@ const App: React.FC = () => {
 
                                     {/* MOBİL ÇIKIŞ BUTONU */}
                                     {isNative && (
-                                        <div className="pt-4 pb-8">
+                                        <div className="pt-4 pb-0">
                                             <button
                                                 onClick={handleLogout}
                                                 className="w-full bg-slate-900 border border-rose-900/50 text-rose-400 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-950/30 transition-colors active:scale-95"
@@ -432,7 +439,7 @@ const App: React.FC = () => {
                                                 Oturumu Kapat
                                             </button>
                                             <p className="text-center text-[10px] text-slate-600 mt-4">
-                                                Versiyon 2.1.0 (Native Build)
+                                                Versiyon 2.2.0 (Native Build)
                                             </p>
                                         </div>
                                     )}
