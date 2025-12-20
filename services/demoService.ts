@@ -58,7 +58,7 @@ export const seedGuestData = (guestId: string) => {
 
     // Giderler
     const expenses = [
-        { amt: 12000, cat: "Konut & Kira", desc: "Ev Kirası", day: 14 }, // Kategori isimlerini Enum'a yaklaştırdım
+        { amt: 12000, cat: "Konut & Kira", desc: "Ev Kirası", day: 14 },
         { amt: 850, cat: "Faturalar", desc: "Elektrik", day: 12 },
         { amt: 1250, cat: "Gıda & Market", desc: "Haftalık Alışveriş", day: 10 },
         { amt: 350, cat: "Ulaşım", desc: "Benzin", day: 8 },
