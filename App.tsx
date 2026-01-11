@@ -507,7 +507,11 @@ const App: React.FC = () => {
 
                             {activeTab === "transactions" && (
                                 <div className="animate-fade-in max-w-4xl mx-auto">
-                                    <TransactionList transactions={transactions} onDelete={handleDeleteTransaction} />
+                                    <TransactionList
+                                        transactions={transactions}
+                                        onDelete={handleDeleteTransaction}
+                                        userId={user.uid}
+                                    />
                                 </div>
                             )}
 

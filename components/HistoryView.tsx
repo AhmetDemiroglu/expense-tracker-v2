@@ -57,9 +57,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ transactions, userId, 
                         >
                             {/* Dekoratif Arka Plan */}
                             <div
-                                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${
-                                    cycle.balance >= 0 ? "from-emerald-500/10" : "from-rose-500/10"
-                                } to-transparent rounded-bl-full pointer-events-none`}
+                                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${cycle.balance >= 0 ? "from-emerald-500/10" : "from-rose-500/10"
+                                    } to-transparent rounded-bl-full pointer-events-none`}
                             />
 
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 relative z-10">

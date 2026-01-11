@@ -149,25 +149,34 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     }, [analysis]);
 
     const stats = React.useMemo(() => {
-        const txIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
-        const txExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+        const start = new Date(userSettings.periodStartDate);
+        const end = new Date(userSettings.periodEndDate);
+        end.setHours(23, 59, 59, 999);
+
+        const activeTxs = transactions.filter((t) => {
+            const tDate = new Date(t.date);
+            return tDate >= start && tDate <= end;
+        });
+
+        const txIncome = activeTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+        const txExpense = activeTxs.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
         const totalIncome = txIncome + userSettings.monthlyIncome;
         const totalExpense = txExpense + userSettings.fixedExpenses;
 
-        const endDate = new Date(userSettings.periodEndDate);
         const now = new Date();
-        const diffTime = endDate.getTime() - now.getTime();
+        const diffTime = end.getTime() - now.getTime();
         const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const displayDays = daysRemaining < 0 ? 0 : daysRemaining;
 
-        const expenses = transactions.filter((t) => t.type === "expense");
+        const expenses = activeTxs.filter((t) => t.type === "expense");
         const categoryTotals = expenses.reduce((acc, t) => {
             acc[t.category] = (acc[t.category] || 0) + t.amount;
             return acc;
         }, {} as Record<string, number>);
+
         const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
-        return { txIncome, txExpense, totalIncome, totalExpense, displayDays, transactionCount: transactions.length, topCategory };
+        return { txIncome, txExpense, totalIncome, totalExpense, displayDays, transactionCount: activeTxs.length, topCategory };
     }, [transactions, userSettings]);
 
     const handleQuickPrompt = (promptText: string) => {

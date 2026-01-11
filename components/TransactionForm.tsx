@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Transaction, TransactionType } from "../types";
+import { Transaction, TransactionType, Category } from "../types";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../context/ToastContext";
@@ -38,40 +38,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
             setDate(initialDate.toISOString().split("T")[0]);
         }
     }, [initialDate]);
-
-    // const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    //     const file = e.target.files?.[0];
-    //     if (!file) {
-    //         return;
-    //     }
-
-    //     if (file.size > 5 * 1024 * 1024) {
-    //         showToast("Dosya boyutu çok yüksek (Max 5MB).", "warning");
-    //         return;
-    //     }
-
-    //     setIsScanning(true);
-    //     try {
-    //         const result = await processReceiptFile(file);
-
-    //         if (result) {
-    //             setAmount(result.amount.toString());
-    //             setDescription(result.description);
-    //             if (result.category) setCategory(result.category);
-    //             if (result.date) setDate(result.date);
-    //             setType("expense");
-
-    //             showToast("Fiş/Fatura başarıyla okundu!", "success");
-    //         } else {
-    //             showToast("Belgeden anlamlı veri çıkarılamadı.", "error");
-    //         }
-    //     } catch (error) {
-    //         console.error("Upload hatası:", error);
-    //         showToast("İşlem sırasında hata oluştu.", "error");
-    //     } finally {
-    //         setIsScanning(false);
-    //     }
-    // };
 
     const handleScanRequest = async () => {
         if (isScanning) return;
@@ -169,9 +135,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
                         <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
                         <div className="absolute top-full left-0 mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto custom-scrollbar animate-fade-in-up">
                             <div className="p-1 space-y-0.5">
-                                {options.map((opt) => (
+                                {options.map((opt, index) => (
                                     <button
-                                        key={opt}
+                                        key={`${opt}-${index}`}
                                         type="button"
                                         onClick={() => {
                                             onChange(opt);
@@ -191,7 +157,18 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
         );
     };
 
-    const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const incomeCategories = [
+        Category.MAAS,
+        Category.FREELANCE,
+        Category.YATIRIM_GELIRI,
+        Category.KIRA_GELIRI,
+        Category.DIGER_GELIR
+    ];
+
+    const expenseCategories = Object.values(Category).filter(c => !incomeCategories.includes(c));
+
+    const categories = type === "income" ? incomeCategories : expenseCategories;
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">

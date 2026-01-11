@@ -82,17 +82,28 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     const end = new Date(settings.periodEndDate);
     const now = new Date();
 
-    const diffTime = Math.abs(end.getTime() - now.getTime());
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endMidnight = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
-    const txIncome = transactions.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
-    const txExpense = transactions.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
+    const diffTime = endMidnight.getTime() - todayMidnight.getTime();
+    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    const filterEndDate = new Date(end);
+    filterEndDate.setHours(23, 59, 59, 999);
+
+    const activePeriodTxs = transactions.filter((t) => {
+        const tDate = new Date(t.date);
+        return tDate >= start && tDate <= filterEndDate;
+    });
+
+    const txIncome = activePeriodTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+    const txExpense = activePeriodTxs.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
 
     const totalIncome = txIncome + settings.monthlyIncome;
     const totalExpense = txExpense + settings.fixedExpenses;
     const balance = totalIncome - totalExpense;
 
-    const expenses = transactions.filter((t) => t.type === "expense");
+    const expenses = activePeriodTxs.filter((t) => t.type === "expense");
     const categories: Record<string, number> = {};
     expenses.forEach((t) => {
         categories[t.category] = (categories[t.category] || 0) + t.amount;
@@ -104,44 +115,42 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
         .map(([name, amount]) => `- ${name}: ${amount.toLocaleString("tr-TR")} TL`)
         .join("\n");
 
-    const lastTransactions = transactions
-        .slice(0, 5)
-        .map((t) => `${t.date}: ${t.category} (${t.amount} TL) - ${t.description}`)
+    const lastTransactions = activePeriodTxs
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10)
+        .map((t) => `${t.date}: ${t.category} (${t.amount} TL) - Açıklama: ${t.description}`)
         .join("\n");
 
     return `
     KULLANICI PROFİLİ:
     - İsim: ${userName}
-    - HİTAP KURALI: Kullanıcıya ASLA "Bey", "Hanım" veya "Sayın" diye hitap etme. Sadece ismiyle hitap et.
-    - TON: Çok samimi, esprili ve yakın bir arkadaş gibi konuş. Resmiyet kesinlikle yasak.
+    - HİTAP KURALI: Resmiyet yasak. Samimi, arkadaş canlısı ol. Kullanıcıya "Ahmet" diye hitap edebilirsin.
     
-    AKTİF DÖNEM BİLGİLERİ (Kullanıcının Bütçe Çerçevesi):
-    - Dönem Adı: ${settings.periodName}
-    - Tarih Aralığı: ${settings.periodStartDate} ile ${settings.periodEndDate} arasında.
-    - Dönem Bitişine Kalan Süre: ${daysRemaining} Gün (Bugün: ${now.toLocaleDateString("tr-TR")})
+    AKTİF DÖNEM ANALİZİ (DİKKAT: Sadece bu aralıktaki verileri görüyorsun):
+    - Dönem: ${settings.periodName} (${start.toLocaleDateString("tr-TR")} - ${end.toLocaleDateString("tr-TR")})
+    - Kalan Süre: ${daysRemaining > 0 ? daysRemaining + " gün" : "Dönem bitti"}
+    
+    FİNANSAL DURUM (Sadece Bu Dönem):
     - Sabit Gelir (Maaş vb.): ${settings.monthlyIncome.toLocaleString("tr-TR")} TL
-    - Sabit Giderler (Kira, fatura vb.): ${settings.fixedExpenses.toLocaleString("tr-TR")} TL
+    - Eklenen Ek Gelirler: ${txIncome.toLocaleString("tr-TR")} TL
+    - TOPLAM GELİR: ${totalIncome.toLocaleString("tr-TR")} TL
     
-    FİNANSAL DURUM (Sabitler + İşlemler Dahil):
-    - Toplam Gelir: ${totalIncome.toLocaleString("tr-TR")} TL
-    - Toplam Gider: ${totalExpense.toLocaleString("tr-TR")} TL
-    - NET BAKİYE (Cepte Kalan): ${balance.toLocaleString("tr-TR")} TL
+    - Sabit Giderler: ${settings.fixedExpenses.toLocaleString("tr-TR")} TL
+    - Yapılan Harcamalar: ${txExpense.toLocaleString("tr-TR")} TL
+    - TOPLAM GİDER: ${totalExpense.toLocaleString("tr-TR")} TL
     
+    - NET KALAN BAKİYE: ${balance.toLocaleString("tr-TR")} TL (Eksiye düştüyse uyar)
+
     HARCAMA DETAYLARI:
-    - En Çok Harcanan Kategoriler:
+    - En Yüksek Kategoriler:
     ${topCategories}
-    - Son İşlemler:
+    
+    - Son İşlemler (Marka/Yer Analizi İçin):
     ${lastTransactions}
   `;
 };
 
-export const analyzeFinances = async (
-    transactions: Transaction[],
-    settings: UserSettings,
-    userName: string,
-    style: "short" | "balanced" | "detailed" = "balanced",
-    prevStats: CycleSummary | null = null
-): Promise<AnalysisReport | null> => {
+export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string, style: "short" | "balanced" | "detailed" = "balanced", prevStats: CycleSummary | null = null): Promise<AnalysisReport | null> => {
     const summary = summarizeContext(transactions, settings, userName);
     const styleInstruction = getStyleInstruction(style);
     const profileInstruction = getProfileInstructions(settings);

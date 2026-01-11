@@ -1,27 +1,46 @@
 export type TransactionType = "income" | "expense";
 
 export enum Category {
-    // Income
+    // GELİR KALEMLERİ
     MAAS = "Maaş",
-    FREELANCE = "Freelance",
-    YATIRIM = "Yatırım",
-    EK_GELIR = "Ek Gelir",
+    FREELANCE = "Freelance / Ek İş",
+    YATIRIM_GELIRI = "Yatırım Geliri",
+    KIRA_GELIRI = "Kira Geliri",
     DIGER_GELIR = "Diğer Gelir",
 
-    // Expense
-    GIDA = "Gıda & Market",
-    ULASIM = "Ulaşım",
-    KONUT = "Konut & Kira",
+    // GİDER KALEMLERİ - TEMEL
+    MARKET = "Market & Pazar",
+    YEME_ICME = "Yeme & İçme (Restoran vb.)",
+    ULASIM_TOPLU = "Toplu Taşıma",
+    ULASIM_ARAC = "Araç & Yakıt",
+    KIRA_AIDAT = "Kira & Aidat",
     FATURA = "Faturalar",
-    EGLENCE = "Eğlence",
-    SAGLIK = "Sağlık",
-    EGITIM = "Eğitim",
-    GIYIM = "Giyim",
-    TEKNOLOJI = "Teknoloji",
-    KREDI_KARTI = "Kredi Kartı Borcu",
+
+    // GİDER KALEMLERİ - YAŞAM & KİŞİSEL
+    GIYIM = "Giyim & Aksesuar",
+    KOZMETIK = "Kozmetik & Bakım",
+    SAGLIK = "Sağlık & İlaç",
+    SPOR = "Spor & Üyelik",
+    KUAFOR = "Kuaför & Berber",
+
+    // GİDER KALEMLERİ - EV & AİLE
+    EV_ESYASI = "Ev Eşyası & Dekorasyon",
+    BAKIM_ONARIM = "Tamirat & Tadilat",
+    EGITIM = "Eğitim & Kitap",
+    COCUK = "Çocuk & Bebek",
+
+    // GİDER KALEMLERİ - KEYİF & TEKNOLOJİ
+    TEKNOLOJI = "Teknoloji & Elektronik",
+    ABONELIK = "Abonelikler",
+    EGLENCE = "Eğlence & Hobi",
+    TATIL = "Tatil & Seyahat",
+
+    // FİNANSAL
+    KREDI_KARTI = "Kredi Kartı Ödemesi",
+    BORC_ODEME = "Borç / Kredi Ödemesi",
+    VERGI = "Vergi & Harçlar",
     DIGER_GIDER = "Diğer Gider",
 }
-
 export interface Transaction {
     id: string;
     userId: string;
