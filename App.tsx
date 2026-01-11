@@ -79,7 +79,6 @@ const App: React.FC = () => {
             } else {
                 const guestId = localStorage.getItem("active_guest");
                 if (guestId && !user) {
-                    // Guest logic handled separately
                 } else if (user && !user.uid.startsWith("guest_")) {
                     setUser(null);
                     setTransactions([]);
@@ -148,14 +147,24 @@ const App: React.FC = () => {
         const txExpense = cycleTxs.filter((t) => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
         const txIncome = cycleTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
 
+        const subscriptionTotal = recurringList
+            .filter(sub => sub.isActive && sub.type === "expense")
+            .reduce((acc, sub) => acc + sub.amount, 0);
+
         const totalIncome = txIncome + userSettings.monthlyIncome;
-        const totalExpense = txExpense + userSettings.fixedExpenses;
+
+        const totalExpense = txExpense + userSettings.fixedExpenses + subscriptionTotal;
+
         const balance = totalIncome - totalExpense;
 
-        const txExpenseBeforeToday = cycleTxs.filter((t) => t.type === "expense" && parseISO(t.date) < todayStart).reduce((acc, t) => acc + t.amount, 0);
-        const disposableIncome = totalIncome - userSettings.fixedExpenses;
+        const txExpenseBeforeToday = cycleTxs
+            .filter((t) => t.type === "expense" && parseISO(t.date) < todayStart)
+            .reduce((acc, t) => acc + t.amount, 0);
 
-        const budgetAtStartOfDay = disposableIncome - txExpenseBeforeToday;
+        const disposableIncome = userSettings.monthlyIncome - userSettings.fixedExpenses - subscriptionTotal;
+
+        const totalDisposable = disposableIncome + txIncome;
+        const budgetAtStartOfDay = totalDisposable - txExpenseBeforeToday;
 
         let daysRemaining = differenceInCalendarDays(end, now) + 1;
 
@@ -176,7 +185,7 @@ const App: React.FC = () => {
             cycleStartDate: start.toLocaleDateString("tr-TR"),
             cycleEndDate: end.toLocaleDateString("tr-TR"),
         };
-    }, [transactions, userSettings]);
+    }, [transactions, userSettings, recurringList]);
 
     const handleAddTransaction = async (txData: Omit<Transaction, "userId" | "createdAt">) => {
         if (!user) return;
@@ -419,7 +428,6 @@ const App: React.FC = () => {
                                         <>
                                             {/* 1. BÖLÜM: Bütçe Planlaması (MEVCUT) */}
                                             <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden" open>
-                                                {/* ... Bütçe Planlaması içeriği aynı ... */}
                                                 <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
                                                     <h2 className="text-xl font-bold text-white flex items-center gap-3">
                                                         <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
@@ -518,30 +526,6 @@ const App: React.FC = () => {
 
                             {activeTab === "dashboard" && userSettings && (
                                 <div className="animate-fade-in space-y-6">
-                                    {/* Motivation Banner */}
-                                    <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <p className="text-indigo-200 text-sm font-medium mb-1">
-                                                Aktif Dönem:{" "}
-                                                <span className="text-white font-bold">
-                                                    {stats.cycleStartDate} - {stats.cycleEndDate}
-                                                </span>
-                                            </p>
-                                            <p className="text-white font-bold text-lg md:text-xl">
-                                                Dönem bitişine <span className="text-indigo-400">{stats.daysRemaining} gün</span> kaldı.
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700">
-                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl ${stats.balance >= 0 ? "bg-indigo-600" : "bg-rose-600"}`}>
-                                                {stats.balance >= 0 ? "🎯" : "🚨"}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-400">Kalan Bütçe</p>
-                                                <p className={`font-bold ${stats.balance >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{stats.balance.toLocaleString()} ₺</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     <Dashboard
                                         transactions={transactions}
                                         stats={stats}
@@ -564,11 +548,12 @@ const App: React.FC = () => {
                                             setIsFormOpen(true);
                                         }}
                                         onDeleteTransaction={handleDeleteTransaction}
-
                                         onEditTransaction={(tx) => {
                                             setEditingTx(tx);
                                             setIsFormOpen(true);
                                         }}
+
+                                        recurringTransactions={recurringList}
                                     />
                                 </div>
                             )}

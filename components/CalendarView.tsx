@@ -4,6 +4,7 @@ import { startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, addMont
 import { tr } from "date-fns/locale";
 import clsx from "clsx";
 import { DayDetailModal } from "./DayDetailModal";
+import { RecurringTransaction } from "../types";
 
 interface CalendarViewProps {
     currentDate: Date;
@@ -13,9 +14,10 @@ interface CalendarViewProps {
     onAddTransaction: (date: Date) => void;
     onDeleteTransaction: (id: string) => void;
     onEditTransaction: (tx: Transaction) => void;
+    recurringTransactions: RecurringTransaction[];
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChangeMonth, transactions, settings, onAddTransaction, onEditTransaction, onDeleteTransaction }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChangeMonth, transactions, settings, onAddTransaction, onEditTransaction, onDeleteTransaction, recurringTransactions }) => {
     const [selectedDay, setSelectedDay] = useState<DailyStatus | null>(null);
 
     const monthStart = startOfMonth(currentDate);
@@ -54,8 +56,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChang
         });
         const totalExtraIncome = cycleIncomeTransactions.reduce((acc, t) => acc + t.amount, 0);
 
+        const subscriptionTotal = recurringTransactions
+            .filter(sub => sub.isActive && sub.type === "expense")
+            .reduce((acc, sub) => acc + sub.amount, 0);
+
         const totalCycleIncome = settings.monthlyIncome + totalExtraIncome;
-        const disposableIncome = totalCycleIncome - settings.fixedExpenses;
+
+        const disposableIncome = totalCycleIncome - settings.fixedExpenses - subscriptionTotal;
 
         const cycleTransactionsBeforeToday = transactions.filter((t) => {
             const tDate = new Date(t.date);
