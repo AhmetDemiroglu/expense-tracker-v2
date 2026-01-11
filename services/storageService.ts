@@ -1,10 +1,9 @@
 import { db } from "../firebaseConfig";
 import { collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { Transaction, UserSettings, CycleSummary, BudgetPeriod } from "../types";
+import { Transaction, UserSettings, CycleSummary, BudgetPeriod, RecurringTransaction } from "../types";
+import { addWeeks, addMonths, addYears, parseISO, format } from "date-fns";
 
 const GUEST_PREFIX = "guest_";
-
-// --- Transactions ---
 
 export const fetchTransactions = async (userId: string): Promise<Transaction[]> => {
     // GUEST MODE
@@ -176,8 +175,6 @@ export const deleteBudgetPeriod = async (userId: string, periodId: string) => {
     }
 };
 
-// --- History & Stats Helpers ---
-
 export const calculateHistorySummaries = (transactions: Transaction[], periods: BudgetPeriod[]): CycleSummary[] => {
     if (periods.length === 0) return [];
     const sortedPeriods = [...periods].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
@@ -212,4 +209,155 @@ export const calculateHistorySummaries = (transactions: Transaction[], periods: 
             savingsRate,
         };
     });
+};
+
+export const addRecurringTransaction = async (data: Omit<RecurringTransaction, "id">) => {
+    if (data.userId.startsWith(GUEST_PREFIX)) {
+        const stored = localStorage.getItem(`recurring_${data.userId}`);
+        const currentList: RecurringTransaction[] = stored ? JSON.parse(stored) : [];
+        const newRec = { ...data, id: crypto.randomUUID() };
+        localStorage.setItem(`recurring_${data.userId}`, JSON.stringify([...currentList, newRec]));
+        return newRec;
+    }
+
+    try {
+        const docRef = await addDoc(collection(db, "recurring_transactions"), data);
+        return { id: docRef.id, ...data };
+    } catch (e) {
+        console.error("Error adding recurring tx:", e);
+        throw e;
+    }
+};
+
+export const fetchRecurringTransactions = async (userId: string): Promise<RecurringTransaction[]> => {
+    if (userId.startsWith(GUEST_PREFIX)) {
+        const stored = localStorage.getItem(`recurring_${userId}`);
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    try {
+        const q = query(collection(db, "recurring_transactions"), where("userId", "==", userId));
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() } as RecurringTransaction));
+    } catch (e) {
+        console.error("Error fetching recurring:", e);
+        return [];
+    }
+};
+
+export const processRecurringTransactions = async (userId: string) => {
+    const recurringList = await fetchRecurringTransactions(userId);
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    let newTransactionsCount = 0;
+
+    for (const rec of recurringList) {
+        if (!rec.isActive) continue;
+
+        if (rec.nextDueDate <= todayStr) {
+            console.log(`Processing Recurring Tx: ${rec.description}`);
+
+            const newTx: Omit<Transaction, "id"> = {
+                userId: rec.userId,
+                description: `${rec.description} (Otomatik)`,
+                amount: rec.amount,
+                type: rec.type,
+                category: rec.category,
+                date: rec.nextDueDate,
+                createdAt: Date.now(),
+            };
+
+            await addTransaction(newTx);
+            newTransactionsCount++;
+
+            let nextDateObj = parseISO(rec.nextDueDate);
+            switch (rec.frequency) {
+                case "weekly":
+                    nextDateObj = addWeeks(nextDateObj, 1);
+                    break;
+                case "monthly":
+                    nextDateObj = addMonths(nextDateObj, 1);
+                    break;
+                case "yearly":
+                    nextDateObj = addYears(nextDateObj, 1);
+                    break;
+            }
+            const nextDateStr = format(nextDateObj, "yyyy-MM-dd");
+
+            if (userId.startsWith(GUEST_PREFIX)) {
+                const stored = localStorage.getItem(`recurring_${userId}`);
+                if (stored) {
+                    const list = JSON.parse(stored) as RecurringTransaction[];
+                    const updatedList = list.map((item) => (item.id === rec.id ? { ...item, nextDueDate: nextDateStr, lastProcessedDate: todayStr } : item));
+                    localStorage.setItem(`recurring_${userId}`, JSON.stringify(updatedList));
+                }
+            } else {
+                await updateDoc(doc(db, "recurring_transactions", rec.id), {
+                    nextDueDate: nextDateStr,
+                    lastProcessedDate: todayStr,
+                });
+            }
+        }
+    }
+
+    return newTransactionsCount;
+};
+
+export const updateTransaction = async (transaction: Transaction) => {
+    // GUEST MODE
+    if (transaction.userId.startsWith(GUEST_PREFIX)) {
+        const stored = localStorage.getItem(`tx_${transaction.userId}`);
+        if (stored) {
+            const list = JSON.parse(stored) as Transaction[];
+            const updatedList = list.map((t) => (t.id === transaction.id ? transaction : t));
+            localStorage.setItem(`tx_${transaction.userId}`, JSON.stringify(updatedList));
+        }
+        return;
+    }
+
+    try {
+        const txRef = doc(db, "transactions", transaction.id);
+        await updateDoc(txRef, { ...transaction });
+    } catch (e) {
+        console.error("Error updating transaction:", e);
+        throw e;
+    }
+};
+
+export const updateRecurringTransaction = async (recurring: RecurringTransaction) => {
+    if (recurring.userId.startsWith(GUEST_PREFIX)) {
+        const stored = localStorage.getItem(`recurring_${recurring.userId}`);
+        if (stored) {
+            const list = JSON.parse(stored) as RecurringTransaction[];
+            const updatedList = list.map((item) => (item.id === recurring.id ? recurring : item));
+            localStorage.setItem(`recurring_${recurring.userId}`, JSON.stringify(updatedList));
+        }
+        return;
+    }
+
+    try {
+        const recRef = doc(db, "recurring_transactions", recurring.id);
+        await updateDoc(recRef, { ...recurring });
+    } catch (e) {
+        console.error("Error updating recurring tx:", e);
+        throw e;
+    }
+};
+
+export const deleteRecurringTransaction = async (userId: string, id: string) => {
+    if (userId.startsWith(GUEST_PREFIX)) {
+        const stored = localStorage.getItem(`recurring_${userId}`);
+        if (stored) {
+            const list = JSON.parse(stored) as RecurringTransaction[];
+            const filteredList = list.filter((item) => item.id !== id);
+            localStorage.setItem(`recurring_${userId}`, JSON.stringify(filteredList));
+        }
+        return;
+    }
+
+    try {
+        await deleteDoc(doc(db, "recurring_transactions", id));
+    } catch (e) {
+        console.error("Error deleting recurring tx:", e);
+        throw e;
+    }
 };

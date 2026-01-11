@@ -41,6 +41,22 @@ export enum Category {
     VERGI = "Vergi & Harçlar",
     DIGER_GIDER = "Diğer Gider",
 }
+
+export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
+
+export interface RecurringTransaction {
+    id: string;
+    userId: string;
+    type: TransactionType;
+    category: Category | string;
+    amount: number;
+    description: string;
+    frequency: RecurrenceFrequency;
+    startDate: string;
+    nextDueDate: string;
+    isActive: boolean;
+    lastProcessedDate?: string;
+}
 export interface Transaction {
     id: string;
     userId: string;
@@ -48,7 +64,7 @@ export interface Transaction {
     amount: number;
     type: TransactionType;
     category: Category | string;
-    date: string; // ISO String YYYY-MM-DD
+    date: string;
     createdAt: number;
 }
 

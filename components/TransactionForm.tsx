@@ -10,6 +10,7 @@ interface TransactionFormProps {
     onAdd: (transaction: Omit<Transaction, "userId" | "createdAt">) => void;
     onClose: () => void;
     initialDate?: Date;
+    editData?: Transaction | null;
 }
 
 const dataURLtoFile = (dataurl: string, filename: string): File => {
@@ -24,13 +25,15 @@ const dataURLtoFile = (dataurl: string, filename: string): File => {
     return new File([u8arr], filename, { type: mime });
 };
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose, initialDate }) => {
+export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose, initialDate, editData }) => {
     const { showToast } = useToast();
-    const [type, setType] = useState<TransactionType>("expense");
-    const [amount, setAmount] = useState("");
-    const [description, setDescription] = useState("");
-    const [category, setCategory] = useState<string>("");
-    const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+    const [type, setType] = useState<TransactionType>(editData?.type || "expense");
+    const [amount, setAmount] = useState(editData?.amount.toString() || "");
+    const [description, setDescription] = useState(editData?.description || "");
+    const [category, setCategory] = useState<string>(editData?.category || "");
+    const [date, setDate] = useState(
+        editData?.date || (initialDate ? initialDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0])
+    );
     const [isScanning, setIsScanning] = useState(false);
 
     useEffect(() => {
@@ -85,7 +88,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, onClose
         }
 
         const newTransaction: Omit<Transaction, "userId" | "createdAt"> = {
-            id: uuidv4(),
+            id: editData?.id || uuidv4(),
             amount: parseFloat(amount),
             description: description.trim(),
             type,

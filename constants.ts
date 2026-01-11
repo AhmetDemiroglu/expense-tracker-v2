@@ -1,38 +1,47 @@
 import { Category } from "./types";
 
-export const INCOME_CATEGORIES = [Category.MAAS, Category.FREELANCE, Category.YATIRIM, Category.DIGER_GELIR];
+export const INCOME_CATEGORIES = [Category.MAAS, Category.FREELANCE, Category.YATIRIM_GELIRI, Category.KIRA_GELIRI, Category.DIGER_GELIR];
 
 export const EXPENSE_CATEGORIES = [
-    Category.GIDA,
-    Category.ULASIM,
-    Category.KONUT,
+    // Temel
+    Category.MARKET,
+    Category.YEME_ICME,
+    Category.ULASIM_TOPLU,
+    Category.ULASIM_ARAC,
+    Category.KIRA_AIDAT,
     Category.FATURA,
-    Category.SAGLIK,
-    Category.EGITIM,
-    Category.EGLENCE,
+    // Yaşam
     Category.GIYIM,
+    Category.KOZMETIK,
+    Category.SAGLIK,
+    Category.SPOR,
+    Category.KUAFOR,
+    // Ev
+    Category.EV_ESYASI,
+    Category.BAKIM_ONARIM,
+    Category.EGITIM,
+    Category.COCUK,
+    // Keyif
     Category.TEKNOLOJI,
+    Category.ABONELIK,
+    Category.EGLENCE,
+    Category.TATIL,
+    // Finansal
+    Category.KREDI_KARTI,
+    Category.BORC_ODEME,
+    Category.VERGI,
     Category.DIGER_GIDER,
 ];
 
 export const COLORS = {
-    income: "#10b981", // emerald-500
-    expense: "#ef4444", // red-500
-    primary: "#6366f1", // indigo-500
-    background: "#1e293b", // slate-800
-    text: "#f1f5f9", // slate-100
+    income: "#10b981",
+    expense: "#ef4444",
+    primary: "#6366f1",
+    background: "#1e293b",
+    text: "#f1f5f9",
 };
 
-export const PIE_COLORS = [
-    "#6366f1", // indigo
-    "#ec4899", // pink
-    "#10b981", // emerald
-    "#f59e0b", // amber
-    "#3b82f6", // blue
-    "#8b5cf6", // violet
-    "#ef4444", // red
-    "#14b8a6", // teal
-];
+export const PIE_COLORS = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6"];
 
 export const FINANCIAL_GOALS = [
     { value: "debt_reduction", label: "Borç Kapatma", prompt: "Önceliğin borçları eritmek. Agresif tasarruf ve borç kapama stratejilerine odaklan." },

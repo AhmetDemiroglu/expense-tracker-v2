@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { Transaction, DashboardStats, UserSettings } from "./types";
-import { fetchTransactions, addTransaction, deleteTransaction, deleteGuestTransaction, saveUserSettings, getUserSettings } from "./services/storageService";
+import { fetchTransactions, addTransaction, deleteTransaction, deleteGuestTransaction, updateTransaction, getUserSettings } from "./services/storageService";
 import { logout, subscribeToAuth, createGuestUser } from "./services/authService";
 const Dashboard = React.lazy(() => import("./components/Dashboard").then((module) => ({ default: module.Dashboard })));
 const TransactionList = React.lazy(() => import("./components/TransactionList").then((module) => ({ default: module.TransactionList })));
@@ -23,6 +23,9 @@ import { useAndroidBack } from "./hooks/useAndroidBack";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Capacitor } from "@capacitor/core";
 import { OnboardingSlider } from "./components/OnboardingSlider";
+import { SubscriptionsView } from "./components/SubscriptionsView";
+import { fetchRecurringTransactions } from "./services/storageService";
+import { RecurringTransaction } from "./types";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
@@ -30,13 +33,16 @@ const App: React.FC = () => {
     const { isNative } = usePlatform();
     const [user, setUser] = useState<User | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+    const [settingsView, setSettingsView] = useState<"main" | "subscriptions">("main");
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [editingTx, setEditingTx] = useState<Transaction | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>("dashboard");
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formInitialDate, setFormInitialDate] = useState<Date | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [recurringList, setRecurringList] = useState<RecurringTransaction[]>([]);
     const [showOnboarding, setShowOnboarding] = useState(() => {
         return !localStorage.getItem("fintel_onboarding_completed");
     });
@@ -92,14 +98,25 @@ const App: React.FC = () => {
 
     const loadUserData = async (uid: string) => {
         setLoading(true);
-        const [txs, settings] = await Promise.all([fetchTransactions(uid), getUserSettings(uid)]);
+        const [txs, settings, subs] = await Promise.all([
+            fetchTransactions(uid),
+            getUserSettings(uid),
+            fetchRecurringTransactions(uid)
+        ]);
         setTransactions(txs);
         setUserSettings(settings);
+        setRecurringList(subs);
 
         if (!settings) {
             setActiveTab("settings");
         }
         setLoading(false);
+    };
+
+    const refreshRecurringTransactions = async () => {
+        if (!user) return;
+        const subs = await fetchRecurringTransactions(user.uid);
+        setRecurringList(subs);
     };
 
     const stats: DashboardStats = React.useMemo(() => {
@@ -157,12 +174,28 @@ const App: React.FC = () => {
         };
     }, [transactions, userSettings]);
 
-    const handleAddTransaction = async (newTx: Omit<Transaction, "userId" | "createdAt">) => {
+    const handleAddTransaction = async (txData: Omit<Transaction, "userId" | "createdAt">) => {
         if (!user) return;
-        const { id, ...txData } = newTx;
-        const txWithUser = { ...txData, userId: user.uid, createdAt: Date.now() };
-        const added = await addTransaction(txWithUser);
-        setTransactions((prev) => [added, ...prev]);
+
+        if (editingTx) {
+            const updatedTx: Transaction = {
+                ...editingTx,
+                ...txData,
+                id: editingTx.id,
+                userId: user.uid,
+            };
+
+            await updateTransaction(updatedTx);
+
+            setTransactions((prev) => prev.map((t) => (t.id === editingTx.id ? updatedTx : t)));
+        } else {
+            const { id, ...txDataWithoutId } = txData;
+            const txWithUser = { ...txDataWithoutId, userId: user.uid, createdAt: Date.now() };
+            const added = await addTransaction(txWithUser);
+            setTransactions((prev) => [added, ...prev]);
+        }
+
+        setEditingTx(null);
     };
 
     const handleDeleteTransaction = async (id: string) => {
@@ -177,6 +210,8 @@ const App: React.FC = () => {
             }
         }
     };
+
+
 
     const handleAuthSuccess = (isGuest?: boolean, guestId?: string) => {
         if (isGuest && guestId) {
@@ -357,91 +392,112 @@ const App: React.FC = () => {
                         >
                             {activeTab === "settings" && (
                                 <div className="animate-fade-in max-w-4xl mx-auto space-y-6 pb-12">
-                                    {/* 1. BÖLÜM: Bütçe Planlaması */}
-                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden" open>
-                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                                <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
-                                                Bütçe Planlaması
-                                            </h2>
-                                            <svg
-                                                className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
+
+                                    {/* A) ABONELİK GÖRÜNÜMÜ AKTİFSE BUNU GÖSTER */}
+                                    {settingsView === "subscriptions" ? (
+                                        <SubscriptionsView
+                                            userId={user.uid}
+                                            onBack={() => setSettingsView("main")}
+                                            onUpdate={refreshRecurringTransactions}
+                                        />
+                                    ) : (
+                                        /* B) DEĞİLSE ANA AYARLAR LİSTESİNİ GÖSTER */
+                                        <>
+                                            {/* 1. BÖLÜM: Bütçe Planlaması (MEVCUT) */}
+                                            <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden" open>
+                                                {/* ... Bütçe Planlaması içeriği aynı ... */}
+                                                <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                                                    <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                        <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+                                                        Bütçe Planlaması
+                                                    </h2>
+                                                    <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </summary>
+                                                <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                                    <BudgetPlanner
+                                                        userId={user.uid}
+                                                        currentSettings={userSettings}
+                                                        onSave={(newSettings) => setUserSettings(newSettings)}
+                                                    />
+                                                </div>
+                                            </details>
+
+                                            {/* [YENİ] 2. BÖLÜM: ABONELİKLER & SABİT GİDERLER */}
+                                            {/* Bu bir accordion değil, sayfaya yönlendiren bir buton-kart gibi çalışacak */}
+                                            <div
+                                                onClick={() => setSettingsView("subscriptions")}
+                                                className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:bg-slate-800 hover:border-violet-500/50 transition-all group"
                                             >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </summary>
-                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
-                                            <BudgetPlanner
-                                                userId={user.uid}
-                                                currentSettings={userSettings}
-                                                onSave={(newSettings) => {
-                                                    setUserSettings(newSettings);
-                                                }}
-                                            />
-                                        </div>
-                                    </details>
-                                    {/* 2. BÖLÜM: Nova Profil Ayarları */}
-                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-visible">
-                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors rounded-2xl group-open:rounded-b-none">
-                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                                <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
-                                                Nova Profili & Kişiselleştirme
-                                            </h2>
-                                            <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </summary>
-                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
-                                            {userSettings && (
-                                                <NovaProfileSettings
-                                                    userId={user.uid}
-                                                    currentSettings={userSettings}
-                                                    onSave={(newSettings) => setUserSettings(newSettings)}
-                                                />
+                                                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                    <span className="w-1.5 h-6 bg-violet-500 rounded-full"></span>
+                                                    Abonelikler & Sabit Giderler
+                                                </h2>
+                                                <div className="flex items-center gap-2 text-slate-400 group-hover:text-violet-400 transition-colors">
+                                                    <span className="text-xs font-medium uppercase tracking-wider hidden md:block">Yönet</span>
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            {/* 3. BÖLÜM: Nova Profil Ayarları (MEVCUT) */}
+                                            <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-visible">
+                                                <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors rounded-2xl group-open:rounded-b-none">
+                                                    <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                        <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                                        Nova Profili & Kişiselleştirme
+                                                    </h2>
+                                                    <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </summary>
+                                                <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                                    {userSettings && (
+                                                        <NovaProfileSettings
+                                                            userId={user.uid}
+                                                            currentSettings={userSettings}
+                                                            onSave={(newSettings) => setUserSettings(newSettings)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </details>
+
+                                            {/* 4. BÖLÜM: Hesap Güvenliği (MEVCUT) */}
+                                            <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                                                <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                                                    <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                                        <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
+                                                        Hesap Güvenliği
+                                                    </h2>
+                                                    <svg className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </summary>
+                                                <div className="p-6 border-t border-slate-800 animate-fade-in">
+                                                    <AccountSettings user={user} />
+                                                </div>
+                                            </details>
+
+                                            {/* MOBİL ÇIKIŞ BUTONU (MEVCUT) */}
+                                            {isNative && (
+                                                <div className="pt-4 pb-0">
+                                                    <button
+                                                        onClick={handleLogout}
+                                                        className="w-full bg-slate-900 border border-rose-900/50 text-rose-400 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-950/30 transition-colors active:scale-95"
+                                                    >
+                                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                        </svg>
+                                                        Oturumu Kapat
+                                                    </button>
+                                                    <p className="text-center text-[10px] text-slate-600 mt-4">
+                                                        Versiyon 2.2.0 (Native Build)
+                                                    </p>
+                                                </div>
                                             )}
-                                        </div>
-                                    </details>
-
-                                    {/* 3.BÖLÜM: Hesap Güvenliği */}
-                                    <details className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                                        <summary className="flex items-center justify-between p-6 cursor-pointer select-none bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                                                <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
-                                                Hesap Güvenliği
-                                            </h2>
-                                            <svg
-                                                className="w-6 h-6 text-slate-400 transform group-open:rotate-180 transition-transform duration-300"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </summary>
-                                        <div className="p-6 border-t border-slate-800 animate-fade-in">
-                                            <AccountSettings user={user} />
-                                        </div>
-                                    </details>
-
-                                    {/* MOBİL ÇIKIŞ BUTONU */}
-                                    {isNative && (
-                                        <div className="pt-4 pb-0">
-                                            <button
-                                                onClick={handleLogout}
-                                                className="w-full bg-slate-900 border border-rose-900/50 text-rose-400 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-950/30 transition-colors active:scale-95"
-                                            >
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                </svg>
-                                                Oturumu Kapat
-                                            </button>
-                                            <p className="text-center text-[10px] text-slate-600 mt-4">
-                                                Versiyon 2.2.0 (Native Build)
-                                            </p>
-                                        </div>
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -472,7 +528,13 @@ const App: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <Dashboard transactions={transactions} stats={stats} userId={user.uid} userSettings={userSettings} />
+                                    <Dashboard
+                                        transactions={transactions}
+                                        stats={stats}
+                                        userId={user.uid}
+                                        userSettings={userSettings}
+                                        recurringTransactions={recurringList}
+                                    />
                                 </div>
                             )}
 
@@ -488,6 +550,11 @@ const App: React.FC = () => {
                                             setIsFormOpen(true);
                                         }}
                                         onDeleteTransaction={handleDeleteTransaction}
+
+                                        onEditTransaction={(tx) => {
+                                            setEditingTx(tx);
+                                            setIsFormOpen(true);
+                                        }}
                                     />
                                 </div>
                             )}
@@ -509,15 +576,24 @@ const App: React.FC = () => {
                                 <div className="animate-fade-in max-w-4xl mx-auto">
                                     <TransactionList
                                         transactions={transactions}
-                                        onDelete={handleDeleteTransaction}
                                         userId={user.uid}
+                                        onDelete={handleDeleteTransaction}
+                                        onEdit={(tx) => {
+                                            setEditingTx(tx);
+                                            setIsFormOpen(true);
+                                        }}
                                     />
                                 </div>
                             )}
 
                             {activeTab === "ai" && userSettings && (
                                 <div className="animate-fade-in h-[calc(100vh-200px)] min-h-[500px]">
-                                    <AIAdvisor transactions={transactions} userSettings={userSettings} user={user} />
+                                    <AIAdvisor
+                                        transactions={transactions}
+                                        userSettings={userSettings}
+                                        user={user}
+                                        recurringTransactions={recurringList}
+                                    />
                                 </div>
                             )}
                         </Suspense>
@@ -540,8 +616,10 @@ const App: React.FC = () => {
                     onClose={() => {
                         setIsFormOpen(false);
                         setFormInitialDate(undefined);
+                        setEditingTx(null);
                     }}
                     initialDate={formInitialDate}
+                    editData={editingTx}
                 />
             )}
         </div>

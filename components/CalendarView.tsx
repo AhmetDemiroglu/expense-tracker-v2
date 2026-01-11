@@ -12,16 +12,17 @@ interface CalendarViewProps {
     settings: UserSettings;
     onAddTransaction: (date: Date) => void;
     onDeleteTransaction: (id: string) => void;
+    onEditTransaction: (tx: Transaction) => void;
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChangeMonth, transactions, settings, onAddTransaction, onDeleteTransaction }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChangeMonth, transactions, settings, onAddTransaction, onEditTransaction, onDeleteTransaction }) => {
     const [selectedDay, setSelectedDay] = useState<DailyStatus | null>(null);
 
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const daysInView = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    const startDay = monthStart.getDay(); // 0 = Pazar, 1 = Pzt
+    const startDay = monthStart.getDay();
     const emptyDays = startDay === 0 ? 6 : startDay - 1;
 
     const getDayData = (day: Date): DailyStatus => {
@@ -29,18 +30,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChang
         const dayStart = startOfDay(day);
         const now = new Date();
 
-        // Parse Setting Dates (Inclusive)
         const cycleStart = new Date(settings.periodStartDate);
         const cycleEnd = new Date(settings.periodEndDate);
 
-        // Is this day within the configured period?
         const isWithinCycle = dayStart.getTime() >= startOfDay(cycleStart).getTime() && dayStart.getTime() <= startOfDay(cycleEnd).getTime();
 
-        // 1. O günkü harcamalar
         const dayTransactions = transactions.filter((t) => t.date === dateStr && t.type === "expense");
         const spentToday = dayTransactions.reduce((acc, curr) => acc + curr.amount, 0);
 
-        // Eğer gün dönem dışındaysa sadece harcamayı göster, hesap yapma
         if (!isWithinCycle) {
             return {
                 date: dateStr,
@@ -51,35 +48,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChang
             };
         }
 
-        // 2. Döngü içindeki EK GELİRLER
         const cycleIncomeTransactions = transactions.filter((t) => {
             const tDate = new Date(t.date);
             return t.type === "income" && startOfDay(tDate).getTime() >= startOfDay(cycleStart).getTime() && startOfDay(tDate).getTime() <= startOfDay(cycleEnd).getTime();
         });
         const totalExtraIncome = cycleIncomeTransactions.reduce((acc, t) => acc + t.amount, 0);
 
-        // 3. Toplam Bütçe
         const totalCycleIncome = settings.monthlyIncome + totalExtraIncome;
         const disposableIncome = totalCycleIncome - settings.fixedExpenses;
 
-        // 4. Bugünden ÖNCEKİ harcamalar (Döngü başlangıcından düne kadar)
         const cycleTransactionsBeforeToday = transactions.filter((t) => {
             const tDate = new Date(t.date);
             return t.type === "expense" && startOfDay(tDate).getTime() >= startOfDay(cycleStart).getTime() && startOfDay(tDate).getTime() < dayStart.getTime();
         });
         const spentBeforeToday = cycleTransactionsBeforeToday.reduce((acc, t) => acc + t.amount, 0);
 
-        // 5. Kalan Bütçe
         const remainingBudget = disposableIncome - spentBeforeToday;
 
-        // 6. Kalan Gün Sayısı (Bu günden döngü sonuna kadar, bugün dahil)
         const oneDay = 24 * 60 * 60 * 1000;
         const daysRemaining = Math.floor((startOfDay(cycleEnd).getTime() - dayStart.getTime()) / oneDay) + 1;
 
-        // 7. Günlük Limit Hesaplama
         const dailyLimit = daysRemaining > 0 ? remainingBudget / daysRemaining : 0;
 
-        // 8. Durum Belirleme
         let status: DailyStatus["status"] = "neutral";
 
         if (isAfter(day, now) || !isWithinCycle) {
@@ -211,10 +201,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChang
                                                             data.status === "success"
                                                                 ? "bg-emerald-500"
                                                                 : data.status === "warning"
-                                                                ? "bg-amber-500"
-                                                                : data.status === "danger"
-                                                                ? "bg-rose-500"
-                                                                : "bg-slate-600"
+                                                                    ? "bg-amber-500"
+                                                                    : data.status === "danger"
+                                                                        ? "bg-rose-500"
+                                                                        : "bg-slate-600"
                                                         )}
                                                         style={{ width: data.limit > 0 ? `${Math.min(100, (data.spent / data.limit) * 100)}%` : "0%" }}
                                                     />
@@ -239,6 +229,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ currentDate, onChang
                         setSelectedDay(null);
                     }}
                     onDeleteTransaction={onDeleteTransaction}
+                    onEditTransaction={(tx) => {
+                        onEditTransaction(tx);
+                        setSelectedDay(null);
+                    }}
                 />
             )}
         </div>

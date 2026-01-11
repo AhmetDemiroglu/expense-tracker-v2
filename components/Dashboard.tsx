@@ -1,18 +1,18 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Transaction, DashboardStats, BudgetPeriod, UserSettings } from "../types";
+import { Transaction, DashboardStats, BudgetPeriod, UserSettings, RecurringTransaction } from "../types";
 import { PIE_COLORS } from "../constants";
 import { isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
 import { fetchBudgetPeriods } from "../services/storageService";
-
 interface DashboardProps {
     transactions: Transaction[];
     stats: DashboardStats;
     userId: string;
     userSettings: UserSettings;
+    recurringTransactions: RecurringTransaction[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userId, userSettings }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userId, userSettings, recurringTransactions }) => {
     // State Tanımları
     const [periods, setPeriods] = useState<BudgetPeriod[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>("active");
@@ -64,7 +64,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
 
     // İstatistikleri Hesapla (Sabit Gelir/Gider Dahil)
     const viewStats = useMemo(() => {
-        // A) İşlemlerden gelen toplamlar
+        // A) İşlemlerden gelen toplamlar (Aynı)
         let relevantTransactions = transactions;
         if (selectedRange) {
             relevantTransactions = transactions.filter((t) => {
@@ -78,14 +78,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
         const txIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
         const txExpense = expenses.reduce((acc, t) => acc + t.amount, 0);
 
-        // B) Sabit (Fixed) Tutar Hesabı
+        // B) Sabit (Fixed) ve Abonelik Tutar Hesabı
         let fixedIncome = 0;
         let fixedExpense = 0;
+        let subscriptionTotal = 0; // <--- YENİ DEĞİŞKEN
 
         if (selectedPeriodId === "active") {
             fixedIncome = userSettings.monthlyIncome;
             fixedExpense = userSettings.fixedExpenses;
+
+            // [YENİ MANTIK] Sadece aktif abonelikleri topla
+            subscriptionTotal = recurringTransactions
+                .filter(sub => sub.isActive && sub.type === "expense")
+                .reduce((acc, sub) => acc + sub.amount, 0);
         } else {
+            // Geçmiş dönemler için sadece kayıtlı budget_period verisini kullanıyoruz
+            // Çünkü geçmişteki abonelik durumunu tam bilemeyiz, o anki snapshot önemli.
             const p = periods.find((x) => x.id === selectedPeriodId);
             if (p) {
                 fixedIncome = p.monthlyIncome;
@@ -93,16 +101,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
             }
         }
 
+        // Toplam Gider = Yapılan Harcamalar + Sabit Giderler (Kira vs) + Abonelikler
         const totalIncome = txIncome + fixedIncome;
-        const totalExpense = txExpense + fixedExpense;
+        const totalExpense = txExpense + fixedExpense + subscriptionTotal;
 
         return {
             income: totalIncome,
             expense: totalExpense,
             balance: totalIncome - totalExpense,
-            hasFixed: fixedIncome > 0 || fixedExpense > 0,
+            hasFixed: fixedIncome > 0 || fixedExpense > 0 || subscriptionTotal > 0,
+
+            fixedExpenseTotal: fixedExpense,
+            subscriptionTotal: subscriptionTotal
         };
-    }, [transactions, selectedRange, selectedPeriodId, userSettings, periods]);
+    }, [transactions, selectedRange, selectedPeriodId, userSettings, periods, recurringTransactions]);
 
     // Grafik Verileri (Filtrelenmiş veriye göre)
     const categoryData = useMemo(() => {
@@ -247,12 +259,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                         <div>
                             <p className="text-rose-400/80 text-sm font-medium mb-1">Toplam Gider</p>
                             <h3 className="text-2xl font-bold text-rose-400">- {viewStats.expense.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</h3>
-                            {viewStats.hasFixed && <span className="text-[10px] text-rose-400/50 block mt-1">(Sabit Giderler Dahil)</span>}
+
+                            {/* Sabit ve Abonelik Detayı */}
+                            {viewStats.hasFixed && (
+                                <div className="mt-2 space-y-0.5 border-l-2 border-rose-500/20 pl-2">
+                                    {viewStats.fixedExpenseTotal > 0 && (
+                                        <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
+                                            <span>Sabit Gider:</span>
+                                            <span>{viewStats.fixedExpenseTotal.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    )}
+                                    {viewStats.subscriptionTotal > 0 && (
+                                        <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
+                                            <span>Abonelikler:</span>
+                                            <span>{viewStats.subscriptionTotal.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="p-2 bg-rose-500/10 rounded-lg">
-                            <svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                            </svg>
+                            <svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
                         </div>
                     </div>
                 </div>

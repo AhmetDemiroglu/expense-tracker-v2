@@ -15,7 +15,7 @@ import novaAnalyzePos from "../logo/nova_analyze_positive.ico";
 import novaAnalyzeNeg from "../logo/nova_analyze_negative.ico";
 import { useToast } from "../context/ToastContext";
 import { fetchBudgetPeriods, calculateHistorySummaries } from "../services/storageService";
-import { CycleSummary } from "../types";
+import { CycleSummary, RecurringTransaction } from "../types";
 import { NovaReportCard } from "./NovaReportCard";
 import { clsx } from "clsx";
 import { usePlatform } from "../hooks/usePlatform";
@@ -28,9 +28,10 @@ interface AIAdvisorProps {
     transactions: Transaction[];
     userSettings: UserSettings;
     user: User;
+    recurringTransactions: RecurringTransaction[];
 }
 
-export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user }) => {
+export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user, recurringTransactions }) => {
     const { showToast } = useToast();
     const { isNative } = usePlatform();
     const hasData = transactions && transactions.length > 0;
@@ -185,7 +186,16 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setChatHistory((prev) => [...prev, { role: "user", text: userQ }]);
         setLoadingChat(true);
 
-        askFinancialAdvisor(transactions, userSettings, userQ, userName, chatHistory, responseStyle, aiMode)
+        askFinancialAdvisor(
+            transactions,
+            userSettings,
+            userQ,
+            userName,
+            chatHistory,
+            responseStyle,
+            aiMode,
+            recurringTransactions
+        )
             .then((response) => setChatHistory((prev) => [...prev, { role: "ai", text: response }]))
             .catch(() => setChatHistory((prev) => [...prev, { role: "ai", text: "Hata oluştu." }]))
             .finally(() => setLoadingChat(false));
@@ -245,8 +255,14 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
     const handleAnalyze = async () => {
         setLoadingAnalysis(true);
         try {
-            const report = await analyzeFinances(transactions, userSettings, userName, responseStyle, prevPeriodStats);
-
+            const report = await analyzeFinances(
+                transactions,
+                userSettings,
+                userName,
+                responseStyle,
+                prevPeriodStats,
+                recurringTransactions
+            );
             if (report) {
                 setChatHistory(prev => [...prev, {
                     role: "ai",
@@ -275,7 +291,16 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         setLoadingChat(true);
 
         try {
-            const response = await askFinancialAdvisor(transactions, userSettings, userQ, userName, chatHistory, responseStyle, aiMode);
+            const response = await askFinancialAdvisor(
+                transactions,
+                userSettings,
+                userQ,
+                userName,
+                chatHistory,
+                responseStyle,
+                aiMode,
+                recurringTransactions
+            );
             setChatHistory((prev) => [...prev, { role: "ai", text: response }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "Bağlantı hatası oluştu." }]);

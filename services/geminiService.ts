@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Transaction, UserSettings, CycleSummary, AnalysisReport } from "../types";
+import { Transaction, UserSettings, CycleSummary, AnalysisReport, RecurringTransaction } from "../types";
 import { FINANCIAL_GOALS, SAVINGS_STYLES, RISK_TOLERANCE } from "../constants";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -77,10 +77,14 @@ const getProfileInstructions = (settings: UserSettings) => {
     `;
 };
 
-const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string) => {
+const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string, recurringTransactions: RecurringTransaction[] = []) => {
     const start = new Date(settings.periodStartDate);
     const end = new Date(settings.periodEndDate);
     const now = new Date();
+
+    const activeSubs = recurringTransactions.filter((sub) => sub.isActive && sub.type === "expense");
+    const subTotal = activeSubs.reduce((acc, sub) => acc + sub.amount, 0);
+    const subList = activeSubs.map((s) => `- ${s.description}: ${s.amount} TL (${s.frequency})`).join("\n");
 
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endMidnight = new Date(end.getFullYear(), end.getMonth(), end.getDate());
@@ -111,20 +115,18 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
 
     const topCategories = Object.entries(categories)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
         .map(([name, amount]) => `- ${name}: ${amount.toLocaleString("tr-TR")} TL`)
         .join("\n");
 
     const lastTransactions = activePeriodTxs
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 10)
         .map((t) => `${t.date}: ${t.category} (${t.amount} TL) - Açıklama: ${t.description}`)
         .join("\n");
 
     return `
     KULLANICI PROFİLİ:
     - İsim: ${userName}
-    - HİTAP KURALI: Resmiyet yasak. Samimi, arkadaş canlısı ol. Kullanıcıya "Ahmet" diye hitap edebilirsin.
+    - HİTAP KURALI: Resmiyet yasak. Samimi, arkadaş canlısı ol. Kullanıcıya ${userName} ile hitap edebilirsin.
     
     AKTİF DÖNEM ANALİZİ (DİKKAT: Sadece bu aralıktaki verileri görüyorsun):
     - Dönem: ${settings.periodName} (${start.toLocaleDateString("tr-TR")} - ${end.toLocaleDateString("tr-TR")})
@@ -136,12 +138,16 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     - TOPLAM GELİR: ${totalIncome.toLocaleString("tr-TR")} TL
     
     - Sabit Giderler: ${settings.fixedExpenses.toLocaleString("tr-TR")} TL
+    - Abonelikler & Düzenli Ödemeler: ${subTotal.toLocaleString("tr-TR")} TL
     - Yapılan Harcamalar: ${txExpense.toLocaleString("tr-TR")} TL
-    - TOPLAM GİDER: ${totalExpense.toLocaleString("tr-TR")} TL
+    - TOPLAM GİDER: ${(totalExpense + subTotal).toLocaleString("tr-TR")} TL
     
-    - NET KALAN BAKİYE: ${balance.toLocaleString("tr-TR")} TL (Eksiye düştüyse uyar)
+    - NET KALAN BAKİYE: ${(balance - subTotal).toLocaleString("tr-TR")} TL (Eksiye düştüyse uyar)
 
-    HARCAMA DETAYLARI:
+    ABONELİKLER VE DÜZENLİ ÖDEMELER (Gelecek Yükümlülükler):
+    ${subList || "Yok"}
+
+    HARCAMA DETAYLARI (Gerçekleşen):
     - En Yüksek Kategoriler:
     ${topCategories}
     
@@ -150,8 +156,8 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
   `;
 };
 
-export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string, style: "short" | "balanced" | "detailed" = "balanced", prevStats: CycleSummary | null = null): Promise<AnalysisReport | null> => {
-    const summary = summarizeContext(transactions, settings, userName);
+export const analyzeFinances = async (transactions: Transaction[], settings: UserSettings, userName: string, style: "short" | "balanced" | "detailed" = "balanced", prevStats: CycleSummary | null = null, recurringTransactions: RecurringTransaction[] = []): Promise<AnalysisReport | null> => {
+    const summary = summarizeContext(transactions, settings, userName, recurringTransactions);
     const styleInstruction = getStyleInstruction(style);
     const profileInstruction = getProfileInstructions(settings);
 
@@ -198,9 +204,10 @@ export const askFinancialAdvisor = async (
     userName: string,
     history: { role: "user" | "ai"; text: string }[] = [],
     style: "short" | "balanced" | "detailed" = "balanced",
-    mode: "advisor" | "tutor" = "advisor"
+    mode: "advisor" | "tutor" = "advisor",
+    recurringTransactions: RecurringTransaction[] = []
 ): Promise<string> => {
-    const summary = summarizeContext(transactions, settings, userName);
+    const summary = summarizeContext(transactions, settings, userName, recurringTransactions);
     const styleInstruction = getStyleInstruction(style);
     const profileInstruction = getProfileInstructions(settings);
 
@@ -223,10 +230,7 @@ export const askFinancialAdvisor = async (
         `;
     }
 
-    const recentHistory = history
-        .slice(-10)
-        .map((msg) => `${msg.role === "user" ? "KULLANICI" : "NOVA"}: ${msg.text}`)
-        .join("\n");
+    const recentHistory = history.map((msg) => `${msg.role === "user" ? "KULLANICI" : "NOVA"}: ${msg.text}`).join("\n");
 
     const prompt = `
     ${roleDefinition}
