@@ -3,6 +3,7 @@ import { Transaction, UserSettings, CycleSummary, AnalysisReport, RecurringTrans
 import { FINANCIAL_GOALS, SAVINGS_STYLES, RISK_TOLERANCE } from "../constants";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
@@ -78,8 +79,8 @@ const getProfileInstructions = (settings: UserSettings) => {
 };
 
 const summarizeContext = (transactions: Transaction[], settings: UserSettings, userName: string, recurringTransactions: RecurringTransaction[] = []) => {
-    const start = new Date(settings.periodStartDate);
-    const end = new Date(settings.periodEndDate);
+    const start = startOfDay(parseISO(settings.periodStartDate));
+    const end = endOfDay(parseISO(settings.periodEndDate));
     const now = new Date();
 
     const activeSubs = recurringTransactions.filter((sub) => sub.isActive && sub.type === "expense");
@@ -89,15 +90,15 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endMidnight = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
-    const diffTime = endMidnight.getTime() - todayMidnight.getTime();
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffTime = end.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     const filterEndDate = new Date(end);
     filterEndDate.setHours(23, 59, 59, 999);
 
     const activePeriodTxs = transactions.filter((t) => {
-        const tDate = new Date(t.date);
-        return tDate >= start && tDate <= filterEndDate;
+        const tDate = parseISO(t.date);
+        return isWithinInterval(tDate, { start, end });
     });
 
     const txIncome = activePeriodTxs.filter((t) => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
@@ -126,7 +127,7 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     return `
     KULLANICI PROFİLİ:
     - İsim: ${userName}
-    - HİTAP KURALI: Resmiyet yasak. Samimi, arkadaş canlısı ol. Kullanıcıya ${userName} ile hitap edebilirsin.
+    - HİTAP KURALI: Resmiyet yasak. Samimi, arkadaş canlısı ol. Kullanıcıya ${userName} ile hitap edebilirsin. Canımlı cicimli aşırı samimiyete gerek yok, ${userName} ile doğrudan hitap yeterli.
     
     AKTİF DÖNEM ANALİZİ (DİKKAT: Sadece bu aralıktaki verileri görüyorsun):
     - Dönem: ${settings.periodName} (${start.toLocaleDateString("tr-TR")} - ${end.toLocaleDateString("tr-TR")})
