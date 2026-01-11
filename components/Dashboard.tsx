@@ -13,13 +13,11 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userId, userSettings, recurringTransactions }) => {
-    // State Tanımları
     const [periods, setPeriods] = useState<BudgetPeriod[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>("active");
     const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
     const [isPeriodOpen, setIsPeriodOpen] = useState(false);
 
-    // Dönemleri Yükle
     useEffect(() => {
         const loadPeriods = async () => {
             const list = await fetchBudgetPeriods(userId);
@@ -28,32 +26,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
         if (userId) loadPeriods();
     }, [userId]);
 
-    // Seçili Dönemin Tarihlerini Belirle
     const selectedRange = useMemo(() => {
+        let start: Date;
+        let end: Date;
+        let label = "";
+
         if (selectedPeriodId === "active") {
-            // Aktif dönem
-            const [sDay, sMonth, sYear] = stats.cycleStartDate.split(".");
-            const [eDay, eMonth, eYear] = stats.cycleEndDate.split(".");
-            return {
-                start: startOfDay(new Date(Number(sYear), Number(sMonth) - 1, Number(sDay))),
-                end: endOfDay(new Date(Number(eYear), Number(eMonth) - 1, Number(eDay))),
-                label: "Aktif Dönem",
-            };
+            start = startOfDay(parseISO(userSettings.periodStartDate));
+            end = endOfDay(parseISO(userSettings.periodEndDate));
+            label = "Aktif Dönem";
         } else {
-            // Geçmiş dönem
             const p = periods.find((x) => x.id === selectedPeriodId);
             if (!p) return null;
-            return {
-                start: startOfDay(new Date(p.startDate)),
-                end: endOfDay(new Date(p.endDate)),
-                label: p.name,
-            };
-        }
-    }, [selectedPeriodId, stats, periods]);
 
-    // İşlemleri Filtrele (Dönem + Tür)
+            start = startOfDay(parseISO(p.startDate));
+            end = endOfDay(parseISO(p.endDate));
+            label = p.name;
+        }
+
+        return { start, end, label };
+    }, [selectedPeriodId, userSettings, periods]);
+
     const filteredTransactions = useMemo(() => {
         if (!selectedRange) return [];
+
         return transactions.filter((t) => {
             const tDate = parseISO(t.date);
             const isDateMatch = isWithinInterval(tDate, { start: selectedRange.start, end: selectedRange.end });
@@ -62,46 +58,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
         });
     }, [transactions, selectedRange, typeFilter]);
 
-    // İstatistikleri Hesapla (Sabit Gelir/Gider Dahil)
+    const filteredPeriodList = useMemo(() => {
+        return periods.filter(p => {
+            return p.startDate !== userSettings.periodStartDate;
+        });
+    }, [periods, userSettings]);
+
     const viewStats = useMemo(() => {
-        // A) İşlemlerden gelen toplamlar (Aynı)
-        let relevantTransactions = transactions;
-        if (selectedRange) {
-            relevantTransactions = transactions.filter((t) => {
-                const tDate = parseISO(t.date);
-                return isWithinInterval(tDate, { start: selectedRange.start, end: selectedRange.end });
-            });
-        }
+        if (!selectedRange) return { income: 0, expense: 0, balance: 0, hasFixed: false, fixedExpenseTotal: 0, subscriptionTotal: 0, actualIncomeTotal: 0, actualExpenseTotal: 0, fixedIncomeTotal: 0 };
+        const relevantTransactions = transactions.filter((t) => {
+            const tDate = parseISO(t.date);
+            return isWithinInterval(tDate, { start: selectedRange.start, end: selectedRange.end });
+        });
 
-        const incomes = relevantTransactions.filter((t) => t.type === "income");
-        const expenses = relevantTransactions.filter((t) => t.type === "expense");
-        const txIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
-        const txExpense = expenses.reduce((acc, t) => acc + t.amount, 0);
+        const txIncome = relevantTransactions.filter(t => t.type === "income").reduce((acc, t) => acc + t.amount, 0);
+        const txExpense = relevantTransactions.filter(t => t.type === "expense").reduce((acc, t) => acc + t.amount, 0);
 
-        // B) Sabit (Fixed) ve Abonelik Tutar Hesabı
         let fixedIncome = 0;
         let fixedExpense = 0;
-        let subscriptionTotal = 0; // <--- YENİ DEĞİŞKEN
+        let subscriptionTotal = 0;
 
         if (selectedPeriodId === "active") {
             fixedIncome = userSettings.monthlyIncome;
             fixedExpense = userSettings.fixedExpenses;
 
-            // [YENİ MANTIK] Sadece aktif abonelikleri topla
             subscriptionTotal = recurringTransactions
                 .filter(sub => sub.isActive && sub.type === "expense")
                 .reduce((acc, sub) => acc + sub.amount, 0);
         } else {
-            // Geçmiş dönemler için sadece kayıtlı budget_period verisini kullanıyoruz
-            // Çünkü geçmişteki abonelik durumunu tam bilemeyiz, o anki snapshot önemli.
             const p = periods.find((x) => x.id === selectedPeriodId);
             if (p) {
                 fixedIncome = p.monthlyIncome;
                 fixedExpense = p.fixedExpenses;
+                subscriptionTotal = 0;
             }
         }
 
-        // Toplam Gider = Yapılan Harcamalar + Sabit Giderler (Kira vs) + Abonelikler
         const totalIncome = txIncome + fixedIncome;
         const totalExpense = txExpense + fixedExpense + subscriptionTotal;
 
@@ -109,14 +101,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
             income: totalIncome,
             expense: totalExpense,
             balance: totalIncome - totalExpense,
-            hasFixed: fixedIncome > 0 || fixedExpense > 0 || subscriptionTotal > 0,
+            hasFixed: fixedIncome > 0 || fixedExpense > 0 || subscriptionTotal > 0 || txExpense > 0,
 
             fixedExpenseTotal: fixedExpense,
-            subscriptionTotal: subscriptionTotal
+            subscriptionTotal: subscriptionTotal,
+            actualExpenseTotal: txExpense,
+
+            fixedIncomeTotal: fixedIncome || 0,
+            actualIncomeTotal: txIncome || 0
         };
     }, [transactions, selectedRange, selectedPeriodId, userSettings, periods, recurringTransactions]);
 
-    // Grafik Verileri (Filtrelenmiş veriye göre)
     const categoryData = useMemo(() => {
         const expenses = filteredTransactions.filter((t) => t.type === "expense");
         const totalExp = expenses.reduce((acc, t) => acc + t.amount, 0);
@@ -177,31 +172,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                                 <div className="fixed inset-0 z-10" onClick={() => setIsPeriodOpen(false)}></div>
                                 <div className="absolute top-full left-0 mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto custom-scrollbar">
                                     <div className="p-1 space-y-0.5">
+                                        {/* 1. Sabit Seçenek: Aktif Dönem */}
                                         <button
                                             onClick={() => {
                                                 setSelectedPeriodId("active");
                                                 setIsPeriodOpen(false);
                                             }}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === "active" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
-                                                }`}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === "active" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                                         >
-                                            <span className="font-bold block">Aktif Dönem</span>
+                                            <span className="font-bold block">
+                                                Aktif Dönem <span className="font-normal opacity-75">({userSettings.periodName || "İsimsiz"})</span>
+                                            </span>
                                             <span className="text-xs opacity-70">
-                                                {stats.cycleStartDate} - {stats.cycleEndDate}
+                                                {new Date(userSettings.periodStartDate).toLocaleDateString("tr-TR")} - {new Date(userSettings.periodEndDate).toLocaleDateString("tr-TR")}
                                             </span>
                                         </button>
 
-                                        {periods.length > 0 && <div className="my-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />}
+                                        {filteredPeriodList.length > 0 && <div className="my-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />}
 
-                                        {periods.map((p) => (
+                                        {/* 2. Filtrelenmiş Geçmiş Dönemler */}
+                                        {filteredPeriodList.map((p) => (
                                             <button
                                                 key={p.id}
                                                 onClick={() => {
                                                     setSelectedPeriodId(p.id);
                                                     setIsPeriodOpen(false);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === p.id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
-                                                    }`}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedPeriodId === p.id ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
                                             >
                                                 <span className="font-medium block">{p.name}</span>
                                                 <span className="text-xs opacity-70">
@@ -243,12 +240,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                         <div>
                             <p className="text-emerald-400/80 text-sm font-medium mb-1">Toplam Gelir</p>
                             <h3 className="text-2xl font-bold text-emerald-400">+ {viewStats.income.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</h3>
-                            {viewStats.hasFixed && <span className="text-[10px] text-emerald-400/50 block mt-1">(Maaş/Sabit Gelir Dahil)</span>}
+
+                            {/* Gelir Detayları */}
+                            {viewStats.hasFixed && (
+                                <div className="mt-2 space-y-0.5 border-l-2 border-emerald-500/20 pl-2">
+
+                                    {/* 1. Sabit Gelir */}
+                                    {viewStats.fixedIncomeTotal > 0 && (
+                                        <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
+                                            <span>Maaş/Sabit:</span>
+                                            <span>{viewStats.fixedIncomeTotal.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    )}
+
+                                    {/* 2. Ek Gelirler */}
+                                    {viewStats.actualIncomeTotal > 0 && (
+                                        <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
+                                            <span>Ek Gelirler:</span>
+                                            <span>{viewStats.actualIncomeTotal.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="p-2 bg-emerald-500/10 rounded-lg">
-                            <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
+                            <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                         </div>
                     </div>
                 </div>
@@ -263,16 +279,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                             {/* Sabit ve Abonelik Detayı */}
                             {viewStats.hasFixed && (
                                 <div className="mt-2 space-y-0.5 border-l-2 border-rose-500/20 pl-2">
+
+                                    {/* 1. Sabit Giderler */}
                                     {viewStats.fixedExpenseTotal > 0 && (
                                         <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
                                             <span>Sabit Gider:</span>
                                             <span>{viewStats.fixedExpenseTotal.toLocaleString("tr-TR")} ₺</span>
                                         </div>
                                     )}
+
+                                    {/* 2. Abonelikler */}
                                     {viewStats.subscriptionTotal > 0 && (
                                         <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
                                             <span>Abonelikler:</span>
                                             <span>{viewStats.subscriptionTotal.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    )}
+
+                                    {/* 3. Günlük Harcamalar */}
+                                    {viewStats.actualExpenseTotal > 0 && (
+                                        <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
+                                            <span>Harcamalar:</span>
+                                            <span>{viewStats.actualExpenseTotal.toLocaleString("tr-TR")} ₺</span>
                                         </div>
                                     )}
                                 </div>

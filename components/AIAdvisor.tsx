@@ -13,12 +13,13 @@ import novaHappy from "../logo/nova_happy.ico";
 import novaSuccess from "../logo/nova_success.ico";
 import novaAnalyzePos from "../logo/nova_analyze_positive.ico";
 import novaAnalyzeNeg from "../logo/nova_analyze_negative.ico";
-import { useToast } from "../context/ToastContext";
 import { fetchBudgetPeriods, calculateHistorySummaries } from "../services/storageService";
 import { CycleSummary, RecurringTransaction } from "../types";
 import { NovaReportCard } from "./NovaReportCard";
 import { clsx } from "clsx";
 import { usePlatform } from "../hooks/usePlatform";
+import { useConfirm } from "../context/ConfirmContext";
+import { useToast } from "../context/ToastContext";
 
 const getDataSignature = (transactions: Transaction[], settings: UserSettings) => {
     return `${transactions.length}-${transactions[0]?.id || "empty"}-${settings.monthlyIncome}-${settings.fixedExpenses}`;
@@ -33,6 +34,7 @@ interface AIAdvisorProps {
 
 export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings, user, recurringTransactions }) => {
     const { showToast } = useToast();
+    const { confirm } = useConfirm();
     const { isNative } = usePlatform();
     const hasData = transactions && transactions.length > 0;
 
@@ -309,11 +311,19 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ transactions, userSettings
         }
     };
 
-    const handleClearChat = () => {
-        if (window.confirm("Tüm konuşma geçmişi ve analiz raporu silinecek. Emin misin?")) {
+    const handleClearChat = async () => {
+        const isConfirmed = await confirm({
+            title: "Sohbeti Temizle",
+            message: "Tüm konuşma geçmişi ve analiz raporu silinecek. Nova ile olan diyaloğunuz sıfırlanacak. Emin misin?",
+            confirmText: "Temizle",
+            variant: "danger"
+        });
+
+        if (isConfirmed) {
             setChatHistory([]);
             setStaleData(false);
             sessionStorage.removeItem("nova_chat_history");
+            sessionStorage.removeItem("nova_analysis");
         }
     };
 

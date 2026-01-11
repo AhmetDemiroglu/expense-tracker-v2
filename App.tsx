@@ -26,11 +26,15 @@ import { OnboardingSlider } from "./components/OnboardingSlider";
 import { SubscriptionsView } from "./components/SubscriptionsView";
 import { fetchRecurringTransactions } from "./services/storageService";
 import { RecurringTransaction } from "./types";
+import { useConfirm } from "./context/ConfirmContext";
+import { useToast } from "./context/ToastContext";
 
 type Tab = "dashboard" | "calendar" | "history" | "transactions" | "ai" | "settings";
 
 const App: React.FC = () => {
     const { isNative } = usePlatform();
+    const { confirm } = useConfirm();
+    const { showToast } = useToast();
     const [user, setUser] = useState<User | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
     const [settingsView, setSettingsView] = useState<"main" | "subscriptions">("main");
@@ -200,7 +204,16 @@ const App: React.FC = () => {
 
     const handleDeleteTransaction = async (id: string) => {
         if (!user) return;
-        if (window.confirm("Bu işlemi silmek istediğinize emin misiniz?")) {
+
+        const isConfirmed = await confirm({
+            title: "İşlemi Sil",
+            message: "Bu harcama/gelir kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+            confirmText: "Evet, Sil",
+            cancelText: "Vazgeç",
+            variant: "danger"
+        });
+
+        if (isConfirmed) {
             if (user.uid.startsWith("guest_")) {
                 const newList = deleteGuestTransaction(user.uid, id, transactions);
                 setTransactions(newList);
@@ -208,6 +221,7 @@ const App: React.FC = () => {
                 await deleteTransaction(id);
                 setTransactions((prev) => prev.filter((t) => t.id !== id));
             }
+            showToast("İşlem silindi", "success");
         }
     };
 

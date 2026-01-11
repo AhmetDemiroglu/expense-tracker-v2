@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { RecurringTransaction, Category } from "../types";
 import { fetchRecurringTransactions, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction } from "../services/storageService";
-
+import { useConfirm } from "../context/ConfirmContext";
+import { useToast } from "../context/ToastContext";
 interface SubscriptionsViewProps {
     userId: string;
     onBack: () => void;
@@ -10,6 +11,8 @@ interface SubscriptionsViewProps {
 
 export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, onBack, onUpdate }) => {
     const [list, setList] = useState<RecurringTransaction[]>([]);
+    const { confirm } = useConfirm();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSub, setEditingSub] = useState<RecurringTransaction | null>(null);
@@ -38,15 +41,25 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, on
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm("Bu aboneliği/ödemeyi silmek istediğine emin misin? (Geçmişe eklenen işlemler silinmez, sadece gelecek planı silinir.)")) return;
+        const isConfirmed = await confirm({
+            title: "Aboneliği Sil",
+            message: "Bu düzenli ödeme planını silmek istediğine emin misin? Geçmişe eklenen işlemler silinmez, sadece gelecek planı iptal edilir.",
+            confirmText: "Evet, Sil",
+            cancelText: "Vazgeç",
+            variant: "danger"
+        });
+
+        if (!isConfirmed) return;
 
         try {
             await deleteRecurringTransaction(userId, id);
             setList(prev => prev.filter(item => item.id !== id));
             onUpdate();
+            showToast("Abonelik başarıyla silindi.", "success");
+
         } catch (error) {
             console.error("Silme hatası:", error);
-            alert("Silinirken bir hata oluştu.");
+            showToast("Silinirken bir hata oluştu.", "error");
         }
     };
 

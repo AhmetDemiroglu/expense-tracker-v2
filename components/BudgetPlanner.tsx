@@ -3,6 +3,7 @@ import { UserSettings, BudgetPeriod } from "../types";
 import { saveUserSettings, fetchBudgetPeriods, saveBudgetPeriod, deleteBudgetPeriod } from "../services/storageService";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../context/ToastContext";
+import { useConfirm } from "../context/ConfirmContext";
 interface BudgetPlannerProps {
     userId: string;
     currentSettings: UserSettings | null;
@@ -11,6 +12,7 @@ interface BudgetPlannerProps {
 
 export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSettings, onSave }) => {
     const { showToast } = useToast();
+    const { confirm } = useConfirm();
     const todayStr = new Date().toISOString().split("T")[0];
     const nextMonthStr = new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split("T")[0];
 
@@ -156,7 +158,14 @@ export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSet
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Bu dönem kaydını silmek istediğinize emin misiniz?")) {
+        const isConfirmed = await confirm({
+            title: "Dönemi Sil",
+            message: "Bu bütçe dönemini ve ayarlarını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+            confirmText: "Evet, Sil",
+            variant: "danger"
+        });
+
+        if (isConfirmed) {
             try {
                 await deleteBudgetPeriod(userId, id);
                 await loadPeriods();
@@ -299,8 +308,8 @@ export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSet
                                 <div
                                     key={p.id}
                                     className={`relative p-5 rounded-xl border transition-all ${isActive
-                                            ? "bg-slate-800 border-emerald-500 ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-900/20"
-                                            : "bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
+                                        ? "bg-slate-800 border-emerald-500 ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-900/20"
+                                        : "bg-slate-800/50 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
                                         }`}
                                 >
                                     {isActive && (
