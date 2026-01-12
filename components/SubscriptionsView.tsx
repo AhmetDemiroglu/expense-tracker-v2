@@ -184,7 +184,7 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, on
                     </h3>
 
                     <div>
-                        <label className="text-xs text-slate-400 block mb-1">Başlık (Örn: Netflix)</label>
+                        <label className="text-xs text-slate-400 block mb-1">Başlık (Örn: Netflix, Aidat vb.)</label>
                         <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white text-sm" />
                     </div>
 

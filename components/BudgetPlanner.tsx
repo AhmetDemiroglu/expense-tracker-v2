@@ -251,25 +251,44 @@ export const BudgetPlanner: React.FC<BudgetPlannerProps> = ({ userId, currentSet
 
                     {/* Finansal Bilgiler */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* 1. Sabit Gelir Alanı */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-2">Sabit Gelir (Maaş vb.)</label>
-                            <input
-                                type="number"
-                                value={income}
-                                onChange={(e) => setIncome(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="0.00"
-                            />
+                            <label className="block text-xs font-medium text-slate-400 mb-2">
+                                Sabit Gelir (Maaş vb.)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={income}
+                                    onChange={(e) => setIncome(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none font-medium"
+                                    placeholder="0.00"
+                                />
+                                <div className="absolute left-3 top-3.5 text-emerald-500 font-bold">₺</div>
+                            </div>
                         </div>
+
+                        {/* 2. Kesinleşmiş Gider Alanı */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-2">Sabit Giderler Toplamı</label>
-                            <input
-                                type="number"
-                                value={fixedExpenses}
-                                onChange={(e) => setFixedExpenses(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-3 text-white focus:ring-2 focus:ring-rose-500 outline-none"
-                                placeholder="0.00"
-                            />
+                            <label className="block text-xs font-medium text-slate-400 mb-2">
+                                Kesinleşmiş Gider
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={fixedExpenses}
+                                    onChange={(e) => setFixedExpenses(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 transition-all outline-none font-medium"
+                                    placeholder="0.00"
+                                />
+                                <div className="absolute left-3 top-3.5 text-rose-500 font-bold">₺</div>
+                            </div>
+                            {/* Açıklama metni artık bu div'in içinde */}
+                            <p className="text-[10px] text-slate-500 mt-1 flex items-start gap-1 leading-snug">
+                                <span className="text-rose-500">*</span>
+                                Borç, taksit veya o aya özel çıkacağı kesin olan tek seferlik giderler.
+                            </p>
                         </div>
                     </div>
 

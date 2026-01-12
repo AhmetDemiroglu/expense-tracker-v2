@@ -15,7 +15,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userId, userSettings, recurringTransactions }) => {
     const [periods, setPeriods] = useState<BudgetPeriod[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>("active");
-    const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+    const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("expense");
     const [isPeriodOpen, setIsPeriodOpen] = useState(false);
 
     useEffect(() => {
@@ -213,6 +213,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
         requestAnimationFrame(animate);
     }, [viewStats.balance, viewStats.income, viewStats.expense, dailyBudget]);
 
+    const comparisonData = useMemo(() => {
+        if (typeFilter !== "all") return null;
+
+        const income = viewStats.income;
+        const expense = viewStats.expense;
+        const net = income - expense;
+        const maxValue = Math.max(income, expense);
+
+        const incomePercentage = maxValue > 0 ? (income / maxValue) * 100 : 0;
+        const expensePercentage = maxValue > 0 ? (expense / maxValue) * 100 : 0;
+        const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
+
+        return {
+            income,
+            expense,
+            net,
+            incomePercentage,
+            expensePercentage,
+            savingsRate,
+            isPositive: net >= 0
+        };
+    }, [typeFilter, viewStats]);
+
     const bannerStatus = useMemo(() => {
         const balance = viewStats.balance;
         const daily = dailyBudget;
@@ -399,7 +422,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
 
 
             {/* Filtre Barı */}
-            <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 space-y-3">
+            <div className="bg-slate-800/50 px-4 pt-4 pb-2 rounded-2xl border border-slate-700/50 space-y-3">
                 {/* Üst: Dönem Seçici */}
                 <div className="relative">
                     <button
@@ -585,7 +608,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
                                     {/* 1. Sabit Giderler */}
                                     {viewStats.fixedExpenseTotal > 0 && (
                                         <div className="flex justify-between w-full min-w-[120px] text-[10px] text-slate-400">
-                                            <span>Sabit Gider:</span>
+                                            <span>Kesinleşmiş Gider:</span>
                                             <span>{viewStats.fixedExpenseTotal.toLocaleString("tr-TR")} ₺</span>
                                         </div>
                                     )}
@@ -616,112 +639,157 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, stats, userI
             </div>
 
             {/* Charts & Lists */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-3">
-                        {typeFilter === "income" ? "Gelir Dağılımı" : "Harcama Dağılımı"}
-                    </h3>
-                    {categoryData.length > 0 ? (
-                        <div className="flex flex-col md:flex-row gap-8 h-full">
-                            <div className="flex-1 min-h-[250px] relative">
+            {typeFilter === "all" && comparisonData ? (
+                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm">
+                    <h3 className="text-lg font-semibold text-white mb-5">Gelir / Gider Dengesi</h3>
+
+                    <div className="space-y-4">
+                        {/* Gelir */}
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-slate-400 w-14">Gelir</span>
+                            <div className="flex-1 h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                                    style={{ width: `${comparisonData.incomePercentage}%` }}
+                                />
+                            </div>
+                            <span className="text-sm font-semibold text-emerald-400 tabular-nums w-28 text-right">
+                                {comparisonData.income.toLocaleString("tr-TR")} ₺
+                            </span>
+                        </div>
+
+                        {/* Gider */}
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-slate-400 w-14">Gider</span>
+                            <div className="flex-1 h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-rose-500 rounded-full transition-all duration-700"
+                                    style={{ width: `${comparisonData.expensePercentage}%` }}
+                                />
+                            </div>
+                            <span className="text-sm font-semibold text-rose-400 tabular-nums w-28 text-right">
+                                {comparisonData.expense.toLocaleString("tr-TR")} ₺
+                            </span>
+                        </div>
+
+                        {/* Ayırıcı + Net */}
+                        <div className="pt-4 mt-4 border-t border-slate-700/50 flex items-center justify-between">
+                            <span className="text-sm text-slate-400">Net</span>
+                            <span className={`text-xl font-bold tabular-nums ${comparisonData.isPositive ? "text-white" : "text-rose-400"}`}>
+                                {comparisonData.isPositive ? "+" : ""}{comparisonData.net.toLocaleString("tr-TR")} ₺
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
+                        <h3 className="text-lg font-semibold text-white mb-3">
+                            {typeFilter === "income" ? "Gelir Dağılımı" : "Harcama Dağılımı"}
+                        </h3>
+                        {categoryData.length > 0 ? (
+                            <div className="flex flex-col md:flex-row gap-8 h-full">
+                                <div className="flex-1 min-h-[250px] relative">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                                {categoryData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div className="bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 shadow-xl">
+                                                                <p className="text-sm font-semibold text-white mb-1">{data.name}</p>
+                                                                <p className="text-lg font-bold text-indigo-400">{data.value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</p>
+                                                                <p className="text-xs text-slate-500 mt-1">%{data.percentage.toFixed(1)} oranında</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[250px] pr-2 space-y-3">
+                                    {categoryData.map((cat, index) => (
+                                        <div key={cat.name} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}></div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-white">{cat.name}</p>
+                                                    <p className="text-xs text-slate-500">%{cat.percentage.toFixed(1)}</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-300">{cat.value.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-sm">
+                                <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
+                                    <svg className="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                    </svg>
+                                </div>
+                                {typeFilter === "income" ? "Görüntülenecek gelir yok" : "Görüntülenecek harcama yok"}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Trend Chart */}
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
+                        <h3 className="text-lg font-semibold text-white mb-3">
+                            {typeFilter === "income" ? "Gelir Trendi" : typeFilter === "expense" ? "Harcama Trendi" : "İşlem Trendi"}
+                        </h3>
+                        {chartData.length > 0 ? (
+                            <div className="flex-1 w-full h-64">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                            {categoryData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            content={({ active, payload }) => {
-                                                if (active && payload && payload.length) {
-                                                    const data = payload[0].payload;
-                                                    return (
-                                                        <div className="bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 shadow-xl">
-                                                            <p className="text-sm font-semibold text-white mb-1">{data.name}</p>
-                                                            <p className="text-lg font-bold text-indigo-400">{data.value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</p>
-                                                            <p className="text-xs text-slate-500 mt-1">%{data.percentage.toFixed(1)} oranında</p>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            }}
+                                    <AreaChart data={chartData}>
+                                        <defs>
+                                            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"} stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"} stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            stroke="#94a3b8"
+                                            fontSize={10}
+                                            tickMargin={10}
+                                            tickFormatter={(date) => new Date(date).toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit" })}
                                         />
-                                    </PieChart>
+                                        <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(val) => `${val}₺`} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: "#1e293b", borderColor: "#334155", borderRadius: "8px" }}
+                                            itemStyle={{ color: typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#818cf8" }}
+                                            labelFormatter={(label) => new Date(label).toLocaleDateString("tr-TR")}
+                                            formatter={(value: number) => [`${value.toLocaleString("tr-TR")} ₺`, "Tutar"]}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="amount"
+                                            stroke={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"}
+                                            fillOpacity={1}
+                                            fill="url(#colorAmount)"
+                                        />
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[250px] pr-2 space-y-3">
-                                {categoryData.map((cat, index) => (
-                                    <div key={cat.name} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}></div>
-                                            <div>
-                                                <p className="text-sm font-medium text-white">{cat.name}</p>
-                                                <p className="text-xs text-slate-500">%{cat.percentage.toFixed(1)}</p>
-                                            </div>
-                                        </div>
-                                        <span className="text-sm font-bold text-slate-300">{cat.value.toLocaleString("tr-TR")} ₺</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-sm">
-                            <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
-                                <svg className="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                                </svg>
-                            </div>
-                            {typeFilter === "income" ? "Görüntülenecek gelir yok" : "Görüntülenecek harcama yok"}
-                        </div>
-                    )}
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">Veri yok</div>
+                        )}
+                    </div>
                 </div>
-
-                {/* Trend Chart */}
-                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm min-h-[300px] flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-3">
-                        {typeFilter === "income" ? "Gelir Trendi" : typeFilter === "expense" ? "Harcama Trendi" : "İşlem Trendi"}
-                    </h3>
-                    {chartData.length > 0 ? (
-                        <div className="flex-1 w-full h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData}>
-                                    <defs>
-                                        <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"} stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"} stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                    <XAxis
-                                        dataKey="date"
-                                        stroke="#94a3b8"
-                                        fontSize={10}
-                                        tickMargin={10}
-                                        tickFormatter={(date) => new Date(date).toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit" })}
-                                    />
-                                    <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(val) => `${val}₺`} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: "#1e293b", borderColor: "#334155", borderRadius: "8px" }}
-                                        itemStyle={{ color: typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#818cf8" }}
-                                        labelFormatter={(label) => new Date(label).toLocaleDateString("tr-TR")}
-                                        formatter={(value: number) => [`${value.toLocaleString("tr-TR")} ₺`, "Tutar"]}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="amount"
-                                        stroke={typeFilter === "income" ? "#10b981" : typeFilter === "expense" ? "#f43f5e" : "#6366f1"}
-                                        fillOpacity={1}
-                                        fill="url(#colorAmount)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">Veri yok</div>
-                    )}
-                </div>
-            </div>
+            )}
         </div>
     );
 };

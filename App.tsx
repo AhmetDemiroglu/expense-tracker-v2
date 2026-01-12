@@ -454,7 +454,7 @@ const App: React.FC = () => {
                                             >
                                                 <h2 className="text-xl font-bold text-white flex items-center gap-3">
                                                     <span className="w-1.5 h-6 bg-violet-500 rounded-full"></span>
-                                                    Abonelikler & Sabit Giderler
+                                                    Abonelikler & Düzenli Ödemeler
                                                 </h2>
                                                 <div className="flex items-center gap-2 text-slate-400 group-hover:text-violet-400 transition-colors">
                                                     <span className="text-xs font-medium uppercase tracking-wider hidden md:block">Yönet</span>

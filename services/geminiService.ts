@@ -138,7 +138,7 @@ const summarizeContext = (transactions: Transaction[], settings: UserSettings, u
     - Eklenen Ek Gelirler: ${txIncome.toLocaleString("tr-TR")} TL
     - TOPLAM GELİR: ${totalIncome.toLocaleString("tr-TR")} TL
     
-    - Sabit Giderler: ${settings.fixedExpenses.toLocaleString("tr-TR")} TL
+    - Kesinleşmiş (Borç, taksit veya o aya özel çıkacağı kesin olan tek seferlik) Giderler: ${settings.fixedExpenses.toLocaleString("tr-TR")} TL
     - Abonelikler & Düzenli Ödemeler: ${subTotal.toLocaleString("tr-TR")} TL
     - Yapılan Harcamalar: ${txExpense.toLocaleString("tr-TR")} TL
     - TOPLAM GİDER: ${(totalExpense + subTotal).toLocaleString("tr-TR")} TL
