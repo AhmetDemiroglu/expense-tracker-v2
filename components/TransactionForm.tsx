@@ -4,7 +4,7 @@ import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../context/ToastContext";
 import { selectReceiptImage } from "../services/cameraService";
-import { processReceiptFile } from "../services/geminiService";
+import { processReceiptFile } from "../services/glmOcrService";
 
 interface TransactionFormProps {
     onAdd: (transaction: Omit<Transaction, "userId" | "createdAt">) => void;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Transaction, UserSettings, AnalysisReport } from "../types";
-import { analyzeFinances, askFinancialAdvisor } from "../services/geminiService";
+import { analyzeFinances, askFinancialAdvisor } from "../services/groqService";
 import ReactMarkdown from "react-markdown";
 import { User } from "firebase/auth";
 import novaIcon from "../logo/nova.ico";
