@@ -24,7 +24,7 @@ import { SocialLogin } from "@capgo/capacitor-social-login";
 import { Capacitor } from "@capacitor/core";
 import { OnboardingSlider } from "./components/OnboardingSlider";
 import { SubscriptionsView } from "./components/SubscriptionsView";
-import { fetchRecurringTransactions } from "./services/storageService";
+import { fetchRecurringTransactions, processRecurringTransactions } from "./services/storageService";
 import { RecurringTransaction } from "./types";
 import { useConfirm } from "./context/ConfirmContext";
 import { useToast } from "./context/ToastContext";
@@ -109,6 +109,14 @@ const App: React.FC = () => {
         setTransactions(txs);
         setUserSettings(settings);
         setRecurringList(subs);
+
+        const newTxCount = await processRecurringTransactions(uid);
+        if (newTxCount > 0) {
+            const updatedTxs = await fetchTransactions(uid);
+            const updatedSubs = await fetchRecurringTransactions(uid);
+            setTransactions(updatedTxs);
+            setRecurringList(updatedSubs);
+        }
 
         if (!settings) {
             setActiveTab("settings");

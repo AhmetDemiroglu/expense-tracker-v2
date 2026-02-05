@@ -90,7 +90,26 @@ KURALLAR:
 1. amount: Toplam/Total/Genel Toplam tutarını bul. Sadece sayı yaz (TL, ₺ gibi sembolleri kaldır). Türk formatı (1.234,56) ise 1234.56 yap.
 2. date: Tarihi YYYY-MM-DD formatında yaz. Bulamazsan bugünün tarihini kullan.
 3. description: Fişi KESEN kurumun adını yaz (ürün markası değil). Örn: "BİM", "Migros", "Shell"
-4. category: Şu kategorilerden birini seç: "Gıda & Market", "Yeme & İçme", "Ulaşım", "Giyim", "Ev & Yaşam", "Teknoloji", "Eğlence", "Sağlık", "Eğitim", "Faturalar", "Diğer"
+4. category: Şu kategorilerden BİRİNİ AYNEN yaz (başka bir şey yazma):
+   - "Market & Pazar"
+   - "Yeme & İçme (Restoran vb.)"
+   - "Toplu Taşıma"
+   - "Araç & Yakıt"
+   - "Kira & Aidat"
+   - "Faturalar"
+   - "Giyim & Aksesuar"
+   - "Kozmetik & Bakım"
+   - "Sağlık & İlaç"
+   - "Spor & Üyelik"
+   - "Ev Eşyası & Dekorasyon"
+   - "Eğitim & Kitap"
+   - "Teknoloji & Elektronik"
+   - "Abonelikler"
+   - "Eğlence & Hobi"
+   - "Tatil & Seyahat"
+   - "Kredi Kartı Ödemesi"
+   - "Vergi & Harçlar"
+   - "Diğer Gider"
 
 SADECE JSON DÖNDÜR, BAŞKA HİÇBİR ŞEY YAZMA.`;
 
