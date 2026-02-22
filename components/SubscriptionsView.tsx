@@ -128,8 +128,7 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, on
         resetForm();
     };
 
-    // Form Component (Reusable)
-    const SubscriptionForm = () => (
+    const subscriptionFormJSX = (
         <form onSubmit={handleSave} className="bg-slate-900/80 p-4 rounded-xl border border-indigo-500/30 space-y-3 animate-fade-in">
             <div>
                 <label className="text-xs text-slate-400 block mb-1">Başlık (Örn: Netflix, Aidat)</label>
@@ -226,7 +225,7 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, on
             )}
 
             {/* Yeni Ekleme Formu (Listenin Üstünde) */}
-            {isAddingNew && <SubscriptionForm />}
+            {isAddingNew && subscriptionFormJSX}
 
             {/* Liste */}
             <div className="space-y-2">
@@ -286,7 +285,7 @@ export const SubscriptionsView: React.FC<SubscriptionsViewProps> = ({ userId, on
                             </div>
 
                             {/* Inline Form (Kartın Hemen Altında) */}
-                            {editingId === sub.id && <SubscriptionForm />}
+                            {editingId === sub.id && subscriptionFormJSX}
                         </div>
                     ))
                 )}

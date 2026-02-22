@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { Transaction, DashboardStats, UserSettings } from "./types";
 import { fetchTransactions, addTransaction, deleteTransaction, deleteGuestTransaction, updateTransaction, getUserSettings } from "./services/storageService";
 import { logout, subscribeToAuth, createGuestUser } from "./services/authService";
@@ -71,15 +71,19 @@ const App: React.FC = () => {
     }, []);
 
     // Auth Listener
+    const userRef = useRef<User | null>(null);
     useEffect(() => {
         const unsubscribe = subscribeToAuth(async (currentUser) => {
             if (currentUser) {
+                // Aynı kullanıcı için tekrar loadUserData çağırmayı engelle
+                if (userRef.current?.uid === currentUser.uid) return;
+                userRef.current = currentUser;
                 setUser(currentUser);
                 await loadUserData(currentUser.uid);
             } else {
                 const guestId = localStorage.getItem("active_guest");
-                if (guestId && !user) {
-                } else if (user && !user.uid.startsWith("guest_")) {
+                if (!guestId && userRef.current && !userRef.current.uid.startsWith("guest_")) {
+                    userRef.current = null;
                     setUser(null);
                     setTransactions([]);
                     setUserSettings(null);
@@ -88,7 +92,7 @@ const App: React.FC = () => {
             setLoading(false);
         });
         return () => unsubscribe();
-    }, [user]);
+    }, []);
 
     useEffect(() => {
         const guestId = localStorage.getItem("active_guest");
