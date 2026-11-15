@@ -200,7 +200,7 @@ function AnaKart({ ozet, onYeniDonem }: { ozet: BudgetSnapshot; onYeniDonem: () 
 
   return (
     <Card lens data-tour="ozet-kart" className="flex shrink-0 flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="text-sm font-medium text-text-2">{acik ? tr.ozet.acik : tr.ozet.kalanButce}</span>
           <Amount value={ozet.balance} size="hero" animate />
