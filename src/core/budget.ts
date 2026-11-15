@@ -1,12 +1,14 @@
 // TEK bakiye ve TEK günlük limit. Uygulamadaki her ekran sayıları buradan alır.
 //
 // Tanımlar (kaynaklar/PLAN.md bölüm 4):
-//   planned          = sabit gider + dönem içi otomatik işlemler + işlemi henüz olmayan vadeler
+//   planlı gider     = düzenli ödemeden üretilmiş, ya da 2. ve sonraki taksit, ya da `planned: true` (önceden girilmiş)
+//   planned          = sabit gider + dönem içi planlı giderler + işlemi henüz olmayan vadeler
 //   balance          = plannedIncome + Σ gelir − planned − Σ kendi harcamaları            (dönemin tamamı)
 //   dayStartBudget(d)= plannedIncome + Σ gelir(≤ d) − planned − Σ harcama(< d) − Σ harcama(> max(d, today))
 //   dailyLimit(d)    = dayStartBudget(d) / kalan gün (d dahil), kuruşa aşağı yuvarlanır
 //   todayRemaining   = dailyLimit(today) − Σ harcama(= today)
-// Limit gün içinde harcamayla değişmez. Gelecek tarihli gider bugünden ayrılır, gelecek tarihli gelir günü gelene kadar sayılmaz.
+// "harcama" kullanıcının planlı OLMAYAN giderleridir. Limit gün içinde harcamayla değişmez.
+// Planlı gider dönem başından düşülmüştür, kendi gününde aşım üretmez. Gelecek tarihli gelir günü gelene kadar sayılmaz.
 
 import type { CategoryKey, TxType } from "./category";
 import { dateParts, daysInclusive, diffDays, monthGrid, weekDays, type LocalDate } from "./date";
@@ -19,6 +21,20 @@ import {
   isAutoTransaction,
   unmatchedOccurrences,
 } from "./recurrence";
+
+/** Kayıt anında tarihi bugünden sonra olan gider "önceden girilmiş"tir: form `planned: true` yazar. */
+export function isPlannedAtEntry(date: LocalDate, today: LocalDate): boolean {
+  return date > today;
+}
+
+/**
+ * Planlı gider: düzenli ödemeden üretilmiş, ya da 2. ve sonraki taksit, ya da `planned: true`.
+ * `planned` toplamına girer, kullanıcının günlük harcamasına girmez.
+ */
+export function isPlannedExpense(tx: Transaction): boolean {
+  if (tx.type !== "expense") return false;
+  return isAutoTransaction(tx) || (tx.installmentIndex !== undefined && tx.installmentIndex > 1) || tx.planned === true;
+}
 
 export interface BudgetInput {
   period: PeriodBudget;
@@ -47,11 +63,13 @@ export interface BudgetSnapshot {
   fixed: Kurus;
   /** Düzenli ödemelerden üretilmiş dönem içi giderler */
   autoPaid: Kurus;
+  /** Dönem içi diğer planlı giderler: 2. ve sonraki taksitler, önceden girilmiş giderler */
+  plannedTx: Kurus;
   /** Düzenli ödemelerin dönem içinde işlemi henüz olmayan vadeleri */
   duePending: Kurus;
-  /** fixed + autoPaid + duePending */
+  /** fixed + autoPaid + plannedTx + duePending */
   planned: Kurus;
-  /** Kullanıcının kendi harcamaları (dönem) */
+  /** Kullanıcının kendi harcamaları (dönem), planlı giderler hariç */
   discretionary: Kurus;
   /** planned + discretionary */
   totalExpense: Kurus;
@@ -77,10 +95,12 @@ export interface DayInfo {
   isFuture: boolean;
   /** Dönem dışındaki günde null */
   limit: Kurus | null;
-  /** Kullanıcının o günkü kendi harcaması */
+  /** Kullanıcının o günkü kendi harcaması (planlı giderler hariç) */
   spent: Kurus;
   /** O gün düşen otomatik (düzenli ödeme) giderleri */
   autoSpent: Kurus;
+  /** O gün düşen TÜM planlı giderler: düzenli ödeme + taksit + önceden girilmiş (autoSpent bunun parçası) */
+  plannedSpent: Kurus;
   /** O günün vadesi gelecek, işlemi henüz olmayan düzenli ödemeleri */
   plannedDue: Kurus;
   income: Kurus;
@@ -92,6 +112,8 @@ export interface DayInfo {
 interface DaySums {
   disc: Kurus;
   auto: Kurus;
+  /** otomatik olmayan planlı gider */
+  planned: Kurus;
   income: Kurus;
 }
 
@@ -109,6 +131,7 @@ export interface BudgetContext {
   readonly discPrefix: readonly Kurus[];
   readonly incomePrefix: readonly Kurus[];
   readonly autoPaid: Kurus;
+  readonly plannedTx: Kurus;
   readonly duePending: Kurus;
 }
 
@@ -141,16 +164,19 @@ export function prepareBudget(source: BudgetSource): BudgetContext {
   const incomeByIndex: Kurus[] = new Array<Kurus>(totalDays).fill(0);
   const inPeriod: Transaction[] = [];
   let autoPaid = 0;
+  let plannedTx = 0;
 
   for (const t of all) {
     let sums = byDay.get(t.date);
     if (!sums) {
-      sums = { disc: 0, auto: 0, income: 0 };
+      sums = { disc: 0, auto: 0, planned: 0, income: 0 };
       byDay.set(t.date, sums);
     }
     const auto = isAutoTransaction(t);
+    const planned = !auto && isPlannedExpense(t);
     if (t.type === "income") sums.income += t.amount;
     else if (auto) sums.auto += t.amount;
+    else if (planned) sums.planned += t.amount;
     else sums.disc += t.amount;
 
     if (t.date < period.start || t.date > period.end) continue;
@@ -158,6 +184,7 @@ export function prepareBudget(source: BudgetSource): BudgetContext {
     const i = diffDays(period.start, t.date);
     if (t.type === "income") incomeByIndex[i] = (incomeByIndex[i] ?? 0) + t.amount;
     else if (auto) autoPaid += t.amount;
+    else if (planned) plannedTx += t.amount;
     else discByIndex[i] = (discByIndex[i] ?? 0) + t.amount;
   }
 
@@ -194,6 +221,7 @@ export function prepareBudget(source: BudgetSource): BudgetContext {
     discPrefix,
     incomePrefix,
     autoPaid,
+    plannedTx,
     duePending,
   };
 }
@@ -204,7 +232,7 @@ function at(prefix: readonly Kurus[], i: number): Kurus {
 }
 
 function plannedOf(ctx: BudgetContext): Kurus {
-  return ctx.period.fixedExpenses + ctx.autoPaid + ctx.duePending;
+  return ctx.period.fixedExpenses + ctx.autoPaid + ctx.plannedTx + ctx.duePending;
 }
 
 /** d gününün başındaki bütçe. d dönem içinde olmalı. */
@@ -276,6 +304,7 @@ export function computeBudget(source: BudgetSource): BudgetSnapshot {
     totalIncome,
     fixed: period.fixedExpenses,
     autoPaid: ctx.autoPaid,
+    plannedTx: ctx.plannedTx,
     duePending: ctx.duePending,
     planned,
     discretionary,
@@ -306,6 +335,7 @@ export function dayInfo(source: BudgetSource, day: LocalDate): DayInfo {
     limit,
     spent,
     autoSpent: sums?.auto ?? 0,
+    plannedSpent: (sums?.auto ?? 0) + (sums?.planned ?? 0),
     plannedDue: ctx.dueByDay.get(day) ?? 0,
     income: sums?.income ?? 0,
     remaining: limit === null ? null : limit - spent,

@@ -20,6 +20,8 @@ export interface InstallmentPlanArgs {
   /** index 1'den başlar */
   idFor: (index: number) => string;
   now: number;
+  /** Verilirse ve ilk taksit bugünden sonraysa ilk taksit de planlı işaretlenir */
+  today?: LocalDate;
 }
 
 /** "Televizyon (2/6)" */
@@ -28,7 +30,8 @@ export function installmentDescription(description: string, index: number, count
 }
 
 /**
- * Taksit planı. Gelecek taksitler sıradan gelecek tarihli giderdir: limitten bugünden ayrılır.
+ * Taksit planı. 2. ve sonraki taksitler planlı giderdir: dönem başından düşülür, kendi gününde aşım üretmez.
+ * İlk taksit bugünün harcamasıdır; tarihi bugünden sonraysa (today verildiyse) o da planlı işaretlenir.
  * count 1 ise tek sıradan gider döner (taksit alanları yazılmaz).
  * Geçersiz tutar ya da taksit sayısında hata fırlatır (form önce doğrular).
  */
@@ -58,6 +61,7 @@ export function buildInstallmentPlan(args: InstallmentPlanArgs): Transaction[] {
       tx.installmentIndex = index;
       tx.installmentCount = count;
     }
+    if (i === 0 && args.today !== undefined && args.firstDate > args.today) tx.planned = true;
     return tx;
   });
 }

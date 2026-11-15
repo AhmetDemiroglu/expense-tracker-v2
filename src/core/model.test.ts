@@ -71,6 +71,14 @@ describe("model: işlem", () => {
     expect(t.installmentIndex).toBe(2);
     expect(writeTransaction(t)).toEqual(raw);
   });
+  it("planlı işareti: yalnız giderde ve yalnız true okunur, gidiş dönüş korunur", () => {
+    const t = must(readTransaction("x", { ...legacy, planned: true }));
+    expect(t.planned).toBe(true);
+    expect(writeTransaction(t)).toMatchObject({ planned: true });
+    expect(must(readTransaction("x", { ...legacy, planned: "evet" }))).not.toHaveProperty("planned");
+    expect(must(readTransaction("x", { ...legacy, type: "income", planned: true }))).not.toHaveProperty("planned");
+    expect(writeTransaction(must(readTransaction("x", legacy)))).not.toHaveProperty("planned");
+  });
   it("NaN, negatif ve bozuk tutarı reddeder (denetim 3.7), 0 tutarı uyarıyla okur", () => {
     for (const amount of [NaN, -5, Infinity, "abc", undefined, null]) {
       expect(readTransaction("x", { ...legacy, amount }).ok).toBe(false);

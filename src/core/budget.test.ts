@@ -6,6 +6,8 @@ import {
   dayInfo,
   dayStartBudget,
   dayStatus,
+  isPlannedAtEntry,
+  isPlannedExpense,
   monthDays,
   periodSummaries,
   periodSummary,
@@ -67,7 +69,50 @@ describe("budget: günlük limit (tek tanım)", () => {
     // Hazırlanmış bağlamla da aynı
     expect(computeBudget(prepareBudget(src))).toEqual(computeBudget(src));
   });
-  it("gelecek tarihli kira bugünden ayrılır: limit o gün çökmez", () => {
+  it("önceden girilmiş 10.000 kira (planned): limit her gün 666,66, 25'inde durum iyi, bugün kalan 666,66 (karar G1)", () => {
+    const kira = tx("2026-11-25", tl(10000), { category: "kira", planned: true });
+    for (const gun of ["2026-11-01", "2026-11-10", "2026-11-24", "2026-11-25", "2026-11-26", "2026-11-30"]) {
+      const b = computeBudget(input(gun, [kira]));
+      // Başka harcama yokken 20.000 / 30 düzlemi korunur: kalan bütçe / kalan gün hep aynı.
+      expect(dailyLimitFor(input(gun, [kira]), D("2026-11-01"))).toBe(66666);
+      expect(b.planned).toBe(tl(10000));
+      expect(b.plannedTx).toBe(tl(10000));
+      expect(b.discretionary).toBe(0);
+      expect(b.balance).toBe(tl(20000));
+      expect(b.todaySpent).toBe(0);
+      expect(b.todayStatus).toBe("good");
+    }
+    const b25 = computeBudget(input("2026-11-25", [kira]));
+    expect(b25.dailyLimit).toBe(333333); // 20.000 / 6: harcanmadığı için biriken pay
+    const her = eachDay(D("2026-11-01"), D("2026-11-30")).map((d) => dailyLimitFor(input("2026-11-01", [kira]), d));
+    // Dönem başından bakınca her gün için aynı düzlem: 20.000 / kalan gün
+    expect(her[0]).toBe(66666);
+    expect(her[24]).toBe(333333);
+    // Her gün limit kadar harcayan kullanıcı: 25'inde limit 666,66, durum iyi, bugün kalan 666,66
+    const harcamalar = eachDay(D("2026-11-01"), D("2026-11-24")).map((d) => tx(d, 66666));
+    const g25 = computeBudget(input("2026-11-25", [kira, ...harcamalar]));
+    expect(g25.dailyLimit).toBe(66669); // (20.000 − 24 x 666,66) / 6, kuruş artığıyla
+    expect(g25.todayRemaining).toBe(66669);
+    expect(g25.todayStatus).toBe("good");
+    const gun = dayInfo(input("2026-11-25", [kira, ...harcamalar]), D("2026-11-25"));
+    expect(gun).toMatchObject({ spent: 0, plannedSpent: tl(10000), autoSpent: 0, status: "good" });
+    expect(isPlannedAtEntry(D("2026-11-25"), D("2026-11-01"))).toBe(true);
+    expect(isPlannedAtEntry(D("2026-11-25"), D("2026-11-25"))).toBe(false);
+  });
+  it("taksit: 2. ve sonraki taksit planlıdır, taksit günü aşım görünmez; ilk taksit o günün harcamasıdır", () => {
+    const t1 = tx("2026-11-10", tl(2000), { installmentGroupId: "g", installmentIndex: 1, installmentCount: 3 });
+    const t2 = tx("2026-11-10", tl(2000), { installmentGroupId: "h", installmentIndex: 2, installmentCount: 3 });
+    expect(isPlannedExpense(t1)).toBe(false);
+    expect(isPlannedExpense(t2)).toBe(true);
+    expect(isPlannedExpense(income("2026-11-10", 5, { planned: true }))).toBe(false);
+    const b = computeBudget(input("2026-11-10", [t1, t2]));
+    expect(b.plannedTx).toBe(tl(2000));
+    expect(b.discretionary).toBe(tl(2000));
+    expect(b.todaySpent).toBe(tl(2000));
+    expect(b.balance).toBe(tl(26000));
+    expect(b.dailyLimit).toBe(Math.floor(tl(28000) / 21));
+  });
+  it("işaretsiz gelecek tarihli gider (eski sürüm verisi): günü gelene kadar ayrılır, kendi gününde o günün harcamasıdır", () => {
     const kira = tx("2026-11-25", tl(10000), { category: "kira" });
     const b1 = computeBudget(input("2026-11-01", [kira]));
     expect(b1.dailyLimit).toBe(66666); // 20.000 / 30
@@ -79,7 +124,7 @@ describe("budget: günlük limit (tek tanım)", () => {
     expect(b24.dailyLimit).toBe(285714); // 20.000 / 7
     expect(b26.dailyLimit).toBe(tl(4000)); // 20.000 / 5
     expect(b26.dailyLimit ?? 0).toBeGreaterThan(b24.dailyLimit ?? 0);
-    // Kira günü (PLAN 4 formülü aynen): kira o günün harcamasıdır, limit 30.000 / 6, gün "aşım" görünür.
+    // İşaretsiz kayıt kendi gününde o günün harcamasıdır: limit 30.000 / 6, gün "aşım" görünür.
     const b25 = computeBudget(input("2026-11-25", [kira]));
     expect(b25.dailyLimit).toBe(tl(5000));
     expect(b25.todaySpent).toBe(tl(10000));
@@ -385,6 +430,8 @@ describe("budget: özellik tabanlı kontroller", () => {
       const roll = r.next();
       if (roll < 0.15) transactions.push(income(date, amount));
       else if (roll < 0.25) transactions.push(tx(date, amount, { category: "abonelik", description: `Üyelik a${AUTO_SUFFIX}` }));
+      else if (roll < 0.35) transactions.push(tx(date, amount, { planned: true }));
+      else if (roll < 0.4) transactions.push(tx(date, amount, { installmentGroupId: "g", installmentIndex: 2, installmentCount: 4 }));
       else transactions.push(tx(date, amount));
     }
     const recurrences: Recurring[] = [];
@@ -410,7 +457,7 @@ describe("budget: özellik tabanlı kontroller", () => {
       }
       expect(b.totalExpense).toBe(b.planned + b.discretionary);
       expect(b.balance).toBe(b.totalIncome - b.totalExpense);
-      expect(b.planned).toBe(b.fixed + b.autoPaid + b.duePending);
+      expect(b.planned).toBe(b.fixed + b.autoPaid + b.plannedTx + b.duePending);
     }
   });
 

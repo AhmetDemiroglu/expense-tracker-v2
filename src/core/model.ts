@@ -27,6 +27,8 @@ export interface Transaction {
   /** 1'den başlar */
   installmentIndex?: number;
   installmentCount?: number;
+  /** Önceden girilmiş gider: kayıt anında tarihi bugünden sonraydı. Bütçede planlı sayılır. */
+  planned?: true;
 }
 
 export interface PeriodRange {
@@ -175,6 +177,7 @@ export function readTransaction(id: string, raw: unknown): ReadResult<Transactio
     value.installmentIndex = index;
     value.installmentCount = count;
   }
+  if (o.planned === true && type === "expense") value.planned = true;
   return { ok: true, value, warnings };
 }
 
@@ -198,6 +201,7 @@ export function writeTransaction(tx: Transaction): Record<string, unknown> {
     out.installmentIndex = tx.installmentIndex;
     out.installmentCount = tx.installmentCount;
   }
+  if (tx.planned) out.planned = true;
   return out;
 }
 

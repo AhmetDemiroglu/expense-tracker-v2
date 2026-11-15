@@ -60,7 +60,21 @@ describe("installment: taksit planı", () => {
     for (const count of [0, 37, 2.5, NaN]) expect(() => plan(tl(100), count, "2026-11-15")).toThrow();
     for (const total of [0, -100, NaN, 5]) expect(() => plan(total, 6, "2026-11-15")).toThrow();
   });
-  it("gelecek taksitler bugünden ayrılır: limit taksit günü çökmez", () => {
+  it("today verilirse gelecek tarihli ilk taksit planlı işaretlenir; taksit günü aşım yok", () => {
+    const args = { userId: "u1", description: "Koltuk", category: "ev_esyasi" as const, total: tl(6000), count: 3, firstDate: D("2026-11-10"), groupId: "g2", idFor: (i: number) => `g2_${i}`, now: 1 };
+    expect(buildInstallmentPlan({ ...args, today: D("2026-11-02") })[0]?.planned).toBe(true);
+    expect(buildInstallmentPlan({ ...args, today: D("2026-11-10") })[0]).not.toHaveProperty("planned");
+    expect(buildInstallmentPlan(args)[0]).not.toHaveProperty("planned");
+    // İkinci taksit Aralık döneminde: 10 Aralık'ta bugün harcanan 0, durum iyi
+    const p = buildInstallmentPlan({ ...args, today: D("2026-11-10") });
+    const aralik = { start: D("2026-12-01"), end: D("2026-12-30"), plannedIncome: tl(30000), fixedExpenses: 0 };
+    const b = computeBudget({ period: aralik, transactions: p, recurrences: [], today: D("2026-12-10") });
+    expect(b.plannedTx).toBe(tl(2000));
+    expect(b.todaySpent).toBe(0);
+    expect(b.todayStatus).toBe("good");
+    expect(b.dailyLimit).toBe(Math.floor(tl(28000) / 21));
+  });
+  it("ilk taksit gelecek tarihliyse (işaretsiz) bugünden ayrılır", () => {
     const p = plan(tl(6000), 3, "2026-11-10");
     const period = { start: D("2026-11-01"), end: D("2026-11-30"), plannedIncome: tl(30000), fixedExpenses: 0 };
     const b = computeBudget({ period, transactions: p, recurrences: [], today: D("2026-11-02") });
