@@ -18,6 +18,8 @@ android {
     }
     buildTypes {
         release {
+            // Küçültme kapalı: uygulama bir WebView, kod boyutunu JS belirler. Capacitor eklentileri yansımayla
+            // (annotation) yüklenir, R8 kuralı eksik kalırsa yalnız cihazda görülen çökme olur. Kazanç küçük, risk büyük.
             minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -43,8 +45,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // Firebase Analytics yok (reklam kimliği yok kararı, JS tarafı da kullanmıyor). Auth bağımlılığını eklenti getirir.
     implementation platform('com.google.firebase:firebase-bom:34.6.0')
-    implementation 'com.google.firebase:firebase-analytics'
 }
 
 apply from: 'capacitor.build.gradle'

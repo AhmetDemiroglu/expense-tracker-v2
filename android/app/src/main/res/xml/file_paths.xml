@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Yalnız uygulamanın kendi klasörleri paylaşılır:
+     cache: kamera geçici fotoğrafı (ioncamera) ve CSV dışa aktarma (Filesystem Directory.Cache + Share).
+     Pictures: kameranın eski akışı (getExternalFilesDir(DIRECTORY_PICTURES)).
+     Ortak depolama (external-path) kapsamda değil. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
+    <cache-path name="cache" path="." />
+    <external-files-path name="pictures" path="Pictures/" />
 </paths>

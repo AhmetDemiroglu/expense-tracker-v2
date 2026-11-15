@@ -18,7 +18,8 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
       launchShowDuration: 0,
       launchFadeOutDuration: 250,
-      backgroundColor: "#F6F5F1",
+      /* backgroundColor verilmez: iOS'ta açılış görünümünün zeminini sabit renge boyar, gece temasında açık zemin çıkar.
+         Zemin native kaynaklardan gelir (SplashScreenBackground, splashscreen_background: gündüz ve gece). */
       showSpinner: false,
     },
     SystemBars: {
