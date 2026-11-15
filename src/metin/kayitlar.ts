@@ -109,7 +109,7 @@ export const kayitlar = {
       baslik: "Fiş okuma giriş yapınca açılır",
       metin: "Fiş okuma bir hesapla çalışır. Hesapsız denemede kayıtları elle ekleyebilirsin. Giriş yaparsan fiş okuma açılır ve kayıtların cihazlar arasında eşitlenir.",
       git: "Ayarlara git",
-      kapat: "Şimdilik elle gireceğim",
+      kapat: "Şimdi değil",
     },
     tur: {
       baslik: "Fiş okuma",

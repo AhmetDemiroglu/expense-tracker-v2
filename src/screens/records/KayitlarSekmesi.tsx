@@ -125,19 +125,20 @@ export function KayitlarSekmesi({ active }: TabProps) {
                   <Card
                     key={o.periodId}
                     variant="solid"
-                    pad="sm"
+                    pad="none"
                     onClick={() => setDonemId(donemId === o.periodId ? null : o.periodId)}
                     aria-label={t.donemKarti.sec(o.name)}
-                    className={cn("flex w-56 shrink-0 flex-col gap-1", donemId === o.periodId && "ring-2 ring-accent")}
+                    className={cn("flex px-3 py-2 w-68 shrink-0 flex-col gap-0.5", donemId === o.periodId && "ring-2 ring-accent")}
                   >
                     <span className="flex items-center justify-between gap-2">
                       <span className="whitespace-nowrap text-sm font-semibold text-text">{o.name}</span>
                       <span className="whitespace-nowrap text-xs text-text-3">{o.savingsRate !== null && o.savingsRate > 0 ? t.donemKarti.tasarruf(o.savingsRate) : t.donemKarti.kayit(o.txCount)}</span>
                     </span>
-                    <Amount value={o.balance} size="md" decimals={false} />
                     <span className="flex items-center justify-between gap-2">
                       <Amount value={o.totalIncome} kind="income" size="sm" decimals={false} />
                       <Amount value={o.totalExpense} kind="expense" size="sm" decimals={false} />
+                      <span className="sr-only">{t.donemKarti.net}</span>
+                      <Amount value={o.balance} size="sm" decimals={false} className="font-semibold" />
                     </span>
                   </Card>
                 ))}
