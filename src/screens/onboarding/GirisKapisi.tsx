@@ -1,15 +1,16 @@
 /* Kabuğu saran kapı: açılış kararı. Karar mantığı kapi.ts içinde (saf, testli). */
 import { useEffect, useState, type ReactNode } from "react";
 import { WifiOff } from "lucide-react";
-import { useOturum, useTercihler, useVeri } from "@/data";
+import { useOturum, useVeri } from "@/data";
 import { tr } from "@/metin";
 import { Button, EmptyState, Skeleton, toast } from "@/ui";
 import { AktarimOnerisi } from "../auth/AktarimOnerisi";
 import { GirisEkrani } from "../auth/GirisEkrani";
 import { TamEkran } from "../auth/TamEkran";
 import { IlkKurulumKapisi } from "./IlkKurulum";
-import { Karsilama } from "./Karsilama";
 import { kapiAdimi } from "./kapi";
+import { useOnay } from "./onay";
+import { OnayEkrani } from "./OnayEkrani";
 
 /* GEÇİCİ (ISTEKLER): kabukta kimse çağırmıyor. baslat() tekrar çağrıda zararsız. */
 function useKabukBaglantilari() {
@@ -30,7 +31,7 @@ export function GirisKapisi({ children }: { children: ReactNode }) {
   const uid = useOturum((s) => s.kullanici?.uid ?? null);
   const veri = useVeri((s) => s.durum);
   const ayar = useVeri((s) => s.ayarDurumu);
-  const karsilamaTamam = useTercihler((s) => s.karsilamaTamam);
+  const onayTamam = useOnay((s) => s.tamam);
   const [kabukUid, setKabukUid] = useState<string | null>(null);
   const [aktarimKapali, setAktarimKapali] = useState<string | null>(null);
   const [yenilemeSayisi, setYenilemeSayisi] = useState(0);
@@ -40,17 +41,17 @@ export function GirisKapisi({ children }: { children: ReactNode }) {
   const ozet = hazir && uid !== aktarimKapali ? useOturum.getState().aktarilabilirMisafir() : null;
 
   const kabukAcildi = kabukUid !== null && kabukUid === uid;
-  const adim = kapiAdimi({ oturum, veri, ayar, karsilamaTamam, aktarimBekliyor: ozet !== null, kabukAcildi });
+  const adim = kapiAdimi({ oturum, veri, ayar, onayTamam, aktarimBekliyor: ozet !== null, kabukAcildi });
 
   /* Render sırasında eşitlenir (efekt değil): kabuk açıldı bilgisi bir sonraki çizimde hazır. */
   if (adim === "kabuk" && uid && kabukUid !== uid) setKabukUid(uid);
-  if ((adim === "giris" || adim === "karsilama") && kabukUid !== null) setKabukUid(null);
+  if ((adim === "giris" || adim === "onay") && kabukUid !== null) setKabukUid(null);
 
   switch (adim) {
     case "bekle":
       return <TamEkran scroll={false}>{null}</TamEkran>;
-    case "karsilama":
-      return <Karsilama />;
+    case "onay":
+      return <OnayEkrani />;
     case "giris":
       return <GirisEkrani />;
     case "veri-yukleniyor":

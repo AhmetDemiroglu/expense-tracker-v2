@@ -313,7 +313,7 @@ export function NovaSekmesi({ active }: TabProps) {
         )}
       </div>
 
-      <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + 8px)" : "var(--content-bottom)" }}>
+      <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + var(--kb-gap))" : "var(--content-bottom)" }}>
         <Card variant="solid" pad="none" className="flex flex-col gap-1 px-3 pt-2 pb-1.5">
           {tamEkran ? (
             <>

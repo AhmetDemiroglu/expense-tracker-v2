@@ -9,6 +9,11 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
   },
+  /* WebView'ın kendi kaydırması kapalı: gövde zaten sabit, kayan yalnız iç listeler. Klavye çıkınca sistemin sayfayı itmesini
+     (alanın klavyeye yapışması) ve bütün sayfanın lastik gibi esnemesini önler. Klavye payını düzen yönetir (src/ui/layout.ts). */
+  ios: {
+    scrollEnabled: false,
+  },
   plugins: {
     FirebaseAuthentication: {
       skipNativeAuth: true,

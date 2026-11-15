@@ -1,4 +1,4 @@
-/* P8: açılış akışı, karşılama, giriş, ilk kurulum. Kullanım: tr.giris.<anahtar>. Em dash, en dash, "..." yok. */
+/* P8: açılış akışı, ilk açılış onayı, giriş, ilk kurulum. Kullanım: tr.giris.<anahtar>. Em dash, en dash, "..." yok. */
 export const giris = {
   bekleniyor: {
     baslik: "Bağlantı bekleniyor",
@@ -11,29 +11,37 @@ export const giris = {
     tekrar: "Tekrar dene",
     cikis: "Çıkış yap",
   },
-  karsilama: {
-    atla: "Geç",
-    ileri: "İleri",
-    baslat: "Başlayalım",
-    sayfalar: [
-      { baslik: "Evin hesabı, cebinde", metin: "Maaşın, giderlerin ve taksitlerin tek yerde. Her gün ne kadar harcayabileceğini bilirsin." },
-      { baslik: "Günlük limitin hazır", metin: "Dönemini kur, Fintel kalan günlere böler. Harcadıkça bugün kalan tutarın değişir." },
-      { baslik: "Nova yanında", metin: "Fişini okur, harcamalarını yorumlar, sorularını yanıtlar. Sayıları hesaplayan Fintel, anlatan Nova." },
+  onay: {
+    baslik: "Başlamadan önce",
+    alt: "Fintel'i kullanmadan önce bilmen gerekenler.",
+    maddeler: [
+      { baslik: "Fintel bir bütçe takip aracıdır", metin: "Finansal ya da yatırım tavsiyesi vermez. Harcama ve birikim kararları sana aittir." },
+      { baslik: "Nova bir yapay zeka asistanıdır", metin: "Yanıtları hatalı ya da eksik olabilir. Önemli kararlarda tek kaynak olarak kullanma." },
+      {
+        baslik: "Nova ve fiş okuma verini işler",
+        metin:
+          "Nova'ya soru sorduğunda dönem ve kategori toplamların, düzenli ödemelerin, son kayıtların ve adın; fiş okuttuğunda fiş görselin, yanıt üretmek için sunucumuz üzerinden Google Gemini'ye gönderilir. Fiş görseli saklanmaz.",
+      },
+      {
+        baslik: "Verilerin nerede durur",
+        metin: "Hesapla kullanırsan kayıtların Google Firebase'de saklanır ve yalnız sen erişebilirsin. Hesapsız kullanırsan kayıtların yalnız bu cihazda kalır.",
+      },
+      { baslik: "Reklam ve izleme yok", metin: "Fintel reklam göstermez ve seni izlemez." },
+      { baslik: "Verilerini silebilirsin", metin: "Hesabını ve tüm verilerini uygulamanın içinden, Ayarlar'dan silebilirsin. Kayıtlarını dışa da aktarabilirsin." },
     ],
-    sayfaEtiketi: (i: number, n: number) => `Sayfa ${i} / ${n}`,
-    onay: "Kullanım koşullarını ve gizlilik politikasını okudum, kabul ediyorum.",
-    kosullar: "Kullanım koşulları",
-    gizlilik: "Gizlilik politikası",
-    onayGerekli: "Devam etmek için onay ver.",
+    altMetin: "Devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı okuduğunu ve kabul ettiğini onaylarsın.",
+    kosullar: "Kullanım Koşulları",
+    gizlilik: "Gizlilik Politikası",
+    kabul: "Kabul ediyorum ve devam et",
   },
   giris: {
     baslik: "Hoş geldin",
-    alt: "Hesabınla giriş yap, verilerin her cihazında seninle olsun.",
+    alt: "Giriş yap, verilerin her cihazında seninle olsun.",
     apple: "Apple ile devam et",
     google: "Google ile devam et",
     eposta: "E-posta ile devam et",
     hesapsiz: "Hesapsız dene",
-    hesapsizAlt: "Örnek verilerle uygulamayı gez. Kayıtların yalnız bu cihazda kalır.",
+    hesapsizAlt: "Kayıtların yalnız bu cihazda kalır.",
     devam: "Kaldığın yerden devam et",
     devamAlt: (islem: number) => `Bu cihazdaki ${islem} kaydınla açılır.`,
     ayrac: "ya da",

@@ -134,7 +134,7 @@ export function Sheet({ open, onClose, title, subtitle, size = "auto", expandabl
           style={{
             height: multi ? "calc(100% - var(--sheet-y, var(--sheet-rest)))" : undefined,
             flex: multi ? "none" : undefined,
-            paddingBottom: "max(calc(var(--safe-bottom) + 16px), calc(var(--kb-h) + 12px))",
+            paddingBottom: "max(calc(var(--safe-bottom) + 16px), calc(var(--kb-h) + var(--kb-gap)))",
           }}
         >
           <div ref={handle} className="shrink-0 touch-none pt-2.5">

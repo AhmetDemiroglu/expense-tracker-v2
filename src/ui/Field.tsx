@@ -1,4 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { tr } from "@/metin";
 import type { Kurus } from "@/core";
 import { formatAmountInput, parseAmount } from "@/core";
 import { cn } from "./cn";
@@ -53,6 +55,9 @@ export interface FieldProps extends Shell {
 export function Field({ value, onChange, type = "text", multiline = false, maxLength, placeholder, right, left, autoFocus, disabled, onSubmit, ...shell }: FieldProps) {
   const id = useId();
   const described = shell.error || shell.hint ? `${id}-msg` : undefined;
+  /* Parola alanı: göster / gizle düğmesi alanın içinde. */
+  const [acik, setAcik] = useState(false);
+  const parola = type === "password";
   return (
     <FieldShell id={id} {...shell}>
       <div className={cn(BOX, shell.error ? "border-warn" : "border-line", disabled && "opacity-50")}>
@@ -73,7 +78,7 @@ export function Field({ value, onChange, type = "text", multiline = false, maxLe
         ) : (
           <input
             id={id}
-            type={type}
+            type={parola && acik ? "text" : type}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
@@ -91,6 +96,17 @@ export function Field({ value, onChange, type = "text", multiline = false, maxLe
             className={INPUT}
           />
         )}
+        {parola ? (
+          <button
+            type="button"
+            aria-label={acik ? tr.ortak.parolaGizle : tr.ortak.parolaGoster}
+            aria-pressed={acik}
+            onClick={() => setAcik((v) => !v)}
+            className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-pill text-text-3"
+          >
+            {acik ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+          </button>
+        ) : null}
         {right}
       </div>
     </FieldShell>

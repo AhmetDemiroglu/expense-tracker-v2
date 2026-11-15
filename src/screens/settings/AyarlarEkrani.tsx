@@ -1,15 +1,30 @@
-/* Ayarlar ana listesi (üst bardaki profil düğmesinden açılır). */
-import { CalendarClock, Info, Lightbulb, Palette, Repeat, ShieldCheck, UserRound, Database } from "lucide-react";
+/* Ayarlar ana listesi (üst bardaki dişli düğmesinden açılır). En altta çıkış, sürüm ve imza. */
+import { useEffect, useState } from "react";
+import { CalendarClock, Database, Info, LogOut, Palette, Repeat, ShieldCheck, UserRound } from "lucide-react";
+import { SeptimusImza } from "@/brand";
 import { useOturum } from "@/data";
+import { uygulamaSurumu } from "@/services/platform";
 import { tr } from "@/metin";
 import { Screen, nav, sheets } from "@/shell";
-import { Button, Card, ListRow, NovaAvatar, Section, TourInfoButton, resetTours, toast } from "@/ui";
+import { Button, Card, ListRow, NovaAvatar, Section, TourInfoButton } from "@/ui";
+import { cikisYap } from "./cikis";
 import { Ayirac } from "./ortak";
 
 export function AyarlarEkrani() {
   const t = tr.ayarlar;
   const kullanici = useOturum((s) => s.kullanici);
   const misafir = kullanici?.misafir ?? true;
+  const mesgul = useOturum((s) => s.mesgul);
+  const [surum, setSurum] = useState("");
+  useEffect(() => {
+    let iptal = false;
+    void uygulamaSurumu().then((v) => {
+      if (!iptal) setSurum(v);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, []);
 
   return (
     <Screen title={t.baslik} right={<TourInfoButton id="ayarlar" steps={t.tur.ayarlar} />}>
@@ -53,18 +68,27 @@ export function AyarlarEkrani() {
       </Section>
 
       <Section variant="solid" pad="none">
-        <ListRow
-          icon={<Lightbulb size={20} aria-hidden="true" />}
-          title={t.liste.ipuclari.baslik}
-          subtitle={t.liste.ipuclari.alt}
-          onClick={() => {
-            resetTours();
-            toast(t.ipuclariSifirlandi);
-          }}
-        />
-        <Ayirac />
         <ListRow icon={<Info size={20} aria-hidden="true" />} title={t.liste.hakkinda.baslik} subtitle={t.liste.hakkinda.alt} chevron onClick={() => nav.push("hakkinda")} />
       </Section>
+
+      {/* Alt bilgi: çıkış (küçük, tehlike simgeli), sürüm ve imza. */}
+      <footer className="flex flex-col items-center gap-2 pt-2 pb-2">
+        <button
+          type="button"
+          disabled={mesgul !== null}
+          onClick={() => void cikisYap(misafir)}
+          className="pressable flex min-h-11 items-center gap-2 rounded-pill px-4 text-sm font-semibold text-text-2 disabled:opacity-50"
+        >
+          <LogOut size={18} className="text-expense" aria-hidden="true" />
+          {t.hesap.cikis}
+        </button>
+        {surum ? (
+          <p className="text-xs text-text-3">
+            {t.hakkinda.surum} {surum}
+          </p>
+        ) : null}
+        <SeptimusImza size={16} />
+      </footer>
     </Screen>
   );
 }

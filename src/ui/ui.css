@@ -8,6 +8,7 @@
   --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
   --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --kb-h: 0px; /* klavyenin görünüme bindiği pay (layout.ts yazar) */
+  --kb-gap: 20px; /* klavye ile üstündeki içerik (alan, düğme) arasındaki boşluk: alan klavyeye yapışmaz */
 
   --topbar-h: 64px;
   --tabbar-h: 60px;

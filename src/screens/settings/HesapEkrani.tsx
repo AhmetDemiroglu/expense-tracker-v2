@@ -1,18 +1,36 @@
-/* Hesap: ad, e-posta ve doğrulama, parola değiştir ya da oluştur, çıkış. Misafirde giriş çağrısı. */
+/* Hesap: sade özet listesi. Ad (düzenle), e-posta ve doğrulama, giriş yöntemi rozeti, parola satırı (alt sayfa açar),
+   en altta ayrı bölümde hesabı sil. Parola alanları ekranda açık form olarak durmaz. Çıkış Ayarlar'ın alt bilgisindedir. */
 import { useState } from "react";
-import { BadgeCheck, MailWarning } from "lucide-react";
+import { BadgeCheck, KeyRound, LogIn, Mail, MailWarning, Pencil, Trash2, UserRound } from "lucide-react";
 import { hataMesaji, useOturum } from "@/data";
 import { tr } from "@/metin";
-import { Screen, nav, sheets } from "@/shell";
-import { Button, Card, EmptyState, Field, Section, confirm, haptic, toast } from "@/ui";
+import { Screen, sheets } from "@/shell";
+import { Button, EmptyState, Field, ListRow, Section, Sheet, cn, haptic, toast } from "@/ui";
 import { adGuncelle, parolaDegistir, parolaOlustur } from "./hesapIslemleri";
+import { useHesapSilme } from "./hesapSilme";
+import { Ayirac } from "./ortak";
+
+function Rozet({ children, ton = "notr" }: { children: string; ton?: "notr" | "iyi" | "uyari" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex min-h-7 items-center gap-1 rounded-pill px-2.5 text-xs font-semibold whitespace-nowrap",
+        ton === "iyi" ? "bg-surface-2 text-income" : ton === "uyari" ? "bg-surface-2 text-warn" : "bg-surface-2 text-text-2",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
 
 export function HesapEkrani() {
   const t = tr.ayarlar.hesap;
   const k = useOturum((s) => s.kullanici);
-  const mesgul = useOturum((s) => s.mesgul);
-  const [ad, setAd] = useState(k?.ad ?? "");
+  const silme = useHesapSilme();
+  const [adAcik, setAdAcik] = useState(false);
+  const [ad, setAd] = useState("");
   const [adHata, setAdHata] = useState<string | undefined>();
+  const [parolaAcik, setParolaAcik] = useState(false);
   const [mevcut, setMevcut] = useState("");
   const [yeni, setYeni] = useState("");
   const [tekrar, setTekrar] = useState("");
@@ -25,25 +43,28 @@ export function HesapEkrani() {
     return (
       <Screen title={t.baslik}>
         <EmptyState mood="uyku" title={t.misafirBaslik} text={t.misafirMetin} action={<Button onClick={() => sheets.open("giris")}>{tr.ayarlar.girisYap}</Button>} />
-        <Button variant="secondary" size="lg" full onClick={() => void cikis(true)}>
-          {t.cikis}
-        </Button>
       </Screen>
     );
   }
 
   const parolaVar = k.saglayici === "password";
 
+  function adAc() {
+    setAd(k?.ad ?? "");
+    setAdHata(undefined);
+    setAdAcik(true);
+  }
+
   async function adKaydet() {
     if (!ad.trim()) {
       setAdHata(t.adBos);
       return;
     }
-    setAdHata(undefined);
     setIsleniyor("ad");
     try {
       await adGuncelle(ad);
       toast(t.adKaydedildi);
+      setAdAcik(false);
     } catch (e) {
       setAdHata(hataMesaji(e));
     } finally {
@@ -71,6 +92,14 @@ export function HesapEkrani() {
     }
   }
 
+  function parolaAc() {
+    setMevcut("");
+    setYeni("");
+    setTekrar("");
+    setPHata({});
+    setParolaAcik(true);
+  }
+
   async function parolaKaydet() {
     const h: Record<string, string> = {};
     if (parolaVar && !mevcut) h.mevcut = t.mevcutGerekli;
@@ -84,9 +113,7 @@ export function HesapEkrani() {
       else await parolaOlustur(yeni);
       haptic.success();
       toast(parolaVar ? t.parolaKaydedildi : t.parolaOlustu);
-      setMevcut("");
-      setYeni("");
-      setTekrar("");
+      setParolaAcik(false);
     } catch (e) {
       setPHata({ genel: hataMesaji(e) });
     } finally {
@@ -94,78 +121,102 @@ export function HesapEkrani() {
     }
   }
 
-  async function cikis(misafir: boolean) {
-    const ok = await confirm({ title: t.cikisOnayBaslik, text: misafir ? t.misafirCikisOnay : t.cikisOnay, confirmLabel: t.cikis });
-    if (!ok) return;
-    try {
-      await useOturum.getState().cikis();
-      nav.popToRoot();
-    } catch (e) {
-      toast.error(`${t.cikisHata}: ${hataMesaji(e)}`);
-    }
-  }
-
   return (
     <Screen title={t.baslik}>
-      <Section title={t.ad} variant="solid">
-        <div className="flex flex-col gap-3">
-          <Field label={t.ad} value={ad} onChange={setAd} error={adHata} maxLength={40} />
-          <Button variant="secondary" loading={isleniyor === "ad"} onClick={() => void adKaydet()}>
-            {t.adKaydet}
-          </Button>
-        </div>
-      </Section>
-
-      <Section title={t.eposta} variant="solid">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="min-w-0 text-base text-text">{k.eposta ?? t.epostaYok}</span>
-            <span className={`flex shrink-0 items-center gap-1 text-sm font-medium ${k.epostaDogrulandi ? "text-income" : "text-warn"}`}>
-              {k.epostaDogrulandi ? <BadgeCheck size={16} aria-hidden="true" /> : <MailWarning size={16} aria-hidden="true" />}
-              {k.epostaDogrulandi ? t.dogrulandi : t.dogrulanmadi}
-            </span>
+      <Section title={t.yonetimBaslik} variant="solid" pad="none">
+        <ListRow
+          icon={<UserRound size={20} aria-hidden="true" />}
+          title={t.ad}
+          subtitle={k.ad || t.adYok}
+          right={<Pencil size={18} className="text-text-3" aria-label={t.adDuzenle} />}
+          onClick={adAc}
+        />
+        <Ayirac />
+        <ListRow
+          icon={<Mail size={20} aria-hidden="true" />}
+          title={t.eposta}
+          subtitle={<span className="selectable break-all">{k.eposta ?? t.epostaYok}</span>}
+          right={
+            k.eposta ? (
+              <Rozet ton={k.epostaDogrulandi ? "iyi" : "uyari"}>{k.epostaDogrulandi ? t.dogrulandi : t.dogrulanmadi}</Rozet>
+            ) : undefined
+          }
+        />
+        {!k.epostaDogrulandi && k.eposta ? (
+          <div className="flex flex-wrap items-center gap-2 px-3 pb-3 pl-16">
+            <Button size="sm" variant="secondary" icon={<MailWarning size={16} aria-hidden="true" />} loading={isleniyor === "dogrulama"} onClick={() => void dogrulamaGonder()}>
+              {t.dogrulamaGonder}
+            </Button>
+            <Button size="sm" variant="text" icon={<BadgeCheck size={16} aria-hidden="true" />} onClick={() => void dogrulamaYenile()}>
+              {t.dogrulamaYenile}
+            </Button>
           </div>
-          {!k.epostaDogrulandi && k.eposta ? (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" loading={isleniyor === "dogrulama"} onClick={() => void dogrulamaGonder()}>
-                {t.dogrulamaGonder}
-              </Button>
-              <Button size="sm" variant="text" onClick={() => void dogrulamaYenile()}>
-                {t.dogrulamaYenile}
-              </Button>
-            </div>
-          ) : null}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-text-3">{t.yontem}</span>
-            <span className="font-medium text-text-2">{t.yontemler[k.saglayici]}</span>
-          </div>
-        </div>
+        ) : null}
+        <Ayirac />
+        <ListRow icon={<LogIn size={20} aria-hidden="true" />} title={t.yontem} right={<Rozet>{t.yontemler[k.saglayici]}</Rozet>} />
       </Section>
 
       {k.eposta ? (
-        <Section title={t.parolaBaslik} variant="solid">
-          <div className="flex flex-col gap-3">
-            {!parolaVar ? <p className="text-sm text-text-2">{t.parolaOlusturMetin}</p> : null}
-            {parolaVar ? <Field label={t.mevcutParola} type="password" value={mevcut} onChange={setMevcut} error={pHata.mevcut} /> : null}
-            <Field label={t.yeniParola} type="password" value={yeni} onChange={setYeni} error={pHata.yeni} />
-            <Field label={t.yeniParolaTekrar} type="password" value={tekrar} onChange={setTekrar} error={pHata.tekrar} />
-            {pHata.genel ? (
-              <p role="alert" className="rounded-control bg-surface-2 px-3 py-2 text-sm text-warn">
-                {pHata.genel}
-              </p>
-            ) : null}
-            <Button variant="secondary" loading={isleniyor === "parola"} onClick={() => void parolaKaydet()}>
-              {parolaVar ? t.parolaDegistir : t.parolaOlustur}
-            </Button>
-          </div>
+        <Section title={t.guvenlikBaslik} variant="solid" pad="none">
+          <ListRow
+            icon={<KeyRound size={20} aria-hidden="true" />}
+            title={<span className={parolaVar ? undefined : "text-text-2"}>{parolaVar ? t.parolaDegistir : t.parolaOlustur}</span>}
+            subtitle={parolaVar ? t.parolaSatirAlt : t.parolaOlusturAlt}
+            chevron
+            onClick={parolaAc}
+          />
         </Section>
       ) : null}
 
-      <Card variant="solid">
-        <Button full size="lg" variant="secondary" disabled={mesgul !== null} loading={mesgul === "cikis"} onClick={() => void cikis(false)}>
-          {t.cikis}
-        </Button>
-      </Card>
+      <Section title={t.tehlikeBaslik} variant="solid" pad="none">
+        <ListRow
+          icon={<Trash2 size={20} className="text-expense" aria-hidden="true" />}
+          title={t.silSatir}
+          subtitle={t.silSatirAlt}
+          chevron
+          onClick={() => void silme.baslat()}
+        />
+      </Section>
+
+      <Sheet
+        open={adAcik}
+        onClose={() => setAdAcik(false)}
+        title={t.adDuzenle}
+        footer={
+          <Button full size="lg" loading={isleniyor === "ad"} onClick={() => void adKaydet()}>
+            {t.adKaydet}
+          </Button>
+        }
+      >
+        <div className="pb-2">
+          <Field label={t.ad} value={ad} onChange={setAd} error={adHata} maxLength={40} autoFocus onSubmit={() => void adKaydet()} />
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={parolaAcik}
+        onClose={() => setParolaAcik(false)}
+        title={parolaVar ? t.parolaDegistir : t.parolaOlustur}
+        subtitle={parolaVar ? undefined : t.parolaOlusturMetin}
+        footer={
+          <Button full size="lg" loading={isleniyor === "parola"} onClick={() => void parolaKaydet()}>
+            {tr.ortak.kaydet}
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          {parolaVar ? <Field label={t.mevcutParola} type="password" value={mevcut} onChange={setMevcut} error={pHata.mevcut} autoFocus /> : null}
+          <Field label={t.yeniParola} type="password" value={yeni} onChange={setYeni} error={pHata.yeni} hint={tr.giris.eposta.parolaIpucu} autoFocus={!parolaVar} />
+          <Field label={t.yeniParolaTekrar} type="password" value={tekrar} onChange={setTekrar} error={pHata.tekrar} onSubmit={() => void parolaKaydet()} />
+          {pHata.genel ? (
+            <p role="alert" className="rounded-control bg-surface-2 px-3 py-2 text-sm text-warn">
+              {pHata.genel}
+            </p>
+          ) : null}
+        </div>
+      </Sheet>
+
+      {silme.sayfa}
     </Screen>
   );
 }

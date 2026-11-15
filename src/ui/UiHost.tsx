@@ -97,7 +97,7 @@ function ToastHost() {
   return createPortal(
     <div
       className="pointer-events-none fixed inset-x-0 flex justify-center px-4"
-      style={{ zIndex: "var(--z-toast)", bottom: "calc(var(--content-bottom) + 12px + var(--kb-h))" }}
+      style={{ zIndex: "var(--z-toast)", bottom: "max(calc(var(--content-bottom) + 12px), calc(var(--kb-h) + var(--kb-gap)))" }}
     >
       <div
         key={item.id}

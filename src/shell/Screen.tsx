@@ -24,7 +24,7 @@ export interface ScreenProps {
 }
 
 export function Screen({ title, right, scroll = true, onRefresh, footer, onBack, children, className }: ScreenProps) {
-  const pad = cn("flex flex-col gap-3 px-(--page-x) pt-2", footer ? "pb-4" : "pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+12px))]", className);
+  const pad = cn("flex flex-col gap-3 px-(--page-x) pt-2", footer ? "pb-4" : "pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+var(--kb-gap)))]", className);
   return (
     <div className="absolute inset-0 flex flex-col">
       <header className="shrink-0 px-(--page-x) pt-[calc(var(--safe-top)+6px)] pb-1.5">
@@ -45,7 +45,7 @@ export function Screen({ title, right, scroll = true, onRefresh, footer, onBack,
       ) : (
         <div className={cn("min-h-0 flex-1", scroll ? "scroll-y" : "f-fit", pad)}>{children}</div>
       )}
-      {footer ? <div className="shrink-0 px-(--page-x) pt-3 pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+12px))]">{footer}</div> : null}
+      {footer ? <div className="shrink-0 px-(--page-x) pt-3 pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+var(--kb-gap)))]">{footer}</div> : null}
     </div>
   );
 }

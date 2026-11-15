@@ -2,7 +2,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/ui";
 
-export function TamEkran({ children, className, scroll = true }: { children: ReactNode; className?: string; scroll?: boolean }) {
+/** scroll true: içerik kayar. "fit": tek ekrana dengeli yayılır, sığmazsa kayar. false: kaymaz. */
+export function TamEkran({ children, className, scroll = true }: { children: ReactNode; className?: string; scroll?: boolean | "fit" }) {
   return (
     <div
       className="fixed inset-0 flex flex-col bg-bg"
@@ -10,8 +11,8 @@ export function TamEkran({ children, className, scroll = true }: { children: Rea
     >
       <div
         className={cn(
-          "mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-3 px-(--page-x) pt-[calc(var(--safe-top)+12px)] pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+12px))]",
-          scroll && "scroll-y",
+          "mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-3 px-(--page-x) pt-[calc(var(--safe-top)+12px)] pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+var(--kb-gap)))]",
+          scroll === "fit" ? "f-fit" : scroll && "scroll-y",
           className,
         )}
       >

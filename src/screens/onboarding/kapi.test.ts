@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { kapiAdimi, type KapiGirdisi } from "./kapi";
 
-const temel: KapiGirdisi = { oturum: "hesap", veri: "hazir", ayar: "var", karsilamaTamam: true, aktarimBekliyor: false, kabukAcildi: false };
+const temel: KapiGirdisi = { oturum: "hesap", veri: "hazir", ayar: "var", onayTamam: true, aktarimBekliyor: false, kabukAcildi: false };
 const k = (o: Partial<KapiGirdisi>) => kapiAdimi({ ...temel, ...o });
 
 describe("kapiAdimi", () => {
   it("oturum başlarken bekler", () => expect(k({ oturum: "baslatiliyor" })).toBe("bekle"));
-  it("ilk kez: karşılama, sonra giriş", () => {
-    expect(k({ oturum: "girissiz", karsilamaTamam: false })).toBe("karsilama");
-    expect(k({ oturum: "girissiz", karsilamaTamam: true })).toBe("giris");
+  it("ilk kez: onay, sonra giriş", () => {
+    expect(k({ oturum: "girissiz", onayTamam: false })).toBe("onay");
+    expect(k({ oturum: "girissiz", onayTamam: true })).toBe("giris");
   });
-  it("oturum varken karşılama gösterilmez", () => expect(k({ karsilamaTamam: false })).toBe("kabuk"));
+  it("onay verilmeden hiçbir yere geçilmez (oturum açık, misafir, başlarken)", () => {
+    expect(k({ onayTamam: false })).toBe("onay");
+    expect(k({ onayTamam: false, oturum: "misafir" })).toBe("onay");
+    expect(k({ onayTamam: false, oturum: "baslatiliyor" })).toBe("onay");
+    expect(k({ onayTamam: false, kabukAcildi: true })).toBe("onay");
+  });
   it("veri gelene kadar bekler, hatada hata ekranı", () => {
     expect(k({ veri: "yukleniyor" })).toBe("veri-yukleniyor");
     expect(k({ veri: "bos" })).toBe("veri-yukleniyor");

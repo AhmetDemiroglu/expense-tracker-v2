@@ -1,6 +1,6 @@
 /* Üst bar (cam kapsül: yatay logo + profil), alt yüzen cam kapsül (4 sekme) ve ayrı yüzen bakır ekle düğmesi. */
 import { useEffect, useRef, type ComponentType } from "react";
-import { CalendarDays, House, Plus, ReceiptText, UserRound } from "lucide-react";
+import { CalendarDays, House, Plus, ReceiptText, Settings } from "lucide-react";
 import { Logo } from "@/brand/Logo";
 import { tr } from "@/metin";
 import { IconButton } from "@/ui/Button";
@@ -13,14 +13,14 @@ import { pagerPosition } from "./active";
 import { nav, useNav } from "./router/nav";
 import { TABS, tabIndex, type TabKey } from "./router/stack";
 
-/** Üst bar: cam kapsül. Logo ve profil düğmesi bu yüzeyin içinde durur (yüzen öğe yok). */
+/** Üst bar: cam kapsül. Logo ve Ayarlar düğmesi (dişli) bu yüzeyin içinde durur (yüzen öğe yok). */
 export function TopBar({ onProfile }: { onProfile?: () => void }) {
   return (
     <header className="absolute inset-x-0 top-0 flex items-end px-(--page-x) pt-(--safe-top)" style={{ zIndex: "var(--z-bar)", height: "var(--content-top)" }}>
       <Glass tone="dense" lens radius="pill" className="mb-1.5 flex min-h-13 w-full items-center justify-between py-1 pr-1 pl-5">
         <Logo variant="horizontal" height={28} />
-        <IconButton label={tr.ortak.profil} variant="tinted" onClick={onProfile} data-tour="profil">
-          <UserRound size={20} aria-hidden="true" />
+        <IconButton label={tr.ortak.ayarlar} variant="tinted" onClick={onProfile} data-tour="profil">
+          <Settings size={20} aria-hidden="true" />
         </IconButton>
       </Glass>
     </header>

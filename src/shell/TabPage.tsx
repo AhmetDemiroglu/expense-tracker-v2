@@ -13,7 +13,8 @@ export interface TabPageProps {
   className?: string;
 }
 
-const PAD = "px-(--page-x) pt-2 pb-(--content-bottom)";
+/* Klavye açıkken (alt bar gizlenir) alt boşluk klavye payına geçer: sekmedeki giriş alanı klavyenin üstünde, bitişik olmadan durur. */
+const PAD = "px-(--page-x) pt-2 pb-[max(var(--content-bottom),calc(var(--kb-h)+var(--kb-gap)))]";
 
 export function TabPage({ header, scroll = false, onRefresh, children, className }: TabPageProps) {
   return (

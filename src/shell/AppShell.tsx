@@ -1,7 +1,6 @@
 /* Uygulama kabuğu: zemin, üst bar, kayan kök sekmeler, alt cam kapsül, ekle düğmesi, üst ekran yığını, ortak alt sayfalar.
    Veri katmanına bağımlı değildir: sekme, ekran ve alt sayfa bileşenlerini prop olarak alır. */
 import { useEffect, type ComponentType } from "react";
-import { initBackButton } from "./backButton";
 import { TabBar, TopBar, type TabBarProps } from "./bars";
 import type { ScreenProps, SheetScreenProps, TabProps } from "./registry";
 import type { TabKey } from "./router/stack";
@@ -31,9 +30,6 @@ function SheetHost({ registry }: { registry: Record<string, ComponentType<SheetS
 }
 
 export function AppShell({ tabs, screens = NO_SCREENS, sheets: sheetRegistry, onAdd, onProfile, addPlacement }: AppShellProps) {
-  useEffect(() => {
-    initBackButton();
-  }, []);
   return (
     <div className="f-backdrop f-clip fixed inset-0 text-text">
       <div className="absolute inset-0 will-change-transform">
