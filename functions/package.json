@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run test/unit",
     "test:rules": "firebase emulators:exec --only firestore --project demo-fintel \"vitest run test/rules\"",
-    "serve": "npm run build && firebase emulators:start --only functions,firestore,auth --project demo-fintel"
+    "serve": "npm run build && firebase emulators:start --only functions,firestore,auth --project demo-fintel",
+    "test:duman": "vitest run test/duman"
   },
   "dependencies": {
     "firebase-admin": "^14.5.1",
