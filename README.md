@@ -3,7 +3,7 @@
 Evin hesabı, cebinde. Türkçe kişisel bütçe uygulaması: dönem bütçesi, günlük limit, kayıtlar, düzenli ödemeler,
 fiş okuma ve Nova asistanı. Android'de yayında (`com.fintel.app`), iOS sürümü hazırlanıyor.
 
-Sürüm 3.0 baştan yazılıyor. Eski kod `eski/` klasöründe referans olarak durur, derlemeye girmez.
+Sürüm 3.0 baştan yazıldı. Eski kod git geçmişinde durur.
 
 ## Teknoloji
 
@@ -41,7 +41,7 @@ npm run dev
 | `src/ui`, `src/shell` | Tasarım sistemi, tema tokenları, kabuk |
 | `src/screens` | Ekranlar |
 | `functions/` | Cloud Functions |
-| `android/` | Android projesi (elle yönetilir) |
+| `android/`, `ios/` | Native projeler (elle yönetilir, `expo prebuild` benzeri yeniden üretim yok) |
 | `brand/` | Marka kiti, logo ve tema kuralları |
 
 ## Android derleme
@@ -54,7 +54,7 @@ Android Studio'dan imzalı AAB alınır. Sürüm numarası `android/app/build.gr
 
 ## Ortam değişkenleri
 
-`.env.local` içinde `VITE_FIREBASE_*` değerleri. İstemcide AI anahtarı bulunmaz, AI çağrıları sunucu üzerinden yapılır.
+`.env.example` dosyasını `.env.local` olarak kopyala ve `VITE_FIREBASE_*` değerlerini doldur. İstemcide AI anahtarı bulunmaz, AI çağrıları sunucu üzerinden yapılır.
 
 ## İletişim
 
