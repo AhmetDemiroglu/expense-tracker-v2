@@ -2,16 +2,18 @@
 import type { ScreenKayit } from "@/shell";
 import { nav } from "@/shell";
 import { GirisSayfasi } from "../auth/GirisSayfasi";
-import { AyarlarEkrani } from "./AyarlarEkrani";
-import { DonemFormu } from "./DonemFormu";
-import { DonemlerEkrani } from "./DonemlerEkrani";
-import { DuzenliEkrani } from "./DuzenliEkrani";
-import { DuzenliFormu } from "./DuzenliFormu";
-import { GorunumEkrani } from "./GorunumEkrani";
-import { HakkindaEkrani } from "./HakkindaEkrani";
-import { HesapEkrani } from "./HesapEkrani";
-import { NovaProfiliEkrani } from "./NovaProfiliEkrani";
-import { VerilerimEkrani } from "./VerilerimEkrani";
+import { tembel } from "../tembel";
+
+const AyarlarEkrani = tembel(() => import("./AyarlarEkrani").then((m) => ({ default: m.AyarlarEkrani })));
+const DonemFormu = tembel(() => import("./DonemFormu").then((m) => ({ default: m.DonemFormu })));
+const DonemlerEkrani = tembel(() => import("./DonemlerEkrani").then((m) => ({ default: m.DonemlerEkrani })));
+const DuzenliEkrani = tembel(() => import("./DuzenliEkrani").then((m) => ({ default: m.DuzenliEkrani })));
+const DuzenliFormu = tembel(() => import("./DuzenliFormu").then((m) => ({ default: m.DuzenliFormu })));
+const GorunumEkrani = tembel(() => import("./GorunumEkrani").then((m) => ({ default: m.GorunumEkrani })));
+const HakkindaEkrani = tembel(() => import("./HakkindaEkrani").then((m) => ({ default: m.HakkindaEkrani })));
+const HesapEkrani = tembel(() => import("./HesapEkrani").then((m) => ({ default: m.HesapEkrani })));
+const NovaProfiliEkrani = tembel(() => import("./NovaProfiliEkrani").then((m) => ({ default: m.NovaProfiliEkrani })));
+const VerilerimEkrani = tembel(() => import("./VerilerimEkrani").then((m) => ({ default: m.VerilerimEkrani })));
 
 export const kayit: ScreenKayit = {
   screens: {
