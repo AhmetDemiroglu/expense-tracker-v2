@@ -207,7 +207,7 @@ export function NovaSekmesi({ active }: TabProps) {
   useEffect(() => {
     const el = kaydirma.current;
     if (el) el.scrollTop = tamEkran && mesajlar.length > 0 ? el.scrollHeight : 0;
-  }, [tamEkran, mesajlar.length, bekliyor, sohbetHata, yazanN, yaziliyor]);
+  }, [tamEkran, mesajlar.length, bekliyor, sohbetHata, yazanN, yaziliyor, klavye]);
 
   const yanitMoodu = (id: string): NovaMood => (id === sonModelId ? (yazan?.id === id ? "konusuyor" : durum.ruh === "dusunuyor" || durum.ruh === "analiz" ? "mutlu" : durum.ruh) : "mutlu");
 
@@ -313,7 +313,7 @@ export function NovaSekmesi({ active }: TabProps) {
         )}
       </div>
 
-      <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + var(--kb-gap))" : "var(--content-bottom)" }}>
+      <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + var(--kb-gap))" : "max(var(--content-bottom), calc(var(--kb-h) + var(--kb-gap)))" }}>
         <Card variant="solid" pad="none" className="flex flex-col gap-1 px-3 pt-2 pb-1.5">
           {tamEkran ? (
             <>

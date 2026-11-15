@@ -47,7 +47,7 @@ function markSeen(id: string): void {
   }
 }
 
-/** Kaydı siler: id verilmezse hepsi (Ayarlar > "İpuçlarını yeniden göster"). */
+/** Kaydı siler: id verilmezse hepsi. */
 export function resetTours(id?: string): void {
   try {
     if (id) {

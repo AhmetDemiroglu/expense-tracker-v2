@@ -137,13 +137,13 @@ export function Sheet({ open, onClose, title, subtitle, size = "auto", expandabl
             paddingBottom: "max(calc(var(--safe-bottom) + 16px), calc(var(--kb-h) + var(--kb-gap)))",
           }}
         >
-          <div ref={handle} className="shrink-0 touch-none pt-2.5">
+          <div ref={handle} className="shrink-0 touch-none pt-2">
             <div className="mx-auto h-1.5 w-10 rounded-pill bg-surface-2" />
             {title || dismissible ? (
-              <div className="flex items-start gap-3 px-5 pt-2 pb-2">
-                <div className="min-w-0 flex-1 pt-2">
+              <div className="flex items-center gap-3 px-5 py-1.5">
+                <div className="min-w-0 flex-1">
                   {title ? <h2 className="text-xl font-semibold text-text">{title}</h2> : null}
-                  {subtitle ? <p className="mt-1 text-sm text-text-2">{subtitle}</p> : null}
+                  {subtitle ? <p className="mt-0.5 text-sm text-text-2">{subtitle}</p> : null}
                 </div>
                 {dismissible ? (
                   <button
@@ -158,7 +158,7 @@ export function Sheet({ open, onClose, title, subtitle, size = "auto", expandabl
               </div>
             ) : null}
           </div>
-          <div ref={scroller} className="scroll-y min-h-0 flex-1 px-5 pb-2">
+          <div ref={scroller} className="scroll-y min-h-0 flex-1 px-5 pb-3">
             {children}
           </div>
           {footer ? <div className="shrink-0 px-5 pt-3">{footer}</div> : null}

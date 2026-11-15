@@ -64,11 +64,12 @@ export function safeInsets(): { top: number; bottom: number; left: number; right
   return out;
 }
 
-/** Odaktaki alanı görünür bölgenin ortasına getirmek için kaydırma miktarı (px, + aşağı). Alan zaten rahatça görünüyorsa 0.
+/** Odaktaki alanı görünür bölgenin ortasına getirmek için kaydırma miktarı (px, + aşağı). Alan zaten ortaya yakınsa 0.
     top / bottom: alanın kenarları. visTop / visBottom: kaydırma kabının klavyenin üstünde kalan görünür bölgesi. */
 export function revealDelta(top: number, bottom: number, visTop: number, visBottom: number, margin = 28): number {
   if (visBottom - visTop < 40) return 0;
-  if (top >= visTop + margin && bottom <= visBottom - margin) return 0;
+  const band = Math.max(margin, Math.round((visBottom - visTop - (bottom - top)) * 0.35));
+  if (top >= visTop + band && bottom <= visBottom - band) return 0;
   return Math.round((top + bottom) / 2 - (visTop + visBottom) / 2);
 }
 
@@ -121,8 +122,10 @@ export function initLayout(): void {
     let lastInset = 0;
     const sync = () => {
       const inset = textFocused() ? webKeyboardInset(window.innerHeight, vv.height, vv.offsetTop) : 0;
-      setVar("--kb-h", inset);
-      setKeyboardOpen(inset > 0);
+      if (inset !== lastInset) {
+        setVar("--kb-h", inset);
+        setKeyboardOpen(inset > 0);
+      }
       if (inset > 0 && inset !== lastInset) {
         /* Düzen klavye payıyla yukarı çıktıktan sonra alan ortalanır ve Safari'nin sayfaya verdiği kayma geri alınır:
            alan zaten klavyenin üstünde ve arada boşluk var, sayfanın itilmesine gerek kalmaz. */
@@ -135,7 +138,13 @@ export function initLayout(): void {
     };
     vv.addEventListener("resize", sync);
     vv.addEventListener("scroll", sync);
-    document.addEventListener("focusin", () => setTimeout(sync, 300));
+    document.addEventListener("focusin", () => {
+      if (keyboardInset() > 0) setTimeout(revealFocused, 80);
+      setTimeout(() => {
+        sync();
+        if (keyboardInset() > 0) revealFocused();
+      }, 300);
+    });
     document.addEventListener("focusout", () =>
       setTimeout(() => {
         sync();
@@ -155,13 +164,16 @@ export function initLayout(): void {
     apply();
     setKeyboardOpen(true);
   };
-  void Keyboard.addListener("keyboardWillShow", show);
+  void Keyboard.addListener("keyboardWillShow", (info) => {
+    show(info);
+    setTimeout(revealFocused, 260);
+  });
   void Keyboard.addListener("keyboardDidShow", (info) => {
     show(info);
-    setTimeout(revealFocused, 300);
+    setTimeout(revealFocused, 80);
   });
   document.addEventListener("focusin", () => {
-    if (kb) setTimeout(revealFocused, 80);
+    if (kb || keyboardInset() > 0) setTimeout(revealFocused, 80);
   });
   void Keyboard.addListener("keyboardWillHide", () => {
     kb = 0;

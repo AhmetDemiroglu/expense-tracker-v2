@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { _resetBack, goBack, pushBackLayer, setBackFallback } from "./back";
-import { keyboardOverlap, webKeyboardInset } from "./layout";
+import { keyboardOverlap, revealDelta, webKeyboardInset } from "./layout";
 
 describe("geri yolu", () => {
   beforeEach(() => _resetBack());
@@ -75,5 +75,20 @@ describe("web klavye payı", () => {
   it("adres çubuğu kadar küçük fark klavye sayılmaz", () => {
     expect(webKeyboardInset(844, 780, 0)).toBe(0);
     expect(webKeyboardInset(844, 844, 0)).toBe(0);
+  });
+});
+
+describe("odaktaki alanı ortalama (revealDelta)", () => {
+  it("görünür bölge çok kısaysa kaydırmaz", () => {
+    expect(revealDelta(10, 58, 0, 30)).toBe(0);
+  });
+  it("alan görünür bölgenin ortasına yakınsa kaydırmaz", () => {
+    expect(revealDelta(220, 270, 100, 400)).toBe(0);
+  });
+  it("alta yakın alanı görünür bölgenin ortasına taşır", () => {
+    expect(revealDelta(330, 380, 100, 400)).toBe(105);
+  });
+  it("üste yakın alanı görünür bölgenin ortasına taşır", () => {
+    expect(revealDelta(110, 160, 100, 400)).toBe(-115);
   });
 });

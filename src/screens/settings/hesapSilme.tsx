@@ -22,7 +22,7 @@ export function useHesapSilme(): { baslat: () => Promise<void>; sayfa: ReactNode
       haptic.success();
       setAcik(false);
       nav.popToRoot();
-      toast(misafir ? t.misafirSilindi : t.silindi(r.islem));
+      toast(misafir ? t.misafirSilindi : r.uyari ? `${t.silindi(r.islem)} ${r.uyari}` : t.silindi(r.islem));
     } catch (e) {
       if (iptalMi(e)) return;
       if (parolaDegeri !== undefined) setHata(hataMesaji(e));

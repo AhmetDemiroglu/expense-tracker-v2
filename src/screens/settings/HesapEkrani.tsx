@@ -47,7 +47,7 @@ export function HesapEkrani() {
     );
   }
 
-  const parolaVar = k.saglayici === "password";
+  const parolaVar = k.parolaVar || k.saglayici === "password";
 
   function adAc() {
     setAd(k?.ad ?? "");
