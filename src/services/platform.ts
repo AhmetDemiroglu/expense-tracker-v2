@@ -1,8 +1,7 @@
-// Platform bilgisi, sürüm, dokunsal geri bildirim. Capacitor.isNativePlatform senkron: ilk karede doğru.
+// Platform bilgisi ve sürüm. Dokunsal geri bildirim TEK modülde: `haptic` (@/ui, src/ui/haptics.ts).
 
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
-import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 
 const ad = Capacitor.getPlatform();
 
@@ -21,19 +20,6 @@ export async function uygulamaSurumu(): Promise<string> {
     surum = "3.0.0";
   }
   return surum;
-}
-
-export type DokunsalTur = "hafif" | "orta" | "basari" | "uyari";
-
-export function dokunsal(tur: DokunsalTur): void {
-  if (!platform.native) return;
-  const p =
-    tur === "hafif"
-      ? Haptics.impact({ style: ImpactStyle.Light })
-      : tur === "orta"
-        ? Haptics.impact({ style: ImpactStyle.Medium })
-        : Haptics.notification({ type: tur === "basari" ? NotificationType.Success : NotificationType.Warning });
-  void p.catch(() => undefined);
 }
 
 /** Uygulama öne gelince (bugün ve bağlantı yenilemesi için). Dönen fonksiyon dinlemeyi bırakır. */

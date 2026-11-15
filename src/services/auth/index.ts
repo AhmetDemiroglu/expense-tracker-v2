@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   createUserWithEmailAndPassword,
+  linkWithCredential,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -19,6 +20,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePassword,
   updateProfile,
   type AuthCredential,
   type User,
@@ -163,6 +165,51 @@ export async function sifreSifirla(eposta: string): Promise<void> {
     // Hesap var mı yok mu bilgisi sızmasın: "kullanıcı yok" başarı gibi davranır.
     if (h.kod === "HATALI_GIRIS") return;
     throw h;
+  }
+}
+
+/** Kullanıcının e-posta + parola yöntemi var mı (parola değiştir / oluştur seçimi için). */
+export function parolaVarMi(u: User): boolean {
+  return u.providerData.some((p) => p.providerId === "password");
+}
+
+export async function adGuncelle(ad: string): Promise<void> {
+  const u = aktifKullanici();
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  const temiz = ad.trim().slice(0, 40);
+  if (!temiz) throw new UygulamaHatasi("GECERSIZ", { mesaj: "Ad boş olamaz." });
+  try {
+    await updateProfile(u, { displayName: temiz });
+  } catch (e) {
+    hataVer(null, e);
+  }
+}
+
+/** E-posta kullanıcısı: mevcut parolayla yeniden doğrulanır, sonra yeni parola yazılır. */
+export async function parolaDegistir(mevcut: string, yeni: string): Promise<void> {
+  const u = aktifKullanici();
+  if (!u?.email) throw new UygulamaHatasi("OTURUM_YOK");
+  try {
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, mevcut));
+    await updatePassword(u, yeni);
+  } catch (e) {
+    hataVer(null, e);
+  }
+}
+
+/**
+ * Google ya da Apple kullanıcısına e-posta + parola yöntemi ekler (aynı hesap, ikinci giriş yolu).
+ * Son giriş eskiyse YENIDEN_GIRIS döner: ekran önce yenidenDogrula() çağırır, sonra tekrar dener.
+ */
+export async function parolaOlustur(yeni: string): Promise<void> {
+  const u = aktifKullanici();
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  if (!u.email) throw new UygulamaHatasi("GECERSIZ", { mesaj: "Hesabında e-posta adresi yok, parola oluşturulamaz." });
+  if (parolaVarMi(u)) throw new UygulamaHatasi("GECERSIZ", { mesaj: "Hesabında zaten parola var. Parola değiştirmeyi kullan." });
+  try {
+    await linkWithCredential(u, EmailAuthProvider.credential(u.email, yeni));
+  } catch (e) {
+    hataVer(null, e);
   }
 }
 

@@ -18,12 +18,21 @@ export interface SohbetMesaji {
   rapor?: RaporYaniti;
 }
 
+export interface SohbetAyari {
+  mod: SohbetModu;
+  stil?: RaporStili;
+}
+
 interface SohbetDurumu {
   sahip: string | null;
   mesajlar: SohbetMesaji[];
   bekliyor: boolean;
   hata: UygulamaHatasi | null;
-  gonder(metin: string, ayar: { mod: SohbetModu; stil?: RaporStili }): Promise<void>;
+  gonder(metin: string, ayar: SohbetAyari): Promise<void>;
+  /** Son yanıtsız kullanıcı mesajını ikinci balon eklemeden yeniden gönderir */
+  tekrarDene(ayar: SohbetAyari): Promise<void>;
+  /** Son mesaj yanıtsız kullanıcı mesajı ve istek sürmüyor */
+  tekrarDenenebilir(): boolean;
   raporEkle(r: RaporYaniti): void;
   temizle(): void;
 }
@@ -56,20 +65,11 @@ function kaydet(uid: string | null, mesajlar: SohbetMesaji[]): void {
   }
 }
 
-export const useSohbet = create<SohbetDurumu>((set, get) => ({
-  sahip: null,
-  mesajlar: [],
-  bekliyor: false,
-  hata: null,
-
-  async gonder(metin, ayar) {
-    const temiz = metin.trim();
-    if (!temiz || get().bekliyor) return;
+export const useSohbet = create<SohbetDurumu>((set, get) => {
+  /** Son mesaj kullanıcınınsa yanıt ister; yeni balon eklemez (gonder ve tekrarDene ortak). */
+  async function yanitIste(mesajlar: SohbetMesaji[], ayar: SohbetAyari): Promise<void> {
     const sahip = get().sahip;
-    const kullanici: SohbetMesaji = { id: yeniKimlik(), rol: "user", metin: temiz.slice(0, 2000), zaman: Date.now() };
-    const mesajlar = [...get().mesajlar, kullanici].slice(-SOHBET_SINIRI);
-    set({ mesajlar, bekliyor: true, hata: null });
-    kaydet(sahip, mesajlar);
+    set({ bekliyor: true, hata: null });
     try {
       const r = await ai.sohbet({
         mod: ayar.mod,
@@ -84,9 +84,36 @@ export const useSohbet = create<SohbetDurumu>((set, get) => ({
       kaydet(sahip, yeni);
     } catch (e) {
       if (get().sahip !== sahip) return;
-      // Fırlatılmaz: ekran `hata` alanını gösterir (ön koşul olmadan çağrılabilsin).
+      // Fırlatılmaz: ekran `hata` alanını gösterir, `tekrarDene` ile aynı mesaj yeniden gönderilir.
       set({ bekliyor: false, hata: e instanceof UygulamaHatasi ? e : veriHatasinaCevir(e) });
     }
+  }
+
+  return {
+  sahip: null,
+  mesajlar: [],
+  bekliyor: false,
+  hata: null,
+
+  async gonder(metin, ayar) {
+    const temiz = metin.trim();
+    if (!temiz || get().bekliyor) return;
+    const kullanici: SohbetMesaji = { id: yeniKimlik(), rol: "user", metin: temiz.slice(0, 2000), zaman: Date.now() };
+    const mesajlar = [...get().mesajlar, kullanici].slice(-SOHBET_SINIRI);
+    set({ mesajlar });
+    kaydet(get().sahip, mesajlar);
+    await yanitIste(mesajlar, ayar);
+  },
+
+  async tekrarDene(ayar) {
+    if (!get().tekrarDenenebilir()) return;
+    await yanitIste(get().mesajlar, ayar);
+  },
+
+  tekrarDenenebilir() {
+    const s = get();
+    const son = s.mesajlar[s.mesajlar.length - 1];
+    return !s.bekliyor && son?.rol === "user";
   },
 
   raporEkle(r) {
@@ -107,7 +134,8 @@ export const useSohbet = create<SohbetDurumu>((set, get) => ({
     }
     set({ mesajlar: [], hata: null, bekliyor: false });
   },
-}));
+};
+});
 
 /** Oturum değişince: o kullanıcının geçmişi yüklenir. null: bellek boşalır (depodaki silinmez). */
 export function sohbetSahibiniAyarla(uid: string | null): void {

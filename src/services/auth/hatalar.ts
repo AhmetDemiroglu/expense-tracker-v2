@@ -55,6 +55,8 @@ export function girisHatasinaCevir(e: unknown): UygulamaHatasi {
     case "auth/account-exists-with-different-credential":
     case "auth/credential-already-in-use":
       return new UygulamaHatasi("HESAP_FARKLI_YONTEM", { neden: e });
+    case "auth/provider-already-linked":
+      return new UygulamaHatasi("GECERSIZ", { neden: e, mesaj: "Hesabında zaten parola var. Parola değiştirmeyi kullan." });
     case "auth/network-request-failed":
     case "auth/timeout":
       return new UygulamaHatasi("AG_YOK", { neden: e });

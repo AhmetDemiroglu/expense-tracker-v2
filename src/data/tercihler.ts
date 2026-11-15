@@ -7,6 +7,27 @@ import { cihazDeposu, jsonOku } from "./depo/depolama";
 /** Eski sürümle ortak anahtar ("true") */
 export const KARSILAMA_ANAHTARI = "fintel_onboarding_completed";
 export const IPUCU_ANAHTARI = "fintel_ipuclari";
+export const NOVA_ANAHTARI = "fintel_nova_tercih";
+
+export type NovaMod = "advisor" | "tutor";
+export type NovaStil = "short" | "balanced" | "detailed";
+
+function novaOku(): { novaMod: NovaMod; novaStil: NovaStil } {
+  const v = jsonOku(cihazDeposu(), NOVA_ANAHTARI);
+  const o = typeof v === "object" && v !== null ? (v as Record<string, unknown>) : {};
+  return {
+    novaMod: o.mod === "tutor" ? "tutor" : "advisor",
+    novaStil: o.stil === "short" || o.stil === "detailed" ? o.stil : "balanced",
+  };
+}
+
+function novaYaz(mod: NovaMod, stil: NovaStil): void {
+  try {
+    cihazDeposu().setItem(NOVA_ANAHTARI, JSON.stringify({ mod, stil }));
+  } catch {
+    // yok say
+  }
+}
 
 function ipuclariOku(): Record<string, true> {
   const v = jsonOku(cihazDeposu(), IPUCU_ANAHTARI);
@@ -28,6 +49,11 @@ interface TercihDurumu {
   tema: ThemePref;
   karsilamaTamam: boolean;
   ipuclari: Record<string, true>;
+  /** Nova modu (Danışman / Eğitmen) ve yanıt stili, kalıcı (cihaza bağlı) */
+  novaMod: NovaMod;
+  novaStil: NovaStil;
+  novaModDegistir(m: NovaMod): void;
+  novaStilDegistir(s: NovaStil): void;
   temaDegistir(p: ThemePref): void;
   karsilamayiTamamla(): void;
   ipucuGoruldu(anahtar: string): boolean;
@@ -39,6 +65,17 @@ export const useTercihler = create<TercihDurumu>((set, get) => ({
   tema: guvenliTema(),
   karsilamaTamam: cihazDeposu().getItem(KARSILAMA_ANAHTARI) === "true",
   ipuclari: ipuclariOku(),
+  ...novaOku(),
+
+  novaModDegistir(m) {
+    novaYaz(m, get().novaStil);
+    set({ novaMod: m });
+  },
+
+  novaStilDegistir(st) {
+    novaYaz(get().novaMod, st);
+    set({ novaStil: st });
+  },
 
   temaDegistir(p) {
     setThemePref(p);

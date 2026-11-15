@@ -19,6 +19,6 @@ export {
   useEtkinIslemler,
   useDonemOzetleri,
 } from "./turetilmis";
-export { useTercihler } from "./tercihler";
+export { useTercihler, type NovaMod, type NovaStil } from "./tercihler";
 export { useBaglanti } from "./baglanti";
-export { useSohbet, type SohbetMesaji } from "./sohbet";
+export { useSohbet, type SohbetMesaji, type SohbetAyari } from "./sohbet";

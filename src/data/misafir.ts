@@ -283,3 +283,30 @@ export function aktarilabilirMisafirBul(depo: AnahtarDeger, oncelikli: string | 
   adaylar.sort((a, b) => b.islem + b.donem + b.duzenli - (a.islem + a.donem + a.duzenli));
   return adaylar[0] ?? null;
 }
+
+/**
+ * Oturum kapalıyken "Kaldığın yerden devam et": cihazda kaydı olan misafir (demo dahil, çünkü kullanıcı onu
+ * incelemişti). Hesaba aktarılmış misafir önerilmez. Önce en son açılan, sonra en çok kaydı olan.
+ * Sayılar tüm kayıtlardır (demo dahil).
+ */
+export function devamEdilebilirMisafirBul(depo: AnahtarDeger, oncelikli: string | null = null): MisafirOzeti | null {
+  const kararlar = aktarimKararlari(depo);
+  const adaylar: MisafirOzeti[] = [];
+  for (const guestId of cihazdakiMisafirler(depo)) {
+    if (kararlar[guestId]?.startsWith("aktarildi")) continue;
+    const p = misafirPaketi(depo, guestId);
+    const ozet: MisafirOzeti = {
+      guestId,
+      islem: p.islemler.length,
+      donem: p.donemler.length,
+      duzenli: p.duzenliler.length,
+      ayarVar: p.ayarlar !== null,
+    };
+    if (ozet.islem + ozet.donem + ozet.duzenli > 0 || ozet.ayarVar) adaylar.push(ozet);
+  }
+  if (adaylar.length === 0) return null;
+  const once = adaylar.find((a) => a.guestId === oncelikli);
+  if (once) return once;
+  adaylar.sort((a, b) => b.islem + b.donem + b.duzenli - (a.islem + a.donem + a.duzenli));
+  return adaylar[0] ?? null;
+}

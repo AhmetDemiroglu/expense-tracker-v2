@@ -12,12 +12,14 @@ import { cihazDeposu } from "./depo/depolama";
 import { FirestoreRepo } from "./depo/firestoreRepo";
 import { sdkPortu } from "./depo/firestoreSdk";
 import { LocalRepo } from "./depo/localRepo";
-import { UygulamaHatasi } from "./hatalar";
+import { UygulamaHatasi, veriHatasinaCevir } from "./hatalar";
+import { useTercihler } from "./tercihler";
 import {
   aktarilabilirMisafirBul,
   aktarimKarariYaz,
   aktarimPlaniKur,
   demoMisafirOlustur,
+  devamEdilebilirMisafirBul,
   kayitliMisafir,
   misafirPaketi,
   type MisafirOzeti,
@@ -36,6 +38,8 @@ export interface Kullanici {
   saglayici: "google" | "apple" | "password" | "misafir";
   misafir: boolean;
   fotoUrl: string | null;
+  /** E-posta + parola yöntemi var: "Parola değiştir"; yoksa (Google/Apple) "Parola oluştur" */
+  parolaVar: boolean;
 }
 
 export interface SilmeSonucu {
@@ -65,6 +69,16 @@ interface OturumStore {
   sifreSifirla(eposta: string): Promise<void>;
   epostaDurumunuYenile(): Promise<boolean>;
   misafirBasla(): Promise<void>;
+  /** Oturum kapalıyken: cihazda kaldığı yerden devam edilebilecek misafir */
+  devamEdilebilirMisafir(): MisafirOzeti | null;
+  misafirDevamEt(guestId: string): Promise<void>;
+  /** Misafirden giriş ekranına: veri cihazda kalır, durum "girissiz" olur (kapı giriş ekranını açar) */
+  giriseGec(): Promise<void>;
+  adGuncelle(ad: string): Promise<void>;
+  parolaDegistir(mevcut: string, yeni: string): Promise<void>;
+  parolaOlustur(yeni: string): Promise<void>;
+  /** Hassas işlem öncesi (parola oluşturma YENIDEN_GIRIS dönerse) */
+  yenidenDogrula(parola?: string): Promise<void>;
   cikis(): Promise<void>;
   hesabiSil(parola?: string): Promise<SilmeSonucu>;
   aktarilabilirMisafir(): MisafirOzeti | null;
@@ -79,6 +93,7 @@ function kullaniciFrom(u: User): Kullanici {
     eposta: u.email,
     epostaDogrulandi: u.emailVerified,
     saglayici: auth.saglayiciAdi(u),
+    parolaVar: auth.parolaVarMi(u),
     misafir: false,
     fotoUrl: u.photoURL,
   };
@@ -93,6 +108,7 @@ function misafirKullanici(guestId: string): Kullanici {
     saglayici: "misafir",
     misafir: true,
     fotoUrl: null,
+    parolaVar: false,
   };
 }
 
@@ -107,6 +123,11 @@ export const useOturum = create<OturumStore>((set, get) => {
     set({ durum: "misafir", kullanici: misafirKullanici(guestId) });
     sohbetSahibiniAyarla(guestId);
     depoyaBaglan(new LocalRepo(guestId, cihazDeposu()));
+  }
+
+  function kullaniciyiYenile(): void {
+    const u = auth.aktifKullanici();
+    if (u && get().durum === "hesap") set({ kullanici: kullaniciFrom(u) });
   }
 
   function girissiz(): void {
@@ -223,6 +244,52 @@ export const useOturum = create<OturumStore>((set, get) => {
         sohbetiSil(k.uid);
         return { islem: r.transactions, donem: r.budget_periods, duzenli: r.recurring_transactions };
       }),
+
+    devamEdilebilirMisafir() {
+      if (get().durum !== "girissiz") return null;
+      return devamEdilebilirMisafirBul(cihazDeposu(), cihazDeposu().getItem(SON_MISAFIR_ANAHTARI));
+    },
+
+    async misafirDevamEt(guestId) {
+      if (!guestId.startsWith("guest_")) throw new UygulamaHatasi("GECERSIZ");
+      if (get().durum === "hesap") throw new UygulamaHatasi("GECERSIZ", { mesaj: "Önce hesabından çıkış yap." });
+      try {
+        cihazDeposu().setItem(ACTIVE_GUEST_KEY, guestId);
+      } catch (e) {
+        throw veriHatasinaCevir(e);
+      }
+      misafiriAc(guestId);
+    },
+
+    async giriseGec() {
+      const k = get().kullanici;
+      if (!k?.misafir) return;
+      // Veri silinmez; en son misafir hatırlanır (giriş sonrası aktarım ve "devam et" önce onu önerir).
+      try {
+        cihazDeposu().setItem(SON_MISAFIR_ANAHTARI, k.uid);
+        cihazDeposu().removeItem(ACTIVE_GUEST_KEY);
+      } catch {
+        // yok say
+      }
+      useTercihler.getState().karsilamayiTamamla();
+      girissiz();
+    },
+
+    async adGuncelle(ad) {
+      await auth.adGuncelle(ad);
+      kullaniciyiYenile();
+    },
+
+    parolaDegistir: (mevcut, yeni) => auth.parolaDegistir(mevcut, yeni),
+
+    async parolaOlustur(yeni) {
+      await auth.parolaOlustur(yeni);
+      kullaniciyiYenile();
+    },
+
+    async yenidenDogrula(parola) {
+      await auth.yenidenDogrula(parola);
+    },
 
     aktarilabilirMisafir() {
       if (get().durum !== "hesap") return null;
