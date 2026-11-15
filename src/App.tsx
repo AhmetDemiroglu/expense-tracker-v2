@@ -1,30 +1,47 @@
-/* Geçici ekran (P0). P3 kabuğu kurunca değiştirilir. */
-import logoLight from "../brand/logo/svg/lockup-v-slogan-light.svg";
-import logoDark from "../brand/logo/svg/lockup-v-slogan-dark.svg";
+/* Uygulama girişi (P3). EKRAN PAKETLERİ BU DOSYAYA DOKUNMAZ: her ekran klasörü kendi kaydını verir
+   (src/screens/<klasör>/kayit.tsx, `export const kayit: ScreenKayit`), burası hepsini toplar. */
+import { lazy, Suspense, useState, type ReactNode } from "react";
+import { Splash } from "@/brand";
+import { AppShell, buildRegistry, type ScreenKayit } from "@/shell";
+import { UiHost } from "@/ui";
+
+const modules = import.meta.glob<{ kayit?: ScreenKayit }>("./screens/*/kayit.tsx", { eager: true });
+const registry = buildRegistry(
+  Object.values(modules).flatMap((m) => (m.kayit ? [m.kayit] : [])),
+  (msg) => {
+    if (import.meta.env.DEV) console.warn(`[kayit] ${msg}`);
+  },
+);
+
+/* Veri açılışı: açılış animasyonu bunu bekler (Splash en çok 2,5 sn bekler). */
+const ready = Promise.all(registry.ready.map((fn) => fn().catch(() => {})));
+
+/* Vitrin yalnız geliştirmede: http://localhost:5173/?vitrin. Yayın paketine girmez. */
+const Vitrin = import.meta.env.DEV ? lazy(() => import("./ui/Vitrin")) : null;
+const showVitrin = import.meta.env.DEV && new URLSearchParams(window.location.search).has("vitrin");
 
 export default function App() {
+  const [splash, setSplash] = useState(true);
+
+  if (showVitrin && Vitrin) {
+    return (
+      <Suspense fallback={null}>
+        <Vitrin />
+      </Suspense>
+    );
+  }
+
+  const shell: ReactNode = (
+    <AppShell tabs={registry.tabs} screens={registry.screens} sheets={registry.sheets} onAdd={registry.onAdd} onProfile={registry.onProfile} />
+  );
+  /* Kapılar (giriş, karşılama, ilk kurulum) kabuğu sarar; ilk kaydedilen en dışta. */
+  const gated = registry.gates.reduceRight<ReactNode>((child, Gate) => <Gate>{child}</Gate>, shell);
+
   return (
-    <main className="relative flex min-h-full flex-col items-center justify-center overflow-hidden bg-bg px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-text">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(60% 45% at 20% 15%, var(--f-glow-1), transparent 70%), radial-gradient(55% 40% at 85% 85%, var(--f-glow-2), transparent 70%)",
-        }}
-      />
-      <div className="relative flex w-full max-w-sm flex-col items-center gap-8 rounded-card border border-glass-line bg-glass px-8 py-10 shadow-[0_12px_40px_rgba(10,14,28,0.12)] backdrop-blur-xl">
-        <img src={logoLight} alt="fintel" className="h-44 w-auto dark:hidden" />
-        <img src={logoDark} alt="fintel" className="hidden h-44 w-auto dark:block" />
-        <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-lg font-semibold">Fintel 3.0 hazırlanıyor</p>
-          <p className="text-sm text-text-2">Yeni sürüm üzerinde çalışıyoruz.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="h-2 w-2 rounded-pill bg-copper" />
-          <span className="num text-sm text-text-3">₺12.480,50</span>
-        </div>
-      </div>
-    </main>
+    <>
+      {gated}
+      <UiHost />
+      {splash ? <Splash ready={ready} onDone={() => setSplash(false)} /> : null}
+    </>
   );
 }

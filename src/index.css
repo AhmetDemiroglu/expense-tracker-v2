@@ -3,6 +3,7 @@
 @import "tailwindcss" source(".");  /* yalnız src/ taranır (eski/ ve brand/ değil) */
 @import "./ui/fonts.css";
 @import "./ui/tokens.css";
+@import "./ui/ui.css";
 
 /* Gece modu: <html data-theme="dark">. Tailwind'in dark: öneki bu özniteliğe bakar (sistem tercihine değil).
    Sistem tercihi index.html içindeki ön betikte data-theme'e çevrilir. */

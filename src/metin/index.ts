@@ -1,0 +1,1 @@
+export { tr } from "./tr";
