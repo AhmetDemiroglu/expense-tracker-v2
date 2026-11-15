@@ -1,0 +1,88 @@
+/* Uygulama stil girişi: Tailwind 4 + marka tokenları + gömülü yazı tipleri.
+   Renk ve ölçü değerleri yalnız src/ui/tokens.css içinde durur, burada yalnız Tailwind'e bağlanır. */
+@import "tailwindcss" source(".");  /* yalnız src/ taranır (eski/ ve brand/ değil) */
+@import "./ui/fonts.css";
+@import "./ui/tokens.css";
+
+/* Gece modu: <html data-theme="dark">. Tailwind'in dark: öneki bu özniteliğe bakar (sistem tercihine değil).
+   Sistem tercihi index.html içindeki ön betikte data-theme'e çevrilir. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* inline: sınıflar var(--f-...) olarak üretilir, tema değişince yeniden derleme gerekmez. */
+@theme inline {
+  --color-bg: var(--f-bg);
+  --color-surface: var(--f-surface);
+  --color-surface-2: var(--f-surface-2);
+  --color-line: var(--f-line);
+
+  --color-text: var(--f-text);
+  --color-text-2: var(--f-text-2);
+  --color-text-3: var(--f-text-3);
+
+  --color-accent: var(--f-accent);
+  --color-on-accent: var(--f-on-accent);
+  --color-copper: var(--f-copper);
+  --color-copper-text: var(--f-copper-text);
+  --color-on-copper: var(--f-on-copper);
+
+  --color-income: var(--f-income);
+  --color-expense: var(--f-expense);
+  --color-warn: var(--f-warn);
+
+  --color-glass: var(--f-glass);
+  --color-glass-line: var(--f-glass-line);
+  --color-glow-1: var(--f-glow-1);
+  --color-glow-2: var(--f-glow-2);
+
+  --font-sans: var(--f-font-ui);
+  --font-mono: var(--f-font-num);
+  --font-num: var(--f-font-num);
+
+  --radius-card: var(--f-radius-card);
+  --radius-control: var(--f-radius-control);
+  --radius-pill: var(--f-radius-pill);
+
+  --ease-fintel: var(--f-ease);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--f-bg);
+    color: var(--f-text);
+    font-family: var(--f-font-ui);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    text-size-adjust: 100%;
+  }
+
+  /* Rakam: eş aralıklı, kolonlar hizalı */
+  .num {
+    font-family: var(--f-font-num);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+    }
+  }
+}

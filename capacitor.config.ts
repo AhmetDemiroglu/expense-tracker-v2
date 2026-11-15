@@ -1,23 +1,35 @@
-// capacitor.config.ts
-import { CapacitorConfig } from "@capacitor/cli";
+import type { CapacitorConfig } from "@capacitor/cli";
 
+/* DİKKAT: appId, androidScheme ve ana makine adı (varsayılan "localhost") DEĞİŞMEZ.
+   Misafir verisi WebView localStorage'ında, kaynak (https://localhost) değişirse kaybolur. */
 const config: CapacitorConfig = {
-    appId: "com.fintel.app",
-    appName: "Fintel",
-    webDir: "dist",
-    server: {
-        androidScheme: "https",
+  appId: "com.fintel.app",
+  appName: "Fintel",
+  webDir: "dist",
+  server: {
+    androidScheme: "https",
+  },
+  plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: true,
+      providers: ["google.com", "apple.com"],
     },
-    plugins: {
-        SocialLogin: {
-            google: {
-                webClientId: "774300681132-sdog76j4aspnfr321obgkcve5qmcaipt.apps.googleusercontent.com",
-                androidClientId: "774300681132-sau6h95p86d85489e4uq4lnchc58730a.apps.googleusercontent.com",
-                iosClientId: "IOS_CLIENT_ID.apps.googleusercontent.com",
-                mode: "online",
-            },
-        },
+    SplashScreen: {
+      launchAutoHide: false,
+      launchShowDuration: 0,
+      launchFadeOutDuration: 250,
+      backgroundColor: "#F6F5F1",
+      showSpinner: false,
     },
+    SystemBars: {
+      insetsHandling: "css",
+      style: "DEFAULT",
+    },
+    Keyboard: {
+      resize: "none",
+      resizeOnFullScreen: true,
+    },
+  },
 };
 
 export default config;
