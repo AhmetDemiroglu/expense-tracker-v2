@@ -25,3 +25,6 @@ dist-ssr
 
 # Ekip notlari, denetim raporlari, plan dosyalari (repoya gitmez)
 kaynaklar/
+
+# Firebase CLI önbelleği
+.firebase/
