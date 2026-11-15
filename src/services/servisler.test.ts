@@ -130,3 +130,31 @@ describe("HEIC görsel", async () => {
     await expect(gorseliHazirla(new Blob([new Uint8Array(4)], { type: "image/png" }))).rejects.toMatchObject({ kod: "GORSEL_BOZUK" });
   });
 });
+
+describe("web giriş hataları: sessiz kalmaz, düğme kaybolmaz", async () => {
+  const { HEMEN_KAPANMA_MS, webGirisHatasinaCevir } = await import("./auth/hatalar");
+
+  it("popup engeli ve depolama hataları düz Türkçe yol gösterir, sağlayıcı kapalı sayılmaz", () => {
+    const engel = girisHatasinaCevir({ code: "auth/popup-blocked" });
+    expect(engel).toMatchObject({ kod: "POPUP_ENGELLI", tekrarDenenebilir: true });
+    expect(engel.mesaj).toContain("açılır pencere");
+    expect(girisHatasinaCevir({ code: "auth/web-storage-unsupported" }).kod).toBe("TARAYICI_DESTEKLEMIYOR");
+    expect(girisHatasinaCevir({ code: "auth/operation-not-supported-in-this-environment" }).kod).toBe("TARAYICI_DESTEKLEMIYOR");
+    expect(girisHatasinaCevir({ code: "auth/unauthorized-domain" }).mesaj).toContain("resmi adres");
+    expect(girisHatasinaCevir({ code: "auth/operation-not-allowed" }).mesaj).toContain("kapalı");
+  });
+
+  it("pencere hemen kapandıysa 'vazgeçti' değil, engel sayılır; geç kapandıysa vazgeçmedir (sessiz)", () => {
+    const kapandi = { code: "auth/popup-closed-by-user" };
+    expect(webGirisHatasinaCevir(kapandi, 300).kod).toBe("POPUP_ENGELLI");
+    expect(webGirisHatasinaCevir(kapandi, HEMEN_KAPANMA_MS + 1).kod).toBe("IPTAL");
+    expect(webGirisHatasinaCevir({ code: "auth/cancelled-popup-request" }, 100).kod).toBe("IPTAL");
+    expect(webGirisHatasinaCevir({ code: "auth/network-request-failed" }, 100).kod).toBe("AG_YOK");
+  });
+
+  it("yeni mesajlarda em dash ve en dash yok", () => {
+    for (const kod of ["auth/popup-blocked", "auth/web-storage-unsupported", "auth/unauthorized-domain", "auth/operation-not-allowed"]) {
+      expect(girisHatasinaCevir({ code: kod }).mesaj).not.toMatch(/[—–]/);
+    }
+  });
+});

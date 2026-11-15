@@ -29,7 +29,7 @@ import { httpsCallable } from "firebase/functions";
 import { UygulamaHatasi } from "@/data/hatalar";
 import { firebaseHazir, fonksiyonlar, kimlikDogrulama } from "../firebase";
 import { appleKoduIptalEt, silmeAkisi, type AppleIptalBelirteci, type AppleIptalDurumu } from "./appleIptal";
-import { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
+import { girisHatasinaCevir, silmeHatasinaCevir, webGirisHatasinaCevir } from "./hatalar";
 
 export { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
 export { APPLE_IPTAL_UYARISI, type AppleIptalDurumu } from "./appleIptal";
@@ -52,9 +52,11 @@ export function girisSecenekleri(): { google: boolean; apple: boolean; eposta: t
   };
 }
 
-function hataVer(saglayici: Saglayici | null, e: unknown): never {
-  const h = girisHatasinaCevir(e);
-  if (saglayici && h.kod === "SAGLAYICI_YOK") kapali.add(saglayici);
+function hataVer(saglayici: Saglayici | null, e: unknown, gecenMs?: number): never {
+  const h = gecenMs === undefined ? girisHatasinaCevir(e) : webGirisHatasinaCevir(e, gecenMs);
+  // Düğme yalnız native'de (eklenti ya da yapılandırma yok) gizlenir. Web'de geçici hata düğmeyi kaybettirmez:
+  // kullanıcı mesajı görür ve yeniden dener.
+  if (saglayici && h.kod === "SAGLAYICI_YOK" && Capacitor.isNativePlatform()) kapali.add(saglayici);
   throw h;
 }
 
@@ -111,16 +113,18 @@ function webSaglayici(s: "google" | "apple"): GoogleAuthProvider | OAuthProvider
 
 async function saglayiciIleGir(s: "google" | "apple"): Promise<void> {
   if (!girisSecenekleri()[s]) throw new UygulamaHatasi("SAGLAYICI_YOK");
+  const t0 = Date.now();
   try {
     const auth = kimlikDogrulama();
     if (Capacitor.isNativePlatform()) {
       const { credential } = await nativeKimlik(s);
       await signInWithCredential(auth, credential);
     } else {
+      // Pencere tıklamanın eşzamanlı yolunda açılır: bu noktadan önce await yok (Safari/iOS engeller).
       await signInWithPopup(auth, webSaglayici(s));
     }
   } catch (e) {
-    hataVer(s, e);
+    hataVer(s, e, Capacitor.isNativePlatform() ? undefined : Date.now() - t0);
   }
 }
 

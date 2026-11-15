@@ -19,7 +19,9 @@ export type GirisHataKodu =
   | "GECERSIZ_EPOSTA"
   | "COK_DENEME"
   | "HESAP_FARKLI_YONTEM"
-  | "SILME_YARIDA";
+  | "SILME_YARIDA"
+  | "POPUP_ENGELLI"
+  | "TARAYICI_DESTEKLEMIYOR";
 
 export type AiHataKodu =
   | "AUTH_REQUIRED"
@@ -53,6 +55,8 @@ const VARSAYILAN_MESAJ: Record<HataKodu, string> = {
   COK_DENEME: "Çok fazla deneme yapıldı. Biraz bekleyip yeniden dene.",
   HESAP_FARKLI_YONTEM: "Bu e-posta başka bir giriş yöntemiyle kayıtlı. O yöntemle giriş yap.",
   SILME_YARIDA: "Hesap silme yarıda kaldı. Yeniden dene.",
+  POPUP_ENGELLI: "Giriş penceresi açılamadı ya da hemen kapandı. Tarayıcının açılır pencere engelini kaldırıp yeniden dene.",
+  TARAYICI_DESTEKLEMIYOR: "Bu tarayıcı oturum bilgisini saklayamıyor. Gizli sekmeyi kapat ya da çerez ve site verisi iznini aç, sonra yeniden dene.",
   AUTH_REQUIRED: "Nova giriş yapınca açılır.",
   QUOTA_EXCEEDED: "Bugünlük hakkın doldu. Yarın yeniden açılır.",
   AI_UNAVAILABLE: "Nova şu an yanıt veremiyor. Biraz sonra yeniden dene.",
@@ -73,6 +77,7 @@ const TEKRAR_DENENEBILIR: ReadonlySet<HataKodu> = new Set<HataKodu>([
   "SILME_YARIDA",
   "BOZUK_YANIT",
   "COK_DENEME",
+  "POPUP_ENGELLI",
 ]);
 
 export class UygulamaHatasi extends Error {

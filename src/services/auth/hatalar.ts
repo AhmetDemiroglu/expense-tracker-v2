@@ -20,11 +20,8 @@ const IPTAL_KODLARI = new Set([
 const SAGLAYICI_YOK_KODLARI = new Set([
   "auth/operation-not-allowed",
   "auth/unauthorized-domain",
-  "auth/operation-not-supported-in-this-environment",
   "auth/invalid-api-key",
   "auth/app-not-authorized",
-  "auth/popup-blocked",
-  "auth/web-storage-unsupported",
   "UNIMPLEMENTED",
   "UNAVAILABLE",
 ]);
@@ -55,6 +52,16 @@ export function girisHatasinaCevir(e: unknown): UygulamaHatasi {
     case "auth/account-exists-with-different-credential":
     case "auth/credential-already-in-use":
       return new UygulamaHatasi("HESAP_FARKLI_YONTEM", { neden: e });
+    // Web: bunlar sağlayıcının "kapalı" olduğu anlamına GELMEZ (düğme gizlenmez), kullanıcıya yol gösterilir.
+    case "auth/popup-blocked":
+      return new UygulamaHatasi("POPUP_ENGELLI", { neden: e });
+    case "auth/web-storage-unsupported":
+    case "auth/operation-not-supported-in-this-environment":
+      return new UygulamaHatasi("TARAYICI_DESTEKLEMIYOR", { neden: e });
+    case "auth/unauthorized-domain":
+      return new UygulamaHatasi("SAGLAYICI_YOK", { neden: e, mesaj: "Bu adresten giriş yapılamıyor. Uygulamanın resmi adresini kullan." });
+    case "auth/operation-not-allowed":
+      return new UygulamaHatasi("SAGLAYICI_YOK", { neden: e, mesaj: "Bu giriş yöntemi şu an kapalı. Başka bir yöntemle dene." });
     case "auth/provider-already-linked":
       return new UygulamaHatasi("GECERSIZ", { neden: e, mesaj: "Hesabında zaten parola var. Parola değiştirmeyi kullan." });
     case "auth/network-request-failed":
@@ -88,4 +95,19 @@ export function silmeHatasinaCevir(e: unknown): UygulamaHatasi {
   if (code === "unavailable" || code === "deadline-exceeded") return new UygulamaHatasi("AG_YOK", { neden: e });
   if (code === "unauthenticated") return new UygulamaHatasi("OTURUM_YOK", { neden: e });
   return new UygulamaHatasi("SILME_YARIDA", { neden: e });
+}
+
+/** Pencere bu süreden kısa sürede kapandıysa kullanıcı vazgeçmemiştir: tarayıcı engellemiştir. */
+export const HEMEN_KAPANMA_MS = 2500;
+
+/**
+ * Web popup girişi hatası. `auth/popup-closed-by-user` normalde "vazgeçti" (sessiz), ama pencere açıldıktan kısa süre
+ * sonra geldiyse (Safari ve bazı tarayıcılar pencereyi sessizce kapatır) kullanıcıya düz mesaj gösterilir: sessiz kalmaz.
+ */
+export function webGirisHatasinaCevir(e: unknown, gecenMs: number): UygulamaHatasi {
+  const h = girisHatasinaCevir(e);
+  if (h.kod === "IPTAL" && String(alan(e, "code") ?? "") === "auth/popup-closed-by-user" && gecenMs < HEMEN_KAPANMA_MS) {
+    return new UygulamaHatasi("POPUP_ENGELLI", { neden: e });
+  }
+  return h;
 }
