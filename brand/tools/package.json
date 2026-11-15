@@ -1,0 +1,1 @@
+{"name":"fintel-marka-arac","private":true,"type":"module","scripts":{"build":"node disari.mjs && node pano.mjs"},"dependencies":{"@resvg/resvg-js":"^2.6.2","opentype.js":"^1.3.4","@fontsource/bricolage-grotesque":"^5","@fontsource/dm-sans":"^5","@fontsource/dm-mono":"^5"}}

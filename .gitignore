@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ekip notlari, denetim raporlari, plan dosyalari (repoya gitmez)
+kaynaklar/

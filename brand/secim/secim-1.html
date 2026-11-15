@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fintel marka seçimi, 1. tur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=DM+Mono:wght@500&family=DM+Sans:wght@400;600;800&family=DM+Serif+Display&family=Fraunces:wght@600;700&family=IBM+Plex+Sans:wght@400;600;700&family=Instrument+Serif:ital@1&family=Inter:wght@400;600;800&family=Lexend:wght@400;600;800&family=Manrope:wght@500;700;800&family=Nunito+Sans:wght@400;700;800&family=Onest:wght@400;600;800&family=Outfit:wght@400;700&family=Playfair+Display:ital,wght@1,900&family=Plus+Jakarta+Sans:wght@400;600;800&family=Red+Hat+Display:wght@900&family=Sora:wght@700&family=Space+Grotesk:wght@500;700&family=Syne:wght@800&family=Unbounded:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F4F1; --panel:#FFFFFF; --text:#141917; --muted:#5C6661; --line:#DCE0DB; --sel:#141917; --chip:#ECEEEA;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0F1211; --panel:#181C1A; --text:#EDF0EE; --muted:#9AA39E; --line:#2B312E; --sel:#EDF0EE; --chip:#222825; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+main{max-width:1180px;margin:0 auto;padding:32px 16px 64px;display:flex;flex-direction:column;gap:28px}
+h1{font-size:30px;line-height:1.15;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:22px;margin:0;font-weight:800;letter-spacing:-.01em}
+h3{font-size:13px;margin:0;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+p{margin:0}
+.lead{color:var(--muted);max-width:70ch}
+.app{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:24px}
+.rec{color:var(--muted);max-width:78ch}
+.rec b{color:var(--text)}
+.step{display:flex;flex-direction:column;gap:10px}
+.hint{color:var(--muted);font-size:13px;max-width:78ch}
+.grid{display:grid;gap:10px}
+.concepts{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.locks{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.opts{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.opts.narrow{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+button.pick{font:inherit;color:inherit;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:border-color .15s, box-shadow .15s;min-width:0}
+button.pick:hover{border-color:var(--muted)}
+button.pick:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+button.pick[aria-pressed="true"]{border-color:var(--sel);box-shadow:0 0 0 2px var(--sel)}
+.pick .nm{font-weight:800;font-size:14px}
+.pick .ds{color:var(--muted);font-size:13px;line-height:1.4}
+.pick .tag{align-self:flex-start;font-size:11px;font-weight:700;background:var(--sel);color:var(--panel);border-radius:999px;padding:2px 8px}
+.pair{display:flex;gap:10px;align-items:center}
+.pair svg{flex:none}
+.bare{width:100px;height:100px;border-radius:20px;background:#fff;border:1px solid rgba(0,0,0,.08);display:grid;place-items:center;flex:none}
+.sw{display:flex;gap:4px}
+.sw i{width:26px;height:26px;border-radius:8px;border:1px solid rgba(128,128,128,.25)}
+.lockbox{border-radius:10px;border:1px solid rgba(0,0,0,.08);min-height:92px;display:grid;place-items:center;padding:14px 10px;overflow:hidden}
+.fontbox{border-radius:10px;background:#fff;color:#141917;border:1px solid rgba(0,0,0,.08);padding:12px;display:flex;flex-direction:column;gap:4px}
+.fontbox b{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.fontbox span{font-size:13px;line-height:1.35}
+.numbox{border-radius:10px;background:#fff;color:#141917;border:1px solid rgba(0,0,0,.08);padding:12px;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.mini{display:flex;justify-content:center}
+
+.preview{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.tile{border-radius:16px;border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.tile .cap{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+.tile .mid{flex:1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:22px;min-height:130px}
+.t-icon{grid-column:span 5;background:var(--bg)}
+.t-light{grid-column:span 7}
+.t-dark{grid-column:span 7}
+.t-stack{grid-column:span 5}
+.t-phones{grid-column:span 12;background:var(--bg)}
+.sizes{display:flex;align-items:flex-end;gap:14px}
+.homes{display:flex;gap:10px;align-items:center}
+.homes span{width:60px;height:60px;border-radius:50%;overflow:hidden;display:block}
+@media (max-width:760px){ .tile{grid-column:span 12 !important} .app{padding:16px} h1{font-size:25px} }
+
+/* Logo kilidi */
+.lk{display:inline-flex;align-items:center;gap:.36em;font-size:34px;line-height:1}
+.lk.v{flex-direction:column;gap:.42em}
+.lk>svg{width:1.55em;height:1.55em;flex:none}
+.lk.v>svg{width:2.8em;height:2.8em}
+.tx{display:inline-flex;flex-direction:column;gap:.26em;line-height:1}
+.lk.v .tx{align-items:center}
+.wm{display:block;white-space:nowrap}
+.lk.v .tg{font-size:.36em}
+.tg{font-family:var(--f-body);font-size:.3em;font-weight:600;white-space:nowrap;opacity:.7;letter-spacing:.01em}
+
+/* Telefon taslakları */
+.phones{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.ph{position:relative;width:224px;height:452px;border-radius:32px;border:6px solid #1A1D1C;overflow:hidden;display:flex;flex-direction:column;background:var(--p-bg);color:var(--p-ink);font-size:11px;flex:none;--r:14px}
+.ph.splash{align-items:center;justify-content:center}
+.ph .top{display:flex;align-items:center;justify-content:space-between;padding:24px 12px 6px}
+.ph .av{width:24px;height:24px;border-radius:50%;background:var(--p-tint);border:1px solid var(--p-line)}
+.ph .body{flex:1;padding:6px 12px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden}
+.ph .card{background:var(--p-card);border:1px solid var(--p-line);border-radius:var(--r)}
+.ph .hero{padding:12px;display:flex;flex-direction:column;gap:5px}
+.ph .hero .k{opacity:.65;font-weight:600}
+.ph .num{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.ph .sub{opacity:.7}
+.ph .bar{height:6px;border-radius:99px;background:var(--p-tint);overflow:hidden;margin-top:3px}
+.ph .bar i{display:block;height:100%;width:62%;border-radius:99px;background:var(--p-acc)}
+.ph .lbl{font-weight:800;opacity:.6;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.ph .row{display:flex;align-items:center;gap:8px;padding:8px}
+.ph .row u{width:26px;height:26px;border-radius:calc(var(--r) * .6);background:var(--p-tint);flex:none}
+.ph .row em{font-style:normal;flex:1;font-weight:700;display:flex;flex-direction:column}
+.ph .row em small{font-weight:400;opacity:.6;font-size:9.5px}
+.ph .row b{font-variant-numeric:tabular-nums}
+.ph .pos{color:var(--p-pos)} .ph .neg{color:var(--p-neg)}
+.ph .two{display:flex;gap:8px}
+.ph .two .card{flex:1;padding:8px;display:flex;flex-direction:column;gap:2px}
+.ph .two b{font-size:13px;font-variant-numeric:tabular-nums}
+.ph .ringw{display:grid;place-items:center;padding:8px 0 2px}
+.ph .ringw>*{grid-area:1/1}
+.ph .ringw div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ph .ringw .num{font-size:18px}
+.ph .wk{display:flex;align-items:flex-end;gap:3px;height:44px;flex:none}
+.ph .split .num{font-size:21px}
+.ph .wk i{width:6px;border-radius:4px;background:var(--p-tint)}
+.ph .wk i.on{background:var(--p-acc)}
+.ph .split{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+/* karakter */
+.ph.k-yumusak{--r:22px}
+.ph.k-yumusak .card{border-color:transparent;background:var(--p-soft);--p-tint:var(--p-bg)}
+.ph.k-cam{--r:20px;background:radial-gradient(120% 60% at 0% 0%,var(--p-glow),transparent 70%),radial-gradient(90% 50% at 100% 30%,var(--p-glow2),transparent 70%),var(--p-bg)}
+.ph.k-cam .card{background:var(--p-glass);border-color:var(--p-glassline);backdrop-filter:blur(10px)}
+.ph.k-blok{--r:18px}
+.ph.k-blok .hero{background:var(--p-acc);color:var(--p-onacc);border-color:transparent}
+.ph.k-blok .hero .bar{background:rgba(127,127,127,.35)} .ph.k-blok .hero .bar i{background:var(--p-onacc)}
+.ph.k-blok .hero .wk i{background:rgba(127,127,127,.4)} .ph.k-blok .hero .wk i.on{background:var(--p-onacc)}
+/* alt bar */
+.ph .nav{display:flex;justify-content:space-around;align-items:center}
+.ph .nav i{width:17px;height:17px;border-radius:6px;background:var(--p-ink);opacity:.22}
+.ph .nav i.a{background:var(--p-acc);opacity:1}
+.ph .nav.klasik{padding:9px 12px 15px;border-top:1px solid var(--p-line);background:var(--p-card)}
+.ph .nav.merkez{padding:9px 12px 15px;border-top:1px solid var(--p-line);background:var(--p-card)}
+.ph .nav.merkez i.c{width:40px;height:40px;border-radius:50%;background:var(--p-acc);opacity:1;margin-top:-22px;border:4px solid var(--p-bg)}
+.ph .nav.kapsul{margin:0 34px 14px;padding:9px 6px;border-radius:99px;background:var(--p-card);border:1px solid var(--p-line);box-shadow:0 6px 18px rgba(0,0,0,.14)}
+.ph .fab{position:absolute;right:14px;bottom:62px;width:38px;height:38px;border-radius:50%;background:var(--p-acc);box-shadow:0 6px 14px rgba(0,0,0,.2)}
+.phcap{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+
+.out{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.out pre{margin:0;white-space:pre-wrap;font:600 13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--chip);border-radius:12px;padding:14px;user-select:all}
+.copy{align-self:flex-start;font:inherit;font-weight:800;background:var(--sel);color:var(--panel);border:0;border-radius:12px;padding:10px 18px;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Fintel marka seçimi, 1. tur</h1>
+    <p class="lead">On bir adım var. Bir seçeneğe dokununca en alttaki önizleme yenilenir: ikon, logo, açılış ve ana ekran. Bitince "Seçimi kopyala" ile metni sohbete yapıştır. Beğenmediğin adım için "hiçbiri, şuna benzer olsun" yazman yeter. Çizimler yön gösterir, seçtiğin logo ayrıca inceltilecek.</p>
+  </header>
+  <section class="app" id="app"></section>
+  <section class="out">
+    <h2>Seçimlerin</h2>
+    <pre id="summary"></pre>
+    <button class="copy" id="copy" type="button">Seçimi kopyala</button>
+  </section>
+</main>
+<script src="marks.js"></script>
+<script>
+const PAL = FB.PAL, CONCEPTS = FB.CONCEPTS;
+const BGS = [["dolu","Dolu renk","Marka rengi zemin, açık simge."],["koyu","Koyu zemin","Koyu zemin, renkli simge."],["acik","Açık zemin","Açık zemin, renkli simge."]];
+/* İsim yazımı: yazı tipi ve harf düzeni birlikte */
+const LOCKS = [
+  {id:"Y1", nm:"Jakarta", ds:"Dengeli, modern. Güvenli seçim.", wf:"'Plus Jakarta Sans'", w:800, ls:"-.035em", cs:"Fintel"},
+  {id:"Y2", nm:"Bricolage, küçük harf", ds:"Karakterli ve sıcak. Küçük harf samimi durur.", wf:"'Bricolage Grotesque'", w:800, ls:"-.04em", cs:"fintel"},
+  {id:"Y3", nm:"Unbounded", ds:"Geniş ve güçlü. Teknoloji markası havası.", wf:"'Unbounded'", w:700, ls:"-.05em", wz:.78, cs:"fintel"},
+  {id:"Y4", nm:"Fraunces", ds:"Yumuşak serif. Sıcak ve güvenilir.", wf:"'Fraunces'", w:700, ls:"-.03em", cs:"Fintel"},
+  {id:"Y5", nm:"DM Serif", ds:"Klasik serif. Banka ciddiyeti.", wf:"'DM Serif Display'", w:400, ls:"-.01em", cs:"Fintel"},
+  {id:"Y6", nm:"Outfit, kalın ve ince", ds:"Fin kalın, tel ince. İsmin iki parçası okunur.", wf:"'Outfit'", w:700, w2:400, ls:"-.02em", cs:"Fintel"},
+  {id:"Y7", nm:"Syne, büyük harf", ds:"Sıra dışı geniş harfler.", wf:"'Syne'", w:800, ls:"-.02em", wz:.8, cs:"FINTEL"},
+  {id:"Y8", nm:"Red Hat, çok kalın", ds:"Dolgun ve net. Küçük boyda iyi okunur.", wf:"'Red Hat Display'", w:900, ls:"-.04em", cs:"fintel"},
+  {id:"Y9", nm:"Space Grotesk", ds:"Köşeli, teknik. Rakamlarla uyumlu.", wf:"'Space Grotesk'", w:700, ls:"-.04em", cs:"Fintel"},
+  {id:"Y10", nm:"Sora, küçük harf", ds:"Yuvarlak hatlı, sakin.", wf:"'Sora'", w:700, ls:"-.04em", cs:"fintel"},
+  {id:"Y11", nm:"Instrument, eğik", ds:"İnce eğik serif. Zarif, dergi havası.", wf:"'Instrument Serif'", w:400, it:1, ls:"-.01em", wz:1.16, cs:"Fintel"},
+  {id:"Y12", nm:"Manrope, aralıklı büyük harf", ds:"En sade. Geniş aralıklı büyük harf.", wf:"'Manrope'", w:800, ls:".16em", wz:.7, cs:"FINTEL"}
+];
+const WMS = [["tek","Tek renk","İsmin tamamı yazı renginde."],["iki","İki renk","Fin yazı renginde, tel marka renginde."],["nokta","Renkli nokta","İsim tek renk, sonunda marka renginde nokta."]];
+const TAGS = [["yok","Slogan yok",""],["t1","Ay sonunu bil.",""],["t2","Evin hesabı, cebinde.",""],["t3","Aylık hesap, net.",""],["t4","Harcamanı gör, ayını yönet.",""],["t5","Birlikte hesap, rahat ay sonu.",""],["t6","Paran nereye gidiyor, bil.",""]];
+const UIF = [
+  ["system-ui","Sistem yazı tipi","iPhone'da San Francisco, Android'de Roboto. En native his, ek dosya yok."],
+  ["Inter","Inter","Standart. Her boyda okunur, rakamları hizalı."],
+  ["Manrope","Manrope","Yuvarlak hatlı, modern."],
+  ["Plus Jakarta Sans","Jakarta","Biraz daha karakterli, dost canlısı."],
+  ["DM Sans","DM Sans","Geometrik, ferah."],
+  ["Onest","Onest","Net, biraz teknik."],
+  ["Nunito Sans","Nunito Sans","Yuvarlak ve samimi."],
+  ["IBM Plex Sans","IBM Plex","Ciddi, finans raporu havası."],
+  ["Lexend","Lexend","Geniş harf, kolay okuma için tasarlandı."]
+];
+const NUMF = [["ayni","Yazıyla aynı","Tek yazı tipi. En sade."],["Space Grotesk","Space Grotesk","Köşeli, teknik rakamlar."],["Fraunces","Fraunces","Serif rakam. Tutarlar zarif görünür."],["DM Mono","DM Mono","Eş aralıklı. Hesap defteri havası."],["Unbounded","Unbounded","Geniş, gösterişli rakam."]];
+const KAR = [["cizgi","Sade çizgi","Düz kartlar, ince çizgi. En temiz."],["yumusak","Yumuşak","Çizgisiz, renkli zeminli, çok yuvarlak kartlar."],["cam","Cam","Yarı saydam kartlar, renkli ışık zemini. iOS cam efektine uygun."],["blok","Renk bloğu","Ana kart marka renginde dolu. Güçlü vurgu."]];
+const LAY = [["rakam","Büyük rakam","Kalan bütçe dev rakam, altında ilerleme çubuğu."],["halka","Halka","Dönem halkası ortada, gelir ve gider yanında."],["akis","Hafta çubukları","Rakam ve haftanın günlük harcama çubukları yan yana."]];
+const NAV = [["kapsul","Yüzen kapsül","Cam kapsül alt bar, ekle düğmesi ayrı yüzer."],["merkez","Ortada ekle","Klasik bar, ortada büyük ekle düğmesi."],["klasik","Klasik","Düz beş sekme."]];
+
+const S = {c:"A",pal:"zumrut",bg:"dolu",lk:"Y2",wm:"tek",tg:"yok",ui:"Inter",nf:"ayni",kr:"cizgi",ly:"rakam",nv:"kapsul"};
+function ff(f){ return f==="system-ui" ? "system-ui,-apple-system,sans-serif" : "'"+f+"',sans-serif"; }
+function find(list,v){ for(const x of list){ if((x.id||x[0])===v) return x; } return list[0]; }
+function wordmark(st,dark,lkId){
+  const p = PAL[st.pal], L = find(LOCKS,lkId||st.lk), acc = dark?p.accL:p.acc;
+  const a = L.cs.slice(0,3), b = L.cs.slice(3);
+  const tel = '<span style="'+(st.wm==="iki"?'color:'+acc+';':'')+(L.w2?'font-weight:'+L.w2:'')+'">'+b+'</span>';
+  const dot = st.wm==="nokta" ? '<span style="color:'+acc+'">.</span>' : '';
+  return '<span class="wm" style="font-family:'+L.wf+',sans-serif;font-weight:'+L.w+';letter-spacing:'+L.ls+(L.it?';font-style:italic':'')+(L.wz?';font-size:'+L.wz+'em':'')+'">'+a+tel+dot+'</span>';
+}
+function lockup(st,dark,v,px,lkId,noTag){
+  const p = PAL[st.pal], ink = dark?"#F5F7F6":p.ink, t = find(TAGS,st.tg);
+  const tg = (!noTag && st.tg!=="yok") ? '<span class="tg">'+t[1]+'</span>' : '';
+  return '<span class="lk'+(v?" v":"")+'" style="font-size:'+px+'px;color:'+ink+'">'+FB.bare(st,dark)+'<span class="tx">'+wordmark(st,dark,lkId)+tg+'</span></span>';
+}
+function phoneVars(st,dark){
+  const p = PAL[st.pal];
+  const base = dark
+    ? '--p-bg:'+p.dbg+';--p-card:'+p.dcard+';--p-soft:'+p.dcard+';--p-line:'+p.dline+';--p-ink:#F5F7F6;--p-acc:'+p.accL+';--p-onacc:'+p.dbg+';--p-tint:'+p.dline+';--p-pos:#4FD6A2;--p-neg:#FF7A66;--p-glass:rgba(255,255,255,.07);--p-glassline:rgba(255,255,255,.14);--p-glow:'+p.g2+';--p-glow2:'+p.dline
+    : '--p-bg:'+p.surf+';--p-card:#FFFFFF;--p-soft:'+p.tint+';--p-line:rgba(0,0,0,.09);--p-ink:'+p.ink+';--p-acc:'+p.acc+';--p-onacc:#FFFFFF;--p-tint:'+p.tint+';--p-pos:#12805C;--p-neg:#D4442E;--p-glass:rgba(255,255,255,.6);--p-glassline:rgba(255,255,255,.9);--p-glow:'+p.tint+';--p-glow2:'+p.pop+'33';
+  return base+";font-family:"+ff(st.ui);
+}
+function numStyle(st){ return st.nf==="ayni" ? '' : ' style="font-family:\''+st.nf+'\',sans-serif'+(st.nf==="Unbounded"?';letter-spacing:-.05em;font-size:.84em':'')+'"'; }
+function hero(st){
+  const n = numStyle(st);
+  if(st.ly==="halka") return '<div class="ringw"><svg width="106" height="106" viewBox="0 0 100 100"><g fill="none" stroke-width="9" transform="rotate(-90 50 50)"><circle cx="50" cy="50" r="42" stroke="var(--p-tint)"/><circle cx="50" cy="50" r="42" stroke="var(--p-acc)" stroke-linecap="round" stroke-dasharray="164 100"/></g></svg><div><span class="sub">Kalan</span><span class="num"'+n+'>₺12.480</span><span class="sub">12 gün</span></div></div>'
+    + '<div class="two"><div class="card"><span class="sub">Gelir</span><b class="pos"'+n+'>₺58.000</b></div><div class="card"><span class="sub">Gider</span><b class="neg"'+n+'>₺45.520</b></div></div>';
+  if(st.ly==="akis") return '<div class="card hero"><div class="split"><div style="display:flex;flex-direction:column;gap:5px"><span class="k">Kalan bütçe</span><span class="num"'+n+'>₺12.480</span><span class="sub">Günde ₺1.040</span></div><div class="wk"><i style="height:38%"></i><i style="height:70%"></i><i style="height:24%"></i><i style="height:92%"></i><i class="on" style="height:55%"></i><i style="height:8%"></i><i style="height:8%"></i></div></div></div>';
+  return '<div class="card hero"><span class="k">Kalan bütçe</span><span class="num"'+n+'>₺12.480</span><span class="sub">Günde ₺1.040 · 12 gün kaldı</span><div class="bar"><i></i></div></div>';
+}
+function phoneHome(st,dark){
+  const n = numStyle(st);
+  const nav = st.nv==="merkez" ? '<div class="nav merkez"><i class="a"></i><i></i><i class="c"></i><i></i><i></i></div>'
+    : st.nv==="klasik" ? '<div class="nav klasik"><i class="a"></i><i></i><i></i><i></i><i></i></div>'
+    : '<div class="fab"></div><div class="nav kapsul"><i class="a"></i><i></i><i></i><i></i></div>';
+  return '<div><div class="ph k-'+st.kr+'" style="'+phoneVars(st,dark)+'"><div class="top">'+lockup(st,dark,false,15,null,true)+'<span class="av"></span></div>'
+    + '<div class="body">'+hero(st)+'<span class="lbl">Son hareketler</span>'
+    + '<div class="card row"><u></u><em>Market<small>Bugün, fişten okundu</small></em><b class="neg"'+n+'>-₺642,50</b></div>'
+    + '<div class="card row"><u></u><em>Maaş<small>Dönem başı</small></em><b class="pos"'+n+'>+₺58.000</b></div>'
+    + '</div>'+nav+'</div><div class="phcap">Ana ekran, '+(dark?"gece":"gündüz")+'</div></div>';
+}
+function miniPhone(k,v){
+  const st = Object.assign({},S); st[k] = v;
+  return '<span class="mini"><span style="display:block;zoom:.56">'+phoneHome(st,false).replace(/<div class="phcap">.*?<\/div>/,"")+'</span></span>';
+}
+function pick(k,v,inner){
+  return '<button type="button" class="pick" data-k="'+k+'" data-v="'+v+'" aria-pressed="'+(S[k]===v)+'">'+inner+'</button>';
+}
+function step(n,title,hint,cls,inner){
+  return '<div class="step"><h3>'+n+'. '+title+'</h3>'+(hint?'<p class="hint">'+hint+'</p>':'')+'<div class="grid '+cls+'">'+inner+'</div></div>';
+}
+function render(){
+  const st = S, p = PAL[st.pal];
+  let h = '<div><h2>Fintel</h2><p class="rec"><b>Önerim:</b> logo A (Çubuk F) ya da B (Lira F), tema Zümrüt, isim Y2. Eski logodaki yıldız, ok ve grafik bilerek yok: küçük boyda okunmuyor ve hazır kalıp görünüyor. Yeni simgeler küçük boyda okunsun diye yalın tutuldu, seçtiğin ayrıca 29 piksele göre inceltilecek. Gelir ve gider renkleri (yeşil, kırmızı) her temada sabit kalır.</p></div>';
+  h += step(1,"Logo","Solda uygulama ikonu, sağda beyaz zeminde yalnız simge.","concepts", CONCEPTS.map(function(c){
+    return pick("c",c[0],'<span class="pair">'+FB.appIcon(st,100,c[0])+'<span class="bare">'+FB.bare(st,false,c[0],78)+'</span></span><span class="nm">'+c[0]+" · "+c[1]+'</span><span class="ds">'+c[2]+'</span>');
+  }).join(""));
+  h += step(2,"Renk teması","Kutular: marka rengi, ikinci renk, yazı rengi, gündüz zemini, gece zemini.","opts", Object.keys(PAL).map(function(k){
+    const q = PAL[k];
+    return pick("pal",k,'<span class="sw"><i style="background:'+q.acc+'"></i><i style="background:'+q.pop+'"></i><i style="background:'+q.ink+'"></i><i style="background:'+q.surf+'"></i><i style="background:'+q.dbg+'"></i><i style="background:'+q.accL+'"></i></span><span class="nm">'+q.name+'</span>'+(q.rec?'<span class="tag">Öneri</span>':'')+'<span class="ds">'+q.note+'</span>');
+  }).join(""));
+  h += step(3,"İkon zemini","","opts narrow", BGS.map(function(b){
+    return pick("bg",b[0],FB.appIcon({c:st.c,pal:st.pal,bg:b[0]},64)+'<span class="nm">'+b[1]+'</span><span class="ds">'+b[2]+'</span>');
+  }).join(""));
+  h += step(4,"İsim yazımı","Yazı tipi ve harf düzeni birlikte: Fintel, fintel ya da FINTEL.","locks", LOCKS.map(function(l){
+    return pick("lk",l.id,'<span class="lockbox" style="background:'+p.surf+'">'+lockup(st,false,false,24,l.id,true)+'</span><span class="nm">'+l.id+" · "+l.nm+'</span><span class="ds">'+l.ds+'</span>');
+  }).join(""));
+  h += step(5,"İsim rengi","","opts narrow", WMS.map(function(w){
+    const t = Object.assign({},st,{wm:w[0]});
+    return pick("wm",w[0],'<span class="lockbox" style="background:'+p.surf+';min-height:60px;font-size:26px;color:'+p.ink+'">'+wordmark(t,false)+'</span><span class="nm">'+w[1]+'</span><span class="ds">'+w[2]+'</span>');
+  }).join(""));
+  h += step(6,"Slogan","Logonun altında ve mağaza görsellerinde kullanılır. Eski slogan İngilizceydi, yenisi Türkçe. Kendi cümleni de yazabilirsin.","opts narrow", TAGS.map(function(t){
+    return pick("tg",t[0],'<span class="nm">'+t[1]+'</span>');
+  }).join(""));
+  h += step(7,"Uygulama içi yazı tipi","Menüler, listeler ve tüm metinler. Listedekilerin hepsinde Türkçe harfler ve ₺ işareti ölçülerek doğrulandı.","opts", UIF.map(function(f){
+    return pick("ui",f[0],'<span class="fontbox" style="font-family:'+ff(f[0])+'"><b>Kalan bütçe</b><span>Şubat dönemi, 12 gün kaldı. ığüşöç İĞÜŞÖÇ ₺1.234,50</span></span><span class="nm">'+f[1]+'</span><span class="ds">'+f[2]+'</span>');
+  }).join(""));
+  h += step(8,"Rakam yazı tipi","Büyük tutarlar ve bakiyeler. Finans uygulamasında en çok okunan şey rakam.","opts narrow", NUMF.map(function(f){
+    const fam = f[0]==="ayni" ? st.ui : f[0];
+    return pick("nf",f[0],'<span class="numbox" style="font-family:'+ff(fam)+';font-weight:'+(f[0]==="DM Mono"?500:700)+'">₺12.480,50</span><span class="nm">'+f[1]+'</span><span class="ds">'+f[2]+'</span>');
+  }).join(""));
+  h += step(9,"Arayüz karakteri","Kartların ve yüzeylerin genel havası.","opts", KAR.map(function(x){
+    return pick("kr",x[0],miniPhone("kr",x[0])+'<span class="nm">'+x[1]+'</span><span class="ds">'+x[2]+'</span>');
+  }).join(""));
+  h += step(10,"Ana ekran düzeni","Uygulamayı açınca ilk görülen şey.","opts", LAY.map(function(x){
+    return pick("ly",x[0],miniPhone("ly",x[0])+'<span class="nm">'+x[1]+'</span><span class="ds">'+x[2]+'</span>');
+  }).join(""));
+  h += step(11,"Alt bar","Sekmeler arası geçiş ayrıca sağa sola kaydırmayla da yapılacak.","opts", NAV.map(function(x){
+    return pick("nv",x[0],miniPhone("nv",x[0])+'<span class="nm">'+x[1]+'</span><span class="ds">'+x[2]+'</span>');
+  }).join(""));
+  h += '<div class="step"><h3>Önizleme</h3><div class="preview">'
+    + '<div class="tile t-icon"><span class="cap">İkon, küçük boyutlar, Android yuvarlak</span><div class="mid">'+FB.appIcon(st,140)+'<span class="sizes">'+FB.appIcon(st,60)+FB.appIcon(st,40)+FB.appIcon(st,29)+'</span><span class="homes"><span>'+FB.appIcon(st,60).replace('rx="22.5"','rx="0"').replace('rx="22.5"','rx="0"')+'</span></span></div></div>'
+    + '<div class="tile t-light" style="background:'+p.surf+';color:'+p.ink+';border-color:rgba(0,0,0,.08)"><span class="cap">Yatay logo, gündüz</span><div class="mid">'+lockup(st,false,false,44)+'</div></div>'
+    + '<div class="tile t-stack" style="background:#FFFFFF;color:'+p.ink+';border-color:rgba(0,0,0,.08)"><span class="cap">Dikey logo ve yalnız simge</span><div class="mid">'+lockup(st,false,true,28)+FB.bare(st,false,null,92)+'</div></div>'
+    + '<div class="tile t-dark" style="background:'+p.dbg+';color:#F5F7F6;border-color:'+p.dline+'"><span class="cap">Yatay logo, gece</span><div class="mid">'+lockup(st,true,false,44)+'</div></div>'
+    + '<div class="tile t-phones"><span class="cap">Uygulama içinde</span><div class="phones">'
+    + '<div><div class="ph splash" style="'+phoneVars(st,false)+'">'+lockup(st,false,true,23)+'</div><div class="phcap">Açılış, gündüz</div></div>'
+    + phoneHome(st,false) + phoneHome(st,true)
+    + '<div><div class="ph splash" style="'+phoneVars(st,true)+'">'+lockup(st,true,true,23)+'</div><div class="phcap">Açılış, gece</div></div>'
+    + '</div></div></div></div>';
+  document.getElementById("app").innerHTML = h;
+}
+function nm(list,v){ const x = find(list,v); return x.nm || x[1]; }
+function summary(){
+  const st = S;
+  document.getElementById("summary").textContent = "FINTEL 1. TUR: logo "+st.c+" ("+nm(CONCEPTS,st.c)+"), tema "+PAL[st.pal].name+", ikon "+nm(BGS,st.bg)
+    + ", isim "+st.lk+" ("+nm(LOCKS,st.lk)+"), isim rengi "+nm(WMS,st.wm)+", slogan "+nm(TAGS,st.tg)
+    + ", yazı tipi "+nm(UIF,st.ui)+", rakam "+nm(NUMF,st.nf)+", karakter "+nm(KAR,st.kr)+", ana ekran "+nm(LAY,st.ly)+", alt bar "+nm(NAV,st.nv);
+}
+document.addEventListener("click",function(e){
+  const b = e.target.closest("button.pick"); if(!b) return;
+  const k = b.dataset.k, v = b.dataset.v;
+  S[k] = v; render(); summary();
+  const again = document.querySelector('button.pick[data-k="'+k+'"][data-v="'+v+'"]');
+  if(again) again.focus({preventScroll:true});
+});
+document.getElementById("copy").addEventListener("click",function(){
+  const btn = this, txt = document.getElementById("summary").textContent;
+  const done = function(ok){ btn.textContent = ok ? "Kopyalandı" : "Metni elle seçip kopyala"; setTimeout(function(){ btn.textContent = "Seçimi kopyala"; },2000); };
+  try{ navigator.clipboard.writeText(txt).then(function(){done(true);},function(){done(false);}); }catch(err){ done(false); }
+});
+render(); summary();
+</script>
+</body>
+</html>

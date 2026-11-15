@@ -1,0 +1,74 @@
+/* Fintel tema değişkenleri. Tek kaynak: uygulama, sayfalar ve mağaza görselleri buradan okur.
+   Kurallar: brand/README.md. Değer değişirse tokens.json da güncellenir. */
+:root {
+  /* Zeminler */
+  --f-bg: #F6F5F1;
+  --f-surface: #FFFFFF;
+  --f-surface-2: #ECE9E1;
+  --f-line: rgba(17, 24, 48, 0.10);
+
+  /* Yazı */
+  --f-text: #111830;
+  --f-text-2: #4A5270;
+  --f-text-3: #636A82;
+
+  /* Marka */
+  --f-accent: #1B2A52;          /* düğme, seçili sekme, ilerleme */
+  --f-on-accent: #FFFFFF;
+  --f-copper: #D08B3E;          /* yalnız süs ve dolgu: nokta, çubuk, ekle düğmesi */
+  --f-copper-text: #8F5716;     /* bakır tonunda yazı gerekiyorsa */
+  --f-on-copper: #111830;
+
+  /* Anlam renkleri: her temada sabit, marka rengiyle karışmaz */
+  --f-income: #0F7553;
+  --f-expense: #C53A25;
+  --f-warn: #8F5716;
+
+  /* Cam yüzey */
+  --f-glass: rgba(255, 255, 255, 0.60);
+  --f-glass-line: rgba(255, 255, 255, 0.90);
+  --f-glow-1: #E6E3DA;
+  --f-glow-2: rgba(208, 139, 62, 0.20);
+
+  /* Biçim */
+  --f-radius-card: 20px;
+  --f-radius-control: 14px;
+  --f-radius-pill: 999px;
+  --f-space: 4px;               /* boşluk ızgarası: 4, 8, 12, 16, 20, 24, 32 */
+
+  /* Yazı tipleri */
+  --f-font-ui: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-font-num: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Hareket */
+  --f-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --f-dur-fast: 160ms;
+  --f-dur: 260ms;
+  --f-dur-slow: 420ms;
+}
+
+:root[data-theme="dark"] {
+  --f-bg: #0A0E1C;
+  --f-surface: #131A2E;
+  --f-surface-2: #1B243D;
+  --f-line: #25304C;
+
+  --f-text: #F5F7F6;
+  --f-text-2: #A9B1C7;
+  --f-text-3: #8791AB;
+
+  --f-accent: #E3A862;          /* gece modunda vurgu bakıra döner */
+  --f-on-accent: #0A0E1C;
+  --f-copper: #E3A862;
+  --f-copper-text: #E3A862;
+  --f-on-copper: #0A0E1C;
+
+  --f-income: #4FD6A2;
+  --f-expense: #FF7A66;
+  --f-warn: #F0C28C;
+
+  --f-glass: rgba(255, 255, 255, 0.07);
+  --f-glass-line: rgba(255, 255, 255, 0.14);
+  --f-glow-1: #0F1834;
+  --f-glow-2: rgba(227, 168, 98, 0.14);
+}
