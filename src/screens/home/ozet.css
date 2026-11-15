@@ -1,0 +1,11 @@
+/* P5: Özet ve Takvim hareketleri. Yalnız transform ve opacity. */
+@keyframes f-dagilim-giris {
+  from {
+    opacity: 0;
+    transform: rotate(-40deg) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
