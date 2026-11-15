@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { _resetBack, goBack, pushBackLayer, setBackFallback } from "./back";
-import { keyboardOverlap } from "./layout";
+import { keyboardOverlap, webKeyboardInset } from "./layout";
 
 describe("geri yolu", () => {
   beforeEach(() => _resetBack());
@@ -62,5 +62,18 @@ describe("klavye payı", () => {
   });
   it("az küçülmede kalan pay", () => {
     expect(keyboardOverlap(800, 760, 300)).toBe(260);
+  });
+});
+
+describe("web klavye payı", () => {
+  it("görsel görünüm kısalınca pay kısalma kadardır", () => {
+    expect(webKeyboardInset(844, 508, 0)).toBe(336);
+  });
+  it("sayfa klavye için yukarı kaydıysa kayma düşülür", () => {
+    expect(webKeyboardInset(844, 508, 120)).toBe(216);
+  });
+  it("adres çubuğu kadar küçük fark klavye sayılmaz", () => {
+    expect(webKeyboardInset(844, 780, 0)).toBe(0);
+    expect(webKeyboardInset(844, 844, 0)).toBe(0);
   });
 });

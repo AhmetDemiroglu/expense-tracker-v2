@@ -97,7 +97,7 @@ export function SwipeRow({ onDelete, onEdit, deleteLabel, editLabel, disabled = 
   const fire = (kind: "delete" | "edit") => {
     settle("closed");
     if (kind === "delete") {
-      haptic.warning();
+      /* Titreşimi silmeyi yapan ekran verir (onaydan ya da silmeden sonra): burada verilirse iki kez titrer. */
       onDelete?.();
     } else {
       haptic.light();

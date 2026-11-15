@@ -14,6 +14,18 @@ export function keyboardOverlap(full: number, now: number, kb: number): number {
   return Math.max(0, kb - resizedBy);
 }
 
+/** Web'de (iOS Safari, Android Chrome) klavye payı: görsel görünümün alttan kısaldığı miktar. Küçük farklar klavye sayılmaz
+    (adres çubuğunun açılıp kapanması). */
+export function webKeyboardInset(innerHeight: number, viewHeight: number, viewOffsetTop: number): number {
+  const inset = Math.round(innerHeight - viewHeight - viewOffsetTop);
+  return inset > 120 ? inset : 0;
+}
+
+const textFocused = (): boolean => {
+  const el = document.activeElement;
+  return el instanceof HTMLElement && (/^(INPUT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
+};
+
 let keyboardOpen = false;
 const listeners = new Set<() => void>();
 function setKeyboardOpen(v: boolean): void {
@@ -78,9 +90,29 @@ export function initLayout(): void {
     }
     apply();
   };
+  if (!isNative) {
+    /* Web: klavye olayı yok, görsel görünümden okunur. iOS Safari klavye açılınca sayfayı küçültmez, üstüne bindirir
+       ve odaktaki alanı göstermek için sayfayı kaydırır: alan kapanınca kayma geri alınır (sabit kabuk yerinden oynamasın). */
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const sync = () => {
+      const inset = textFocused() ? webKeyboardInset(window.innerHeight, vv.height, vv.offsetTop) : 0;
+      setVar("--kb-h", inset);
+      setKeyboardOpen(inset > 0);
+    };
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    document.addEventListener("focusin", () => setTimeout(sync, 300));
+    document.addEventListener("focusout", () =>
+      setTimeout(() => {
+        sync();
+        if (!textFocused() && (window.scrollY !== 0 || vv.offsetTop !== 0)) window.scrollTo(0, 0);
+      }, 120),
+    );
+    return;
+  }
   window.addEventListener("resize", onResize);
   window.visualViewport?.addEventListener("resize", onResize);
-  if (!isNative) return;
   const show = (info: { keyboardHeight: number }) => {
     kb = info?.keyboardHeight || 0;
     apply();

@@ -1,6 +1,7 @@
 /* Fintel simgesi (Lira F), satır içi SVG. Kaynak çizim: brand/logo/svg/mark-*.svg (geometri birebir).
    Kural: gövde ve üst kol tek renk, alt kol ikinci renk ve gövdenin önünden geçer. */
 import { useId } from "react";
+import { GAP_CLIP } from "./gap";
 
 const PALETTE = {
   light: { a: "#27396D", b: "#0F1834", arm: "#D08B3E" },
@@ -37,14 +38,21 @@ export function LogoMark({ size = 32, tone, animate = false, className, title }:
           <stop offset="0" stopColor={c.a} />
           <stop offset="1" stopColor={c.b} />
         </linearGradient>
-        <mask id={mask} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-          <rect width="100" height="100" fill="#fff" />
-          <g transform="rotate(-19.112 24 60)">
-            <rect className="f-logo-part f-logo-arm2" x="15.1" y="51.1" width="63.308" height="17.8" rx="8.9" fill="#000" />
-          </g>
-        </mask>
+        {animate ? (
+          <mask id={mask} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+            <rect width="100" height="100" fill="#fff" />
+            <g transform="rotate(-19.112 24 60)">
+              <rect className="f-logo-part f-logo-arm2" x="15.1" y="51.1" width="63.308" height="17.8" rx="8.9" fill="#000" />
+            </g>
+          </mask>
+        ) : (
+          /* Durağan simgede maske yerine kırpma yolu: WebKit (iOS) maskeyi düşük çözünürlükte işleyip simgeyi bulandırıyor. */
+          <clipPath id={mask}>
+            <path transform="rotate(-19.112 24 60)" clipRule="evenodd" d={GAP_CLIP} />
+          </clipPath>
+        )}
       </defs>
-      <g mask={`url(#${mask})`}>
+      <g mask={animate ? `url(#${mask})` : undefined} clipPath={animate ? undefined : `url(#${mask})`}>
         <g transform="rotate(90 41 16)">
           <rect className="f-logo-part f-logo-stem" x="34.5" y="9.5" width="81" height="13" rx="6.5" fill={`url(#${grad})`} />
         </g>

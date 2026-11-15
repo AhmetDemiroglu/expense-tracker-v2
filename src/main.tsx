@@ -11,6 +11,12 @@ applyTheme();
 watchSystemTheme();
 initLayout();
 
+/* Native his: uzun basınca tarayıcı menüsü ve iki parmakla yakınlaştırma yok (yazı alanları ve seçilebilir metin hariç). */
+window.addEventListener("contextmenu", (e) => {
+  if (!(e.target as Element | null)?.closest?.("input, textarea, [contenteditable], .selectable")) e.preventDefault();
+});
+window.addEventListener("gesturestart", (e) => e.preventDefault());
+
 const root = document.getElementById("root");
 if (!root) throw new Error("#root bulunamadı");
 

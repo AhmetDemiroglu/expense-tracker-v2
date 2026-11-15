@@ -34,5 +34,17 @@ export function initBackButton(): void {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") goBack();
     });
+    /* Web: tarayıcının geri tuşu ve geri jesti (Android sistem jesti, iOS Safari kenar kaydırması) siteyi terk etmek yerine
+       uygulamada geri gider. Geçmişe tek bir nöbetçi kayıt konur; geri gelince goBack() çalışır ve nöbetçi yeniden konur.
+       Yapılacak bir şey kalmadıysa (ilk sekme, açık katman yok) tarayıcının kendi geri davranışına bırakılır. */
+    try {
+      history.pushState({ fintel: 1 }, "");
+      window.addEventListener("popstate", () => {
+        if (goBack()) history.pushState({ fintel: 1 }, "");
+        else history.back();
+      });
+    } catch {
+      /* geçmişe yazılamıyorsa (gömülü çerçeve) yoksay */
+    }
   }
 }

@@ -1,24 +1,27 @@
 /* Fintel logosu. Varyantlar brand/logo/svg dosyalarından gelir, temaya göre açık ya da koyu sürüm seçilir.
    40 px altı yükseklikte yatay logo kullanılır (brand/README). */
 import { useTheme } from "@/ui/useTheme";
-import hLight from "../../brand/logo/svg/lockup-h-light.svg";
-import hDark from "../../brand/logo/svg/lockup-h-dark.svg";
-import vLight from "../../brand/logo/svg/lockup-v-light.svg";
-import vDark from "../../brand/logo/svg/lockup-v-dark.svg";
-import hsLight from "../../brand/logo/svg/lockup-h-slogan-light.svg";
-import hsDark from "../../brand/logo/svg/lockup-h-slogan-dark.svg";
-import vsLight from "../../brand/logo/svg/lockup-v-slogan-light.svg";
-import vsDark from "../../brand/logo/svg/lockup-v-slogan-dark.svg";
+import hLight from "../../brand/logo/svg/lockup-h-light.svg?raw";
+import hDark from "../../brand/logo/svg/lockup-h-dark.svg?raw";
+import vLight from "../../brand/logo/svg/lockup-v-light.svg?raw";
+import vDark from "../../brand/logo/svg/lockup-v-dark.svg?raw";
+import hsLight from "../../brand/logo/svg/lockup-h-slogan-light.svg?raw";
+import hsDark from "../../brand/logo/svg/lockup-h-slogan-dark.svg?raw";
+import vsLight from "../../brand/logo/svg/lockup-v-slogan-light.svg?raw";
+import vsDark from "../../brand/logo/svg/lockup-v-slogan-dark.svg?raw";
+import { sharpen, svgDataUri } from "./gap";
 import { LogoMark } from "./LogoMark";
 
 type Variant = "mark" | "horizontal" | "vertical" | "slogan" | "vertical-slogan";
 
 /* [açık, koyu, en / boy] */
+/* SVG metni olarak alınır, maske kırpma yoluna çevrilir (WebKit'te bulanık çizilmesin), veri adresi olarak <img>'e verilir. */
+const uri = (raw: string) => svgDataUri(sharpen(raw));
 const FILES: Record<Exclude<Variant, "mark">, readonly [string, string, number]> = {
-  horizontal: [hLight, hDark, 368.4 / 158],
-  vertical: [vLight, vDark, 240.9 / 321.3],
-  slogan: [hsLight, hsDark, 439.66 / 158],
-  "vertical-slogan": [vsLight, vsDark, 310.16 / 370.74],
+  horizontal: [uri(hLight), uri(hDark), 368.4 / 158],
+  vertical: [uri(vLight), uri(vDark), 240.9 / 321.3],
+  slogan: [uri(hsLight), uri(hsDark), 439.66 / 158],
+  "vertical-slogan": [uri(vsLight), uri(vsDark), 310.16 / 370.74],
 };
 
 export interface LogoProps {

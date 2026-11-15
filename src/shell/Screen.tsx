@@ -43,7 +43,7 @@ export function Screen({ title, right, scroll = true, onRefresh, footer, onBack,
           {children}
         </PullToRefresh>
       ) : (
-        <div className={cn("min-h-0 flex-1", scroll && "scroll-y", pad)}>{children}</div>
+        <div className={cn("min-h-0 flex-1", scroll ? "scroll-y" : "f-fit", pad)}>{children}</div>
       )}
       {footer ? <div className="shrink-0 px-(--page-x) pt-3 pb-[max(calc(var(--safe-bottom)+16px),calc(var(--kb-h)+12px))]">{footer}</div> : null}
     </div>

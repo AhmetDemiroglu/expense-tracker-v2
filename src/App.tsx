@@ -2,7 +2,7 @@
    (src/screens/<klasör>/kayit.tsx, `export const kayit: ScreenKayit`), burası hepsini toplar. */
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Splash } from "@/brand";
-import { AppShell, buildRegistry, type ScreenKayit } from "@/shell";
+import { AppShell, buildRegistry, nav, sheets, type ScreenKayit } from "@/shell";
 import { UiHost, tourHazir } from "@/ui";
 
 const modules = import.meta.glob<{ kayit?: ScreenKayit }>("./screens/*/kayit.tsx", { eager: true });
@@ -19,6 +19,9 @@ const ready = Promise.all(registry.ready.map((fn) => fn().catch(() => {})));
 /* Vitrin yalnız geliştirmede: http://localhost:5173/?vitrin. Yayın paketine girmez. */
 const Vitrin = import.meta.env.DEV ? lazy(() => import("./ui/Vitrin")) : null;
 const showVitrin = import.meta.env.DEV && new URLSearchParams(window.location.search).has("vitrin");
+
+/* Ölçüm betikleri için (yalnız geliştirme): window.__fintel.nav.push("donemler"), window.__fintel.sheets.open("kayit-ekle"). */
+if (import.meta.env.DEV) (window as unknown as { __fintel?: unknown }).__fintel = { nav, sheets };
 
 /* Olay izi yalnız geliştirmede: adrese ?iz ekle. */
 const Iz = import.meta.env.DEV && new URLSearchParams(window.location.search).has("iz") ? lazy(() => import("./ui/Iz")) : null;

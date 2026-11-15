@@ -26,7 +26,7 @@ export function TabPage({ header, scroll = false, onRefresh, children, className
       ) : scroll ? (
         <div className={cn("scroll-y flex min-h-0 flex-1 flex-col gap-3", PAD, className)}>{children}</div>
       ) : (
-        <div className={cn("flex min-h-0 flex-1 flex-col gap-3", PAD, className)}>{children}</div>
+        <div className={cn("f-fit flex min-h-0 flex-1 flex-col gap-3", PAD, className)}>{children}</div>
       )}
     </div>
   );

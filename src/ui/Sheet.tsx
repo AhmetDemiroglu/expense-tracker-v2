@@ -114,7 +114,7 @@ export function Sheet({ open, onClose, title, subtitle, size = "auto", expandabl
   const height = size === "full" || multi ? FULL : size === "half" ? `min(${HALF}, ${FULL})` : undefined;
 
   return createPortal(
-    <div className="fixed inset-0" style={{ zIndex: "var(--z-sheet)" }} role="dialog" aria-modal="true" aria-label={title}>
+    <div className="f-clip fixed inset-0" style={{ zIndex: "var(--z-sheet)" }} role="dialog" aria-modal="true" aria-label={title}>
       <div className="f-scrim" data-show={shown} onClick={() => dismissible && onClose()} />
       <div
         ref={panel}

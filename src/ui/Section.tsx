@@ -55,7 +55,7 @@ export interface SectionProps {
   variant?: "glass" | "solid";
   /** İçerik boşluğu. none: liste satırları kenara kadar uzanır. */
   pad?: "none" | "md";
-  /** İçerik kendi içinde kayar (tek ekrana sığan sekmede esneyen bölüm). */
+  /** İçerik kendi içinde kayar (tek ekrana sığan sekmede esneyen bölüm). En az bir satır görünür kalır (min 112 px). */
   scroll?: boolean;
   children: ReactNode;
   className?: string;
@@ -65,7 +65,7 @@ export interface SectionProps {
 /** Başlıklı kart. Bölüm başlığı, liste, boş durum ve düğme grupları bunun içinde durur. */
 export function Section({ title, right, variant = "solid", pad = "md", scroll = false, children, className, contentClassName, ...rest }: SectionProps & { "data-tour"?: string }) {
   return (
-    <Card variant={variant} pad="none" className={cn("flex flex-col", scroll ? "min-h-0 overflow-hidden" : "shrink-0", className)} {...rest}>
+    <Card variant={variant} pad="none" className={cn("flex flex-col", scroll ? "min-h-28 shrink overflow-hidden" : "shrink-0", className)} {...rest}>
       {title || right ? (
         <div className="flex min-h-11 shrink-0 items-center justify-between gap-3 px-4 pt-2">
           {title ? <SectionLabel>{title}</SectionLabel> : <span />}
