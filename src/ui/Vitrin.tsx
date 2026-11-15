@@ -340,6 +340,16 @@ function ParcalarEkrani(_: ScreenProps) {
       <Bolum ad="Tutar">
         <Card variant="solid" className="flex flex-col gap-2">
           <Amount value={deger} size="hero" animate />
+          <div className="flex flex-wrap items-center gap-4" data-tutar="">
+            <Amount value={1248050} size="lg" />
+            <Amount value={1248050} size="md" />
+            <Amount value={1248050} size="sm" />
+          </div>
+          <div className="flex flex-col items-end gap-0.5 rounded-control bg-surface-2 p-3">
+            <Amount value={1248050} size="sm" kind="expense" />
+            <Amount value={64250} size="sm" kind="expense" />
+            <Amount value={5800000} size="sm" kind="income" />
+          </div>
           <div className="flex flex-wrap items-center gap-4">
             <Amount value={64250} kind="expense" />
             <Amount value={5800000} kind="income" />
