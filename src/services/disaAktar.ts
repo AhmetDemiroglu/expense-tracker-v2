@@ -1,8 +1,10 @@
 // CSV dışa aktarma: Türkçe başlık, ";" ayraç, UTF-8 BOM, CRLF (Excel TR'de doğru açılır).
-// Native: @capacitor/filesystem + @capacitor/share (paket kurulunca çalışır, registerPlugin ile çağrılır).
-// Eklenti yoksa: Web Share (dosyalı), o da yoksa indirme.
+// Native: @capacitor/filesystem ile önbelleğe yazılır, @capacitor/share ile paylaşılır.
+// Web: Web Share (dosyalı), yoksa indirme.
 
-import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Encoding, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import {
   categoryLabel,
   formatAmountInput,
@@ -51,16 +53,6 @@ export function csvDosyaAdi(bugun: LocalDate): string {
   return `fintel-kayitlar-${bugun}.csv`;
 }
 
-interface FilesystemEklentisi {
-  writeFile(o: { path: string; data: string; directory: string; encoding: string }): Promise<{ uri: string }>;
-}
-interface ShareEklentisi {
-  share(o: { title?: string; text?: string; url?: string; files?: string[]; dialogTitle?: string }): Promise<unknown>;
-}
-
-const Filesystem = registerPlugin<FilesystemEklentisi>("Filesystem");
-const Share = registerPlugin<ShareEklentisi>("Share");
-
 function iptalMi(e: unknown): boolean {
   const m = typeof e === "object" && e !== null && "message" in e ? String((e as { message: unknown }).message) : "";
   const n = typeof e === "object" && e !== null && "name" in e ? String((e as { name: unknown }).name) : "";
@@ -74,14 +66,10 @@ export async function islemleriDisaAktar(
   const icerik = islemlerCsv(islemler);
   const ad = csvDosyaAdi(bugun);
   try {
-    if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("Filesystem") && Capacitor.isPluginAvailable("Share")) {
-      const { uri } = await Filesystem.writeFile({ path: ad, data: icerik, directory: "CACHE", encoding: "utf8" });
+    if (Capacitor.isNativePlatform()) {
+      const { uri } = await Filesystem.writeFile({ path: ad, data: icerik, directory: Directory.Cache, encoding: Encoding.UTF8 });
       await Share.share({ title: "Fintel kayıtları", files: [uri], dialogTitle: "Kayıtları paylaş" });
       return "paylasildi";
-    }
-    if (Capacitor.isNativePlatform()) {
-      // Android WebView indirme bağlantısını işlemez: eklenti yoksa sessizce "indirildi" denmez.
-      throw new UygulamaHatasi("SAGLAYICI_YOK", { mesaj: "Dışa aktarma bu cihazda henüz kullanılamıyor." });
     }
     const dosya = new File([icerik], ad, { type: "text/csv;charset=utf-8" });
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [dosya] })) {
