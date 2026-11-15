@@ -96,6 +96,9 @@ function misafirKullanici(guestId: string): Kullanici {
   };
 }
 
+/** Hesapla girmeden önce açık olan misafir (aktarım önerisinde önce o gelir) */
+const SON_MISAFIR_ANAHTARI = "fintel_son_misafir";
+
 let basladi = false;
 let sonHesapUid: string | null = null;
 
@@ -114,8 +117,10 @@ export const useOturum = create<OturumStore>((set, get) => {
 
   function hesabiAc(u: User): void {
     const k = kullaniciFrom(u);
-    // Hesapla girildi: misafir kimliği bırakılır (veri cihazda kalır, aktarım önerisi için).
+    // Hesapla girildi: misafir kimliği bırakılır (veri cihazda kalır, aktarım önerisi için en son misafir hatırlanır).
     try {
+      const g = kayitliMisafir(cihazDeposu());
+      if (g) cihazDeposu().setItem(SON_MISAFIR_ANAHTARI, g);
       cihazDeposu().removeItem(ACTIVE_GUEST_KEY);
     } catch {
       // yok say
@@ -221,7 +226,7 @@ export const useOturum = create<OturumStore>((set, get) => {
 
     aktarilabilirMisafir() {
       if (get().durum !== "hesap") return null;
-      return aktarilabilirMisafirBul(cihazDeposu());
+      return aktarilabilirMisafirBul(cihazDeposu(), cihazDeposu().getItem(SON_MISAFIR_ANAHTARI));
     },
 
     misafirdenAktar: (guestId) =>

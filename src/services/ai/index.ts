@@ -32,8 +32,9 @@ export { finansBaglamiKur } from "./baglam";
 /** Sunucuya giden sohbet geçmişi sınırı (sunucu da son 12'yi alır). */
 export const SUNUCU_MESAJ_SINIRI = 12;
 
+/** Yalnız geliştirme derlemesinde (vite dev). Yayın paketinde bayrak olsa da sahte yanıt dönmez. */
 export function sahteMi(): boolean {
-  return import.meta.env.VITE_AI_SAHTE === "1";
+  return import.meta.env.DEV && import.meta.env.VITE_AI_SAHTE === "1";
 }
 
 /** Misafirde AI kapalı (Firebase oturumu yok, sunucu AUTH_REQUIRED döner). Ekran çağırmadan düğmeyi kilitler. */

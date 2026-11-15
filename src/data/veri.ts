@@ -416,8 +416,10 @@ export async function duzenliOdemeleriIsle(): Promise<number> {
     // Kimlikler deterministik: hata olursa bir sonraki açılışta yeniden denenir, çift kayıt olmaz.
     // Hesaplı kullanıcıda sunucu onayı beklenmez (çevrimdışı asılı kalmasın).
     const p = repo.duzenliUret(create, update).catch((e: unknown) => {
-      sonUretim = "";
-      if (aktifRepo === repo) useVeri.setState({ sonYazimHatasi: veriHatasinaCevir(e) });
+      const h = veriHatasinaCevir(e);
+      // Yalnız ağ hatasında yeniden denenir; kalıcı ret (izin, geçersiz) her pakette tekrar gönderilmez.
+      if (h.kod === "AG_YOK") sonUretim = "";
+      if (aktifRepo === repo) useVeri.setState({ sonYazimHatasi: h });
     });
     if (repo.tur === "yerel") await p;
     return create.length;

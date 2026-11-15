@@ -79,6 +79,10 @@ export async function islemleriDisaAktar(
       await Share.share({ title: "Fintel kayıtları", files: [uri], dialogTitle: "Kayıtları paylaş" });
       return "paylasildi";
     }
+    if (Capacitor.isNativePlatform()) {
+      // Android WebView indirme bağlantısını işlemez: eklenti yoksa sessizce "indirildi" denmez.
+      throw new UygulamaHatasi("SAGLAYICI_YOK", { mesaj: "Dışa aktarma bu cihazda henüz kullanılamıyor." });
+    }
     const dosya = new File([icerik], ad, { type: "text/csv;charset=utf-8" });
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [dosya] })) {
       await navigator.share({ files: [dosya], title: "Fintel kayıtları" });
@@ -94,6 +98,7 @@ export async function islemleriDisaAktar(
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
     return "indirildi";
   } catch (e) {
+    if (e instanceof UygulamaHatasi) throw e;
     if (iptalMi(e)) return "iptal";
     throw new UygulamaHatasi("BILINMEYEN", { neden: e, mesaj: "Dosya hazırlanamadı. Yeniden dene." });
   }

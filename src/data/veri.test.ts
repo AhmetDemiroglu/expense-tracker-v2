@@ -67,6 +67,24 @@ describe("useVeri: yükleme ve düzenli ödeme üretimi", () => {
   });
 });
 
+describe("useVeri: düzenli ödeme üretiminde kalıcı ret", () => {
+  it("izin reddi bir kez bildirilir, sonraki paketlerde aynı toplu yazım yeniden gönderilmez", async () => {
+    const f = sahteFirestore();
+    f.koy(KOLEKSIYON.duzenli, "r9", { userId: "u1", type: "expense", category: "Abonelikler", amount: 10, description: "Üyelik", frequency: "monthly", startDate: "2026-10-01", nextDueDate: "2026-10-01", isActive: true });
+    f.reddetKalici = { code: "permission-denied" };
+    depoyaBaglan(new FirestoreRepo("u1", f));
+    await hazir();
+    await bekle();
+    expect(useVeri.getState().sonYazimHatasi?.kod).toBe("IZIN_YOK");
+    const cagri = f.cagri;
+    expect(cagri).toBeGreaterThan(0);
+    f.yay();
+    f.yay();
+    await bekle();
+    expect(f.cagri).toBe(cagri);
+  });
+});
+
 describe("useVeri: iyimser güncelleme ve geri alma", () => {
   it("misafir: ekleme hemen görünür, depo doluysa geri alınır ve hata fırlatır", async () => {
     const depo = misafirDeposu();

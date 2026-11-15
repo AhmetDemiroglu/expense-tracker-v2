@@ -13,6 +13,10 @@ export interface SahteFirestore extends FirestorePort {
   cevrimdisi: boolean;
   /** Sonraki toplu yazımı bu hatayla reddet */
   reddet: unknown;
+  /** Doluysa HER toplu yazımı reddet (kalıcı ret) */
+  reddetKalici: unknown;
+  /** toplu() çağrı sayısı (reddedilenler dahil) */
+  cagri: number;
   koy(koleksiyon: string, id: string, veri: Record<string, unknown>): void;
   yay(): void;
 }
@@ -34,6 +38,8 @@ export function sahteFirestore(): SahteFirestore {
     yazimlar: [],
     cevrimdisi: false,
     reddet: null,
+    reddetKalici: null,
+    cagri: 0,
     koy(k, id, v) {
       kol(k).set(id, v);
     },
@@ -64,6 +70,11 @@ export function sahteFirestore(): SahteFirestore {
       return () => dinleyiciler.delete(f);
     },
     async toplu(islemler) {
+      s.cagri += 1;
+      if (s.reddetKalici) {
+        await new Promise((r) => setTimeout(r, 0));
+        throw s.reddetKalici;
+      }
       if (s.reddet) {
         const e = s.reddet;
         s.reddet = null;
