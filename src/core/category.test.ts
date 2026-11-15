@@ -90,6 +90,15 @@ describe("category", () => {
     expect(categoryFromLegacy("kredi_karti", "expense")).toBe("kredi_karti");
     expect(categoryFromLegacy("Kişisel Bakım", "expense")).toBe("kozmetik");
   });
+  it("sunucunun fiş okuma anahtarları (ReceiptCategoryKey) çekirdek anahtarına eşlenir", () => {
+    const sunucu: Record<string, string> = {
+      market: "market", yeme_icme: "yeme_icme", toplu_tasima: "toplu_tasima", arac_yakit: "arac_yakit", kira_aidat: "kira",
+      faturalar: "fatura", giyim: "giyim", kozmetik: "kozmetik", saglik: "saglik", spor: "spor", kuafor: "kuafor",
+      ev_esyasi: "ev_esyasi", tamirat: "tamirat", egitim: "egitim", cocuk: "cocuk", teknoloji: "teknoloji", abonelik: "abonelik",
+      eglence: "eglence", tatil: "tatil", kredi_karti: "kredi_karti", borc_odeme: "borc", vergi: "vergi", diger_gider: "diger",
+    };
+    for (const [from, to] of Object.entries(sunucu)) expect(categoryFromLegacy(from, "expense")).toBe(to);
+  });
   it("görünen adlarda uzun tire ve asistan adı yok", () => {
     for (const c of CATEGORIES) {
       expect(c.label).not.toMatch(/[\u2013\u2014]/);

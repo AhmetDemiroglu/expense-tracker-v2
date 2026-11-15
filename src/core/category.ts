@@ -151,6 +151,11 @@ const ALIASES: ReadonlyArray<readonly [string, CategoryKey]> = [
   ["Kredi Kartı", "kredi_karti"],
   ["Freelance", "ek_is"],
   ["Ek Gelir", "ek_is"],
+  // sunucunun fiş okuma anahtarları (functions/src/kategoriler.ts): çekirdek anahtarından farklı olanlar
+  ["borc_odeme", "borc"],
+  ["kira_aidat", "kira"],
+  ["faturalar", "fatura"],
+  ["diger_gider", "diger"],
 ];
 
 const LEGACY_MAP: Map<string, CategoryKey> = (() => {
