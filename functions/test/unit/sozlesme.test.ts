@@ -22,9 +22,26 @@ describe("istek doğrulama", () => {
     await expectCode(() => parseAiRequest("metin"), "INVALID_REQUEST");
   });
 
-  it("PDF ve izinsiz tür UNSUPPORTED_FILE", async () => {
-    await expectCode(() => parseAiRequest(receipt({ mimeType: "application/pdf", data: JPEG_B64 })), "UNSUPPORTED_FILE");
+  it("izinsiz tür UNSUPPORTED_FILE (gif, heic)", async () => {
     await expectCode(() => parseAiRequest(receipt({ mimeType: "image/gif", data: JPEG_B64 })), "UNSUPPORTED_FILE");
+    await expectCode(() => parseAiRequest(receipt({ mimeType: "image/heic", data: JPEG_B64 })), "UNSUPPORTED_FILE");
+  });
+
+  it("PDF kabul, başı %PDF- değilse UNSUPPORTED_FILE, 4 MB üstü TOO_LARGE", async () => {
+    const pdf = Buffer.from("%PDF-1.7\n%xxxx\n").toString("base64");
+    const r = parseAiRequest({ op: "receipt", file: { mimeType: "application/pdf", data: pdf }, today: "2026-11-15", timeZone: "Europe/Istanbul" });
+    if (r.op !== "receipt") throw new Error();
+    expect(r.file.mimeType).toBe("application/pdf");
+    await expectCode(() => parseAiRequest(receipt({ mimeType: "application/pdf", data: JPEG_B64 })), "UNSUPPORTED_FILE");
+    const big = pdf.slice(0, 12) + "A".repeat(Math.ceil((4.1 * 1024 * 1024 * 4) / 3 / 4) * 4);
+    await expectCode(() => parseAiRequest(receipt({ mimeType: "application/pdf", data: big })), "TOO_LARGE");
+  });
+
+  it("file ve eski image adı: ikisinden yalnız biri", async () => {
+    const img = { mimeType: "image/jpeg", data: JPEG_B64 };
+    expect(parseAiRequest({ op: "receipt", file: img, today: "2026-11-15", timeZone: "Europe/Istanbul" }).op).toBe("receipt");
+    await expectCode(() => parseAiRequest({ op: "receipt", file: img, image: img, today: "2026-11-15", timeZone: "Europe/Istanbul" }), "INVALID_REQUEST");
+    await expectCode(() => parseAiRequest({ op: "receipt", today: "2026-11-15", timeZone: "Europe/Istanbul" }), "INVALID_REQUEST");
   });
 
   it("bildirilen tür ile dosya başı uyuşmazsa UNSUPPORTED_FILE", async () => {

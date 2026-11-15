@@ -1,7 +1,7 @@
 // Gerçek Gemini ile duman testi. Anahtar yoksa atlanır, CI'da çalışmaz.
 // Çalıştırma (anahtar yalnız bu komutun ortamında kalır):
 //   GEMINI_API_KEY=... npm run test:duman
-//   GEMINI_API_KEY=... DUMAN_FIS=/yol/fis.jpg npm run test:duman   (fiş okuma da denenir)
+//   GEMINI_API_KEY=... DUMAN_FIS=/yol/fis.jpg npm run test:duman   (fiş okuma da denenir; .pdf de olur)
 // Amaç: responseJsonSchema ve thinkingLevel alanlarının iki modelde de kabul edildiğini görmek.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -59,7 +59,7 @@ describe.skipIf(!key)("Gemini duman testi", () => {
         throw e;
       });
       console.log(model, r.value.reply);
-      expect(r.value.reply).not.toMatch(/[—–]/);
+      expect(r.value.reply).not.toMatch(/[\u2014\u2013]/);
     }, 90_000);
 
     it.skipIf(!fis)(`${model}: fiş okuma`, async () => {
@@ -69,7 +69,7 @@ describe.skipIf(!key)("Gemini duman testi", () => {
         deps(model),
         {
           systemInstruction: receiptSystemPrompt(),
-          contents: [{ role: "user", parts: [{ inlineData: { mimeType: "image/jpeg", data } }, { text: receiptUserText(today, "Europe/Istanbul") }] }],
+          contents: [{ role: "user", parts: [{ inlineData: { mimeType: fis!.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg", data } }, { text: receiptUserText(today, "Europe/Istanbul") }] }],
           maxOutputTokens: 4096,
           thinking: THINKING_BY_OP.receipt,
           responseJsonSchema: receiptModelSchema as unknown as Record<string, unknown>,

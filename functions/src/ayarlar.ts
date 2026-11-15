@@ -27,6 +27,11 @@ export const ALLOW_ANONYMOUS_AI = false;
 export const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 /** Fiş görseli, base64 çözülmüş haliyle en fazla. */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/** Fiş/fatura PDF'i, base64 çözülmüş haliyle en fazla. */
+export const MAX_PDF_BYTES = 4 * 1024 * 1024;
+/** Uzun PDF'te modele giden sayfalar: ilk N ve son M (toplam çoğu zaman son sayfada). */
+export const PDF_KEEP_FIRST = 2;
+export const PDF_KEEP_LAST = 1;
 /** Sohbette modele giden en fazla mesaj. */
 export const CHAT_HISTORY_LIMIT = 12;
 export const CHAT_MESSAGE_MAX_CHARS = 2000;

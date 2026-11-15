@@ -4,6 +4,7 @@ import {
   CHAT_HISTORY_LIMIT,
   CHAT_MESSAGE_MAX_CHARS,
   MAX_IMAGE_BYTES,
+  MAX_PDF_BYTES,
   MAX_REQUEST_BYTES,
 } from "./ayarlar";
 import { apiError } from "./hatalar";
@@ -51,8 +52,8 @@ const capped = <T extends z.ZodTypeAny>(item: T, max: number) =>
     .max(500)
     .transform((a) => a.slice(0, max));
 
-export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
-export type ImageMimeType = (typeof IMAGE_MIME_TYPES)[number];
+export const FILE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
+export type FileMimeType = (typeof FILE_MIME_TYPES)[number];
 
 /** base64 metninden çözülmüş bayt sayısı. */
 export function base64DecodedBytes(b64: string): number {
@@ -63,7 +64,7 @@ export function base64DecodedBytes(b64: string): number {
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
 /** Dosyanın ilk baytları bildirilen türle uyuşuyor mu. */
-export function sniffImage(bytes: Uint8Array, mimeType: ImageMimeType): boolean {
+export function sniffFile(bytes: Uint8Array, mimeType: FileMimeType): boolean {
   const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to));
   switch (mimeType) {
     case "image/jpeg":
@@ -72,23 +73,26 @@ export function sniffImage(bytes: Uint8Array, mimeType: ImageMimeType): boolean 
       return bytes[0] === 0x89 && ascii(1, 4) === "PNG";
     case "image/webp":
       return ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
-    case "image/heic":
-    case "image/heif":
-      return ascii(4, 8) === "ftyp";
+    case "application/pdf":
+      return ascii(0, 5) === "%PDF-";
   }
 }
 
-const imageSchema = z.object({
+const fileSchema = z.object({
   mimeType: z.string(),
   data: z.string(),
 });
 
-export const receiptRequest = z.object({
-  op: z.literal("receipt"),
-  image: imageSchema,
-  today: localDate,
-  timeZone,
-});
+// `file` asıl alan. `image` ilk sözleşmenin adı, geriye uyum için kabul edilir.
+export const receiptRequest = z
+  .object({
+    op: z.literal("receipt"),
+    file: fileSchema.optional(),
+    image: fileSchema.optional(),
+    today: localDate,
+    timeZone,
+  })
+  .refine((r) => (r.file ? 1 : 0) + (r.image ? 1 : 0) === 1, { path: ["file"] });
 
 const financeContext = z.object({
   userName: shortText(40).optional(),
@@ -171,8 +175,11 @@ export type ReceiptRequest = z.infer<typeof receiptRequest>;
 export type ReportRequest = z.infer<typeof reportRequest>;
 export type ChatRequest = z.infer<typeof chatRequest>;
 
-export type ValidatedReceipt = Omit<ReceiptRequest, "image"> & {
-  image: { mimeType: ImageMimeType; data: string };
+export type ValidatedReceipt = {
+  op: "receipt";
+  file: { mimeType: FileMimeType; data: string };
+  today: string;
+  timeZone: string;
 };
 export type ValidatedRequest = ValidatedReceipt | ReportRequest | ChatRequest;
 
@@ -206,17 +213,18 @@ export function parseAiRequest(raw: unknown): ValidatedRequest {
   }
 
   if (req.op === "receipt") {
-    const { mimeType, data } = req.image;
-    if (!(IMAGE_MIME_TYPES as readonly string[]).includes(mimeType)) {
+    const { mimeType, data } = (req.file ?? req.image)!;
+    if (!(FILE_MIME_TYPES as readonly string[]).includes(mimeType)) {
       throw apiError("UNSUPPORTED_FILE");
     }
     if (data.length === 0 || data.length % 4 !== 0 || !BASE64_RE.test(data)) {
-      throw apiError("INVALID_REQUEST", { fields: ["image.data"] });
+      throw apiError("INVALID_REQUEST", { fields: ["file.data"] });
     }
-    if (base64DecodedBytes(data) > MAX_IMAGE_BYTES) throw apiError("TOO_LARGE");
+    const max = mimeType === "application/pdf" ? MAX_PDF_BYTES : MAX_IMAGE_BYTES;
+    if (base64DecodedBytes(data) > max) throw apiError("TOO_LARGE", { maxBytes: max });
     const head = Buffer.from(data.slice(0, 24), "base64");
-    if (!sniffImage(head, mimeType as ImageMimeType)) throw apiError("UNSUPPORTED_FILE");
-    return { ...req, image: { mimeType: mimeType as ImageMimeType, data } };
+    if (!sniffFile(head, mimeType as FileMimeType)) throw apiError("UNSUPPORTED_FILE");
+    return { op: "receipt", file: { mimeType: mimeType as FileMimeType, data }, today: req.today, timeZone: req.timeZone };
   }
 
   if (req.context.period.start > req.context.period.end) {

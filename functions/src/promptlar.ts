@@ -129,7 +129,7 @@ export function receiptSystemPrompt(): string {
   return `Sen bir Türk alışveriş fişi, fatura ve ödeme dekontu okuma aracısın. Görseldeki bilgileri olduğu gibi çıkarırsın, tahmin etmezsin.
 
 ALANLAR:
-- isReceipt: Görsel bir fiş, fatura ya da ödeme dekontu değilse false. O zaman diğer alanları null, items'ı boş bırak.
+- isReceipt: Görsel ya da belge bir fiş, fatura ya da ödeme dekontu değilse false. O zaman diğer alanları null, items'ı boş bırak.
 - merchant: Fişi KESEN işletmenin adı (ör. "BİM", "Migros", "Shell"). Ürün markası değil. Okunmuyorsa null.
 - date: Fişte açıkça yazan işlem tarihi. Türk fişlerinde tarih genelde GG.AA.YYYY ya da GG/AA/YY biçimindedir, sonucu yyyy-MM-dd yaz. İki haneli yılı 20YY kabul et.
   Fişte tarih YOKSA, okunamıyorsa ya da emin değilsen null yaz. Bugünün tarihini ya da başka bir tarihi ASLA uydurma.
@@ -145,8 +145,18 @@ ${cats}
 ${COMMON_RULES}`;
 }
 
-export function receiptUserText(today: string, timeZone: string): string {
-  return `Kullanıcının bugünkü tarihi ${today} (saat dilimi ${timeZone}). Bu bilgi yalnız iki haneli yılı ve tarih biçimini yorumlamak içindir, fişte tarih yoksa date alanına yazma. Görseldeki fişi oku ve şemaya uygun JSON döndür.`;
+export function receiptUserText(
+  today: string,
+  timeZone: string,
+  pdf?: { pageCount: number; keptPages: number[] },
+): string {
+  const base = `Kullanıcının bugünkü tarihi ${today} (saat dilimi ${timeZone}). Bu bilgi yalnız iki haneli yılı ve tarih biçimini yorumlamak içindir, fişte tarih yoksa date alanına yazma.`;
+  if (!pdf) return `${base} Görseldeki fişi oku ve şemaya uygun JSON döndür.`;
+  const trimmed =
+    pdf.keptPages.length < pdf.pageCount
+      ? ` Belge ${pdf.pageCount} sayfa, yalnız ${pdf.keptPages.join(", ")}. sayfalar gönderildi.`
+      : "";
+  return `${base}${trimmed} Belge bir fatura ya da fiş PDF'i. Çok sayfalı faturada genel toplam ve KDV çoğu zaman son sayfadadır. Kalemleri tüm gönderilen sayfalardan topla. Şemaya uygun JSON döndür.`;
 }
 
 // ---------- Rapor ----------

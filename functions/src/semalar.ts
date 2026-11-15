@@ -35,7 +35,7 @@ function parseJson(text: string): unknown {
 export const receiptModelSchema = {
   type: "object",
   properties: {
-    isReceipt: { type: "boolean", description: "Görsel bir fiş, fatura ya da ödeme dekontu mu." },
+    isReceipt: { type: "boolean", description: "Görsel ya da belge bir fiş, fatura ya da ödeme dekontu mu." },
     merchant: { type: ["string", "null"], description: "Fişi kesen işletmenin adı. Ürün markası değil." },
     date: {
       type: ["string", "null"],

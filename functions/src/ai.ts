@@ -20,6 +20,7 @@ import {
   type ReceiptResult,
   type ReportResult,
 } from "./semalar";
+import { preparePdf } from "./pdf";
 import { parseAiRequest, type ValidatedRequest } from "./sozlesme";
 
 export type Caller = { uid: string; signInProvider?: string } | null;
@@ -43,10 +44,17 @@ export function requireAiCaller(caller: Caller): { uid: string } {
 
 export async function handleAi(caller: Caller, raw: unknown, deps: AiDeps): Promise<AiResponse> {
   const { uid } = requireAiCaller(caller);
-  const req = parseAiRequest(raw);
+  let req = parseAiRequest(raw);
+  // PDF hazırlığı kotadan önce: okunamayan dosya hak yemez.
+  let pdfPages: { pageCount: number; keptPages: number[] } | undefined;
+  if (req.op === "receipt" && req.file.mimeType === "application/pdf") {
+    const pdf = await preparePdf(req.file.data);
+    pdfPages = { pageCount: pdf.pageCount, keptPages: pdf.keptPages };
+    req = { ...req, file: { mimeType: "application/pdf", data: pdf.data } };
+  }
   const usage = await deps.quota.reserve(uid, req.op, deps.now());
   try {
-    return await run(req, usage, deps);
+    return await run(req, usage, deps, pdfPages);
   } catch (e) {
     // Hak yalnız AI'a ulaşılamadıysa iade edilir. AI_BAD_RESPONSE iade edilmez:
     // modeller faturalandı, iade sınırsız tekrar açığı yaratır.
@@ -58,7 +66,12 @@ export async function handleAi(caller: Caller, raw: unknown, deps: AiDeps): Prom
   }
 }
 
-async function run(req: ValidatedRequest, usage: Usage, deps: AiDeps): Promise<AiResponse> {
+async function run(
+  req: ValidatedRequest,
+  usage: Usage,
+  deps: AiDeps,
+  pdfPages?: { pageCount: number; keptPages: number[] },
+): Promise<AiResponse> {
   switch (req.op) {
     case "receipt": {
       const result = await generate(
@@ -69,8 +82,8 @@ async function run(req: ValidatedRequest, usage: Usage, deps: AiDeps): Promise<A
             {
               role: "user",
               parts: [
-                { inlineData: { mimeType: req.image.mimeType, data: req.image.data } },
-                { text: receiptUserText(req.today, req.timeZone) },
+                { inlineData: { mimeType: req.file.mimeType, data: req.file.data } },
+                { text: receiptUserText(req.today, req.timeZone, pdfPages) },
               ],
             },
           ],
