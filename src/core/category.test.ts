@@ -92,7 +92,7 @@ describe("category", () => {
   });
   it("görünen adlarda uzun tire ve asistan adı yok", () => {
     for (const c of CATEGORIES) {
-      expect(c.label).not.toMatch(/[–—]/);
+      expect(c.label).not.toMatch(/[\u2013\u2014]/);
       expect(c.label.length).toBeGreaterThan(0);
       expect(categoryLabel(c.key)).toBe(c.label);
     }

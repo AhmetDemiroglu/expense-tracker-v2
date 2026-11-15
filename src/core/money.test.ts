@@ -143,7 +143,7 @@ describe("money: biçimlendirme", () => {
     expect(formatMoney(Infinity)).toBe("₺0,00");
   });
   it("çıktıda uzun tire yok", () => {
-    for (const k of [-1, -100000, 5, 0]) expect(formatMoney(k)).not.toMatch(/[‒-―−]/);
+    for (const k of [-1, -100000, 5, 0]) expect(formatMoney(k)).not.toMatch(/[\u2012-\u2015\u2212]/);
   });
   it("giriş alanı biçimi", () => {
     expect(formatAmountInput(123456)).toBe("1234,56");

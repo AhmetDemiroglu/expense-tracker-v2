@@ -80,11 +80,11 @@ const fail = (reason: ParseAmountFailure): ParseAmountResult => ({ ok: false, re
  */
 export function parseAmount(text: string): ParseAmountResult {
   if (typeof text !== "string") return fail("invalid");
-  let s = text.toLowerCase().replace(/[\s   ]/g, "");
+  let s = text.toLowerCase().replace(/\s/g, "");
   if (s === "") return fail("empty");
   s = s.replace(/^(₺|tl|try)/, "").replace(/(₺|tl|try|lira)$/, "");
   let negative = false;
-  if (s.startsWith("-") || s.startsWith("−")) {
+  if (s.startsWith("-") || s.startsWith("\u2212")) {
     negative = true;
     s = s.slice(1);
   } else if (s.startsWith("+")) {
