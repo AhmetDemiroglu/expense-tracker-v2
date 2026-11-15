@@ -1,7 +1,4 @@
-plugins {
-    id 'com.android.application'
-    id 'com.google.gms.google-services'
-}
+apply plugin: 'com.android.application'
 
 android {
     namespace "com.fintel.app"
@@ -31,7 +28,9 @@ android {
 }
 
 repositories {
-    
+    flatDir {
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
 }
 
 dependencies {
@@ -50,11 +49,10 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// google-services eklentisi yalnız burada ve yalnız dosya varsa uygulanır (tek uygulama).
+def servicesJSON = file('google-services.json')
+if (servicesJSON.exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.info("google-services.json not found, google-services plugin not applied.")
 }

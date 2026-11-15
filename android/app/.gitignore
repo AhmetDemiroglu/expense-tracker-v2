@@ -1,2 +1,5 @@
 /build/*
 !/build/.npmkeep
+
+# Android Studio imzalı çıktı klasörü (AAB, baseline profilleri)
+/release/
