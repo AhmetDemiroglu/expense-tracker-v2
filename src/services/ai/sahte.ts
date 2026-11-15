@@ -15,8 +15,22 @@ function kullanim(op: keyof typeof SINIR) {
   return { op, used: sayac[op], limit: SINIR[op] };
 }
 
-export async function sahteFis(today: string): Promise<unknown> {
+export async function sahteFis(today: string, pdf = false): Promise<unknown> {
   await bekle(900);
+  if (pdf) {
+    return {
+      isReceipt: true,
+      merchant: "Örnek Elektrik Dağıtım",
+      date: today,
+      total: 84_990,
+      vat: 14_165,
+      categoryKey: "faturalar",
+      items: [{ name: "Elektrik tüketim bedeli", amount: 84_990, quantity: 1 }],
+      confidence: 0.88,
+      model: "sahte",
+      usage: kullanim("receipt"),
+    };
+  }
   return {
     isReceipt: true,
     merchant: "Örnek Market",

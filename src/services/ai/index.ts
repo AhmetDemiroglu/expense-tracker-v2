@@ -79,17 +79,19 @@ export function guncelBaglam(stil?: RaporStili): FinanceContext | null {
   });
 }
 
-export interface GorselGirdisi {
-  mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "image/heif";
+/** Fiş dosyası (kamera servisinin HazirDosya'sı doğrudan verilir). HEIC kabul edilmez: kamera servisi JPEG'e çevirir. */
+export interface FisDosyasi {
+  mimeType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
   /** base64, "data:" öneki YOK */
   data: string;
 }
 
-async function fisOku(g: GorselGirdisi): Promise<FisSonucu> {
+async function fisOku(g: FisDosyasi): Promise<FisSonucu> {
   const today = guncelButce().bugun;
+  // Sözleşme v2: alan adı `file`, PDF doğrudan gönderilir (sunucu okur).
   const ham = sahteMi()
-    ? await sahteFis(today)
-    : await cagir({ op: "receipt", image: { mimeType: g.mimeType, data: g.data }, today, timeZone: saatDilimi() });
+    ? await sahteFis(today, g.mimeType === "application/pdf")
+    : await cagir({ op: "receipt", file: { mimeType: g.mimeType, data: g.data }, today, timeZone: saatDilimi() });
   return fisYanitiOku(ham);
 }
 

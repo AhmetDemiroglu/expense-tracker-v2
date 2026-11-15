@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { categoryBreakdown, computeBudget, effectiveTransactions, type LocalDate, type Period, type Transaction } from "@/core";
 import { finansBaglamiKur } from "./baglam";
 import { aiHatasinaCevir, fisYanitiOku, raporYanitiOku, sohbetYanitiOku } from "./sema";
+import { sahteFis } from "./sahte";
 
 const D = (s: string) => s as LocalDate;
 
@@ -99,5 +100,14 @@ describe("FinanceContext", () => {
     expect(ctx.recent.map((r) => r.description)).toEqual(["Market", "Ek iş"]); // gelecek tarihli yok, " (Otomatik)" eksiz
     expect(ctx.categories[0]).toMatchObject({ key: "market", name: expect.any(String) });
     expect(ctx.style).toBe("short");
+  });
+});
+
+describe("sahte sağlayıcı", () => {
+  it("görsel ve PDF örneği aynı doğrulayıcıdan geçer", async () => {
+    const g = fisYanitiOku(await sahteFis("2026-11-15"));
+    const p = fisYanitiOku(await sahteFis("2026-11-15", true));
+    expect(g).toMatchObject({ fisMi: true, kategori: "market", tarih: "2026-11-15" });
+    expect(p).toMatchObject({ fisMi: true, kategori: "fatura", toplam: 84_990 });
   });
 });

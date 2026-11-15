@@ -31,7 +31,7 @@ export type AiHataKodu =
   | "INVALID_REQUEST"
   | "BOZUK_YANIT";
 
-export type CihazHataKodu = "KAMERA_YOK" | "PDF_DESTEKLENMIYOR" | "GORSEL_BOZUK" | "DOSYA_BUYUK";
+export type CihazHataKodu = "KAMERA_YOK" | "GORSEL_BOZUK" | "DOSYA_BUYUK";
 
 export type HataKodu = VeriHataKodu | GirisHataKodu | AiHataKodu | CihazHataKodu;
 
@@ -57,14 +57,13 @@ const VARSAYILAN_MESAJ: Record<HataKodu, string> = {
   QUOTA_EXCEEDED: "Bugünlük hakkın doldu. Yarın yeniden açılır.",
   AI_UNAVAILABLE: "Nova şu an yanıt veremiyor. Biraz sonra yeniden dene.",
   AI_BAD_RESPONSE: "Okunamadı. Bilgileri elle girebilirsin.",
-  TOO_LARGE: "Görsel çok büyük. Daha yakından ya da daha küçük bir fotoğraf dene.",
-  UNSUPPORTED_FILE: "Bu dosya türü okunamıyor.",
+  TOO_LARGE: "Dosya çok büyük. Daha küçük bir dosya ya da yakından çekilmiş bir fotoğraf dene.",
+  UNSUPPORTED_FILE: "Bu dosya okunamıyor. Fişin fotoğrafını ya da PDF'ini seç.",
   INVALID_REQUEST: "İstek geçersiz. Uygulamayı güncelleyip yeniden dene.",
   BOZUK_YANIT: "Yanıt okunamadı. Yeniden dene.",
   KAMERA_YOK: "Bu cihazda kamera bulunamadı.",
-  PDF_DESTEKLENMIYOR: "PDF okunamıyor. Fişin fotoğrafını çek ya da görsel seç.",
-  GORSEL_BOZUK: "Görsel açılamadı. Başka bir görsel dene.",
-  DOSYA_BUYUK: "Dosya çok büyük. Daha küçük bir görsel seç.",
+  GORSEL_BOZUK: "Görsel açılamadı. Fotoğrafı JPEG olarak seç ya da başka bir görsel dene.",
+  DOSYA_BUYUK: "Dosya çok büyük. PDF en fazla 4 MB, görsel en fazla 5 MB olabilir.",
 };
 
 const TEKRAR_DENENEBILIR: ReadonlySet<HataKodu> = new Set<HataKodu>([

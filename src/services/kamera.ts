@@ -1,15 +1,17 @@
-// Kamera ve dosya seçimi (@capacitor/camera 8 yeni API: takePhoto / chooseFromGallery).
-// Görsel uzun kenarı 1600 px'e küçültülür, JPEG 0,8 (sunucu önerisi, ~300 KB). En fazla 5 MB.
-// PDF: sunucu PDF almıyor, istemcinin görsele çevirmesi pdfjs gerektirir (ISTEKLER'de karar bekliyor):
-// şimdilik PDF seçilirse PDF_DESTEKLENMIYOR.
+// Kamera ve dosya seçimi. Kamera: @capacitor/camera 8 takePhoto. Dosya (görsel ya da PDF): gizli
+// <input type="file"> (Capacitor WebView'da Android ve iOS'ta çalışır, ek eklenti yok).
+// Görsel uzun kenarı 1600 px'e küçültülür, JPEG 0,8 (HEIC de JPEG'e döner: sunucu HEIC almaz). En fazla 5 MB.
+// PDF çevrilmeden gönderilir (sunucu okur, sözleşme v2), en fazla 4 MB.
 
-import { Camera, CameraErrorCode, MediaTypeSelection } from "@capacitor/camera";
+import { Camera, CameraErrorCode } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
 import { UygulamaHatasi } from "@/data/hatalar";
 
 export const UZUN_KENAR = 1600;
 export const JPEG_KALITE = 0.8;
 export const AZAMI_BAYT = 5 * 1024 * 1024;
+/** Sunucu PDF sınırı (çözülmüş) */
+export const AZAMI_PDF_BAYT = 4 * 1024 * 1024;
 /** Küçültmeden önce kabul edilen ham dosya sınırı */
 const HAM_SINIR = 40 * 1024 * 1024;
 
@@ -20,6 +22,41 @@ export interface HazirGorsel {
   /** önizleme için data URL */
   onizleme: string;
   bayt: number;
+}
+
+export interface HazirPdf {
+  mimeType: "application/pdf";
+  data: string;
+  /** PDF'te önizleme yok: ekran dosya adını gösterir */
+  onizleme: null;
+  bayt: number;
+  ad: string;
+}
+
+/** ai.fisOku'ya doğrudan verilir. */
+export type HazirDosya = HazirGorsel | HazirPdf;
+
+/** Dosya başı "%PDF-" mi. Saf (testli). */
+export function pdfMi(bytes: Uint8Array): boolean {
+  return bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d;
+}
+
+/** Bayttan öneksiz base64. Saf (testli). */
+export function bytesBase64(bytes: Uint8Array): string {
+  let ikili = "";
+  const PARCA = 0x8000;
+  for (let i = 0; i < bytes.length; i += PARCA) {
+    ikili += String.fromCharCode(...bytes.subarray(i, i + PARCA));
+  }
+  return btoa(ikili);
+}
+
+/** PDF dosyasını gönderime hazırlar: tür (dosya başı) ve 4 MB sınırı denetlenir. */
+export async function pdfHazirla(dosya: Blob, ad = "belge.pdf"): Promise<HazirPdf> {
+  if (dosya.size > AZAMI_PDF_BAYT) throw new UygulamaHatasi("DOSYA_BUYUK", { mesaj: "PDF en fazla 4 MB olabilir." });
+  const bytes = new Uint8Array(await dosya.arrayBuffer());
+  if (!pdfMi(bytes)) throw new UygulamaHatasi("UNSUPPORTED_FILE");
+  return { mimeType: "application/pdf", data: bytesBase64(bytes), onizleme: null, bayt: bytes.length, ad };
 }
 
 /** Hedef boyut: uzun kenar en fazla `sinir`, oran korunur. Saf (testli). */
@@ -71,7 +108,6 @@ async function gorselYukle(blob: Blob): Promise<ImageBitmap | HTMLImageElement> 
 
 /** Herhangi bir görsel blob'unu küçültülmüş JPEG'e çevirir. */
 export async function gorseliHazirla(blob: Blob): Promise<HazirGorsel> {
-  if (blob.type === "application/pdf") throw new UygulamaHatasi("PDF_DESTEKLENMIYOR");
   if (blob.size > HAM_SINIR) throw new UygulamaHatasi("DOSYA_BUYUK");
   let kaynak: ImageBitmap | HTMLImageElement;
   try {
@@ -110,21 +146,28 @@ async function webYolundanBlob(webPath: string): Promise<Blob> {
   return r.blob();
 }
 
-/** Web: dosya penceresi. Vazgeçilirse null (focus geri gelince anlaşılır). */
+/**
+ * Gizli dosya girişi. iOS WebView'da girişin DOM'da olması gerekir: gizli eklenir, bitince kaldırılır.
+ * Vazgeçme "cancel" olayıyla anlaşılır (olayı desteklemeyen eski WebView'da söz bekler, sonraki seçimde çözülür).
+ */
 function webDosyaSec(accept: string, capture: boolean): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = accept;
+    input.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;opacity:0";
+    input.setAttribute("aria-hidden", "true");
     if (capture) input.setAttribute("capture", "environment");
     let bitti = false;
-    input.onchange = () => {
+    const bitir = (f: File | null): void => {
+      if (bitti) return;
       bitti = true;
-      resolve(input.files?.[0] ?? null);
+      input.remove();
+      resolve(f);
     };
-    input.addEventListener("cancel", () => {
-      if (!bitti) resolve(null);
-    });
+    input.onchange = () => bitir(input.files?.[0] ?? null);
+    input.addEventListener("cancel", () => bitir(null));
+    document.body.appendChild(input);
     input.click();
   });
 }
@@ -153,29 +196,12 @@ export async function fisCek(): Promise<HazirGorsel | null> {
   }
 }
 
-/** Galeriden ya da dosyadan görsel seç. null = vazgeçti. */
-export async function galeridenSec(): Promise<HazirGorsel | null> {
-  if (!Capacitor.isNativePlatform()) {
-    const f = await webDosyaSec("image/*,application/pdf", false);
-    return f ? gorseliHazirla(f) : null;
-  }
-  try {
-    const r = await Camera.chooseFromGallery({
-      mediaType: MediaTypeSelection.Photo,
-      allowMultipleSelection: false,
-      quality: 85,
-      targetWidth: UZUN_KENAR,
-      targetHeight: UZUN_KENAR,
-      correctOrientation: true,
-    });
-    const ilk = r.results[0];
-    if (!ilk) return null;
-    if (!ilk.webPath) throw new UygulamaHatasi("GORSEL_BOZUK");
-    return gorseliHazirla(await webYolundanBlob(ilk.webPath));
-  } catch (e) {
-    if (e instanceof UygulamaHatasi) throw e;
-    const h = kameraHatasi(e);
-    if (!h) return null;
-    throw h;
-  }
+/** Galeriden ya da dosyalardan görsel veya PDF seç (gizli dosya girişi, her platformda). null = vazgeçti. */
+export async function galeridenSec(): Promise<HazirDosya | null> {
+  const f = await webDosyaSec("image/*,application/pdf", false);
+  if (!f) return null;
+  const pdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+  if (pdf) return pdfHazirla(f, f.name || "belge.pdf");
+  if (f.type && !f.type.startsWith("image/")) throw new UygulamaHatasi("UNSUPPORTED_FILE");
+  return gorseliHazirla(f);
 }

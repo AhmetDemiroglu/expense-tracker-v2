@@ -91,3 +91,23 @@ describe("giriş hata eşleme", () => {
     expect(silmeHatasinaCevir({ code: "functions/unavailable" }).kod).toBe("AG_YOK");
   });
 });
+
+describe("PDF fiş dosyası", async () => {
+  const { AZAMI_PDF_BAYT, bytesBase64, pdfHazirla, pdfMi } = await import("./kamera");
+  const pdfBayt = new TextEncoder().encode("%PDF-1.7\n%deneme\n");
+
+  it("dosya başından PDF tanınır, base64 doğru", () => {
+    expect(pdfMi(pdfBayt)).toBe(true);
+    expect(pdfMi(new TextEncoder().encode("<html>"))).toBe(false);
+    expect(bytesBase64(new TextEncoder().encode("Man"))).toBe("TWFu");
+    expect(atob(bytesBase64(pdfBayt))).toBe("%PDF-1.7\n%deneme\n");
+  });
+
+  it("PDF çevrilmeden hazırlanır; tür uyuşmazsa UNSUPPORTED_FILE, 4 MB üstü DOSYA_BUYUK", async () => {
+    const r = await pdfHazirla(new Blob([pdfBayt], { type: "application/pdf" }), "fatura.pdf");
+    expect(r).toMatchObject({ mimeType: "application/pdf", onizleme: null, bayt: pdfBayt.length, ad: "fatura.pdf" });
+    expect(r.data).toBe(bytesBase64(pdfBayt));
+    await expect(pdfHazirla(new Blob(["merhaba"], { type: "application/pdf" }))).rejects.toMatchObject({ kod: "UNSUPPORTED_FILE" });
+    await expect(pdfHazirla(new Blob([new Uint8Array(AZAMI_PDF_BAYT + 1)]))).rejects.toMatchObject({ kod: "DOSYA_BUYUK" });
+  });
+});
