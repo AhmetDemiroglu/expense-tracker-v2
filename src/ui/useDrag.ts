@@ -2,6 +2,7 @@
    Kurallar: yanlış eksene kilitlenen hareket bırakılır; pointercancel bırakma DEĞİL iptaldir (Android sistem geri jesti
    sol kenarı alır, ardından geri tuşu olayı gelir: bırakma sayılırsa çift geri olur). */
 import { useEffect, useRef, type RefObject } from "react";
+import { swallowNextClick } from "./clickGuard";
 import { GESTURE, lockAxis, VelocityTracker, type Axis } from "./gesture";
 
 export interface DragEnd {
@@ -72,15 +73,8 @@ export function useDrag(ref: RefObject<HTMLElement | null>, options: DragOptions
         } catch {
           /* yakalama yoksa */
         }
-        if (!cancelled) {
-          /* Sürükleme bir tıklamayla bitmesin. */
-          const stop = (ev: Event) => {
-            ev.stopPropagation();
-            ev.preventDefault();
-          };
-          window.addEventListener("click", stop, { capture: true, once: true });
-          setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 60);
-        }
+        /* Sürükleme bir tıklamayla bitmesin: yalnız bu hareketin kendi click olayı yutulur (clickGuard). */
+        if (!cancelled) swallowNextClick();
         opts.current.onEnd({ distance: cancelled ? 0 : last, velocity: cancelled ? 0 : tracker.get(), cancelled });
       };
 

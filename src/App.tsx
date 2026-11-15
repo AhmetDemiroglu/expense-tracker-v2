@@ -20,6 +20,14 @@ const ready = Promise.all(registry.ready.map((fn) => fn().catch(() => {})));
 const Vitrin = import.meta.env.DEV ? lazy(() => import("./ui/Vitrin")) : null;
 const showVitrin = import.meta.env.DEV && new URLSearchParams(window.location.search).has("vitrin");
 
+/* Olay izi yalnız geliştirmede: adrese ?iz ekle. */
+const Iz = import.meta.env.DEV && new URLSearchParams(window.location.search).has("iz") ? lazy(() => import("./ui/Iz")) : null;
+const iz = Iz ? (
+  <Suspense fallback={null}>
+    <Iz />
+  </Suspense>
+) : null;
+
 export default function App() {
   const [splash, setSplash] = useState(true);
   useEffect(() => {
@@ -30,6 +38,7 @@ export default function App() {
     return (
       <Suspense fallback={null}>
         <Vitrin />
+        {iz}
       </Suspense>
     );
   }
@@ -44,6 +53,7 @@ export default function App() {
     <>
       {gated}
       <UiHost />
+      {iz}
       {splash ? <Splash
           ready={ready}
           onDone={() => {

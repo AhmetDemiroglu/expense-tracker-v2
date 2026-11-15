@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { tr } from "@/metin";
+import { swallowNextClick } from "./clickGuard";
 import { cn } from "./cn";
 import { rowRest, rubber } from "./gesture";
 import { haptic } from "./haptics";
@@ -154,12 +155,8 @@ export function SwipeRow({ onDelete, onEdit, deleteLabel, editLabel, disabled = 
       long.current = null;
       haptic.medium();
       settle("both");
-      const stop = (ev: Event) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-      };
-      window.addEventListener("click", stop, { capture: true, once: true });
-      setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 700);
+      /* Parmak kalkınca gelecek click yutulur; yeni bir dokunuş bastırmayı siler. */
+      swallowNextClick(10000);
     }, LONG_PRESS);
     const move = (ev: PointerEvent) => {
       if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) done();

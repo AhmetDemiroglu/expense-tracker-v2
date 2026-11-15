@@ -123,6 +123,11 @@
   .scroll-y::-webkit-scrollbar {
     display: none;
   }
+  /* Kaydırma kabının çocukları ASLA büzülmez. Kap çoğu zaman flex kolondur (boşluk için); overflow: hidden taşıyan
+     kartların en küçük yüksekliği 0 sayıldığından liste uzayınca kartlar kaymak yerine eziliyordu (Düzenli ödemeler, 11 kayıt). */
+  .scroll-y > * {
+    flex-shrink: 0;
+  }
   .scroll-x {
     overflow-x: auto;
     overflow-y: hidden;
