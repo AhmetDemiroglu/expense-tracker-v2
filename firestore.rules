@@ -1,0 +1,219 @@
+rules_version = '2';
+
+// Fintel Firestore kuralları. Sözleşme: kaynaklar/havuz/SOZLESMELER.md > "Firestore sözleşmesi".
+// Yayındaki ESKİ sürümün (2.x) yazma biçimi de kabul edilir:
+// - düzenlenmiş dokümanda `id` alanı olabilir,
+// - settings birleştirmesiz (setDoc) yazılır,
+// - işlem kimliği otomatik ya da istemci UUID, yeni sürümde `<recurringId>_<yyyy-MM-dd>`.
+// Bilinmeyen ek alan reddedilmez (eski sürüm bozulmasın), alan sayısı sınırlı. Bilinen alanların türü denetlenir.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Yardımcılar ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function data() {
+      return request.resource.data;
+    }
+
+    function smallDoc() {
+      return data().size() <= 40;
+    }
+
+    // Alan yoksa geçer, varsa koşulu sağlamalı.
+    function optString(f, max) {
+      return !(f in data()) || (data()[f] is string && data()[f].size() <= max);
+    }
+
+    function optNumber(f) {
+      return !(f in data()) || data()[f] is number;
+    }
+
+    function optBool(f) {
+      return !(f in data()) || data()[f] is bool;
+    }
+
+    function isLocalDate(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function optLocalDate(f) {
+      return !(f in data()) || isLocalDate(data()[f]);
+    }
+
+    // TL tutarı: sayı, 0 ile 100 milyar arası. NaN karşılaştırmada düşer.
+    function isAmount(v) {
+      return v is number && v >= 0 && v <= 100000000000;
+    }
+
+    function optAmount(f) {
+      return !(f in data()) || isAmount(data()[f]);
+    }
+
+    function optIntRange(f, lo, hi) {
+      return !(f in data()) || (data()[f] is int && data()[f] >= lo && data()[f] <= hi);
+    }
+
+    function optEnum(f, values) {
+      return !(f in data()) || data()[f] in values;
+    }
+
+    // Eski sürüm `createdAt` alanına sayı (ms) yazar; yeni sürüm sayı ya da sunucu zamanı yazabilir.
+    function optTime(f) {
+      return !(f in data()) || data()[f] is number || data()[f] is timestamp;
+    }
+
+    // Oluşturmada sahip çağıran olmalı.
+    function ownsNew() {
+      return signedIn() && data().userId == uid();
+    }
+
+    // Güncellemede sahip değişmez.
+    function ownsExistingAndKeeps() {
+      return signedIn() && resource.data.userId == uid() && data().userId == resource.data.userId;
+    }
+
+    // Okuma ve silme: mevcut doküman çağıranın.
+    function ownsExisting() {
+      return signedIn() && resource.data.userId == uid();
+    }
+
+    // Doküman içindeki eski `id` alanı varsa metin olmalı.
+    function legacyIdOk() {
+      return optString('id', 128);
+    }
+
+    // ---------- transactions ----------
+
+    function validTransaction(docId) {
+      return smallDoc()
+        && isAmount(data().amount)
+        && data().type in ['income', 'expense']
+        && isLocalDate(data().date)
+        && data().category is string && data().category.size() >= 1 && data().category.size() <= 80
+        && optString('description', 200)
+        && optTime('createdAt')
+        && optTime('updatedAt')
+        && legacyIdOk()
+        && optString('recurringId', 128)
+        && optLocalDate('dueDate')
+        && optString('installmentGroupId', 128)
+        && optIntRange('installmentIndex', 1, 36)
+        && optIntRange('installmentCount', 1, 36)
+        // Kimlik `<x>_<yyyy-MM-dd>` biçimindeyse düzenli ödeme işlemidir: `recurringId` ve `dueDate` kimlikle aynı olmalı.
+        // Otomatik ve UUID kimliklerde alt çizgi + tarih yok, bu koşula girmez.
+        && (!docId.matches('^.+_[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+            || (data().get('recurringId', null) is string
+                && data().get('dueDate', null) is string
+                && docId == data().recurringId + '_' + data().dueDate));
+    }
+
+    match /transactions/{txId} {
+      // Var olmayan dokümanı okumak serbest (deterministik kimlik kontrolü).
+      allow get: if signedIn() && (resource == null || resource.data.userId == uid());
+      // Liste sorgusu `where userId == uid` içermeli.
+      allow list: if ownsExisting();
+      allow create: if ownsNew() && validTransaction(txId);
+      allow update: if ownsExistingAndKeeps() && validTransaction(txId);
+      allow delete: if ownsExisting();
+    }
+
+    // ---------- budget_periods ----------
+
+    function validPeriod() {
+      return smallDoc()
+        && data().name is string && data().name.size() >= 1 && data().name.size() <= 80
+        && isLocalDate(data().startDate)
+        && isLocalDate(data().endDate)
+        && data().startDate <= data().endDate
+        && optAmount('monthlyIncome')
+        && optAmount('fixedExpenses')
+        && optBool('isActive')
+        && optTime('createdAt')
+        && optTime('updatedAt')
+        && legacyIdOk();
+    }
+
+    match /budget_periods/{periodId} {
+      allow get: if signedIn() && (resource == null || resource.data.userId == uid());
+      allow list: if ownsExisting();
+      allow create: if ownsNew() && validPeriod();
+      allow update: if ownsExistingAndKeeps() && validPeriod();
+      allow delete: if ownsExisting();
+    }
+
+    // ---------- recurring_transactions ----------
+
+    function validRecurring() {
+      return smallDoc()
+        && isAmount(data().amount)
+        && data().type in ['income', 'expense']
+        && data().category is string && data().category.size() >= 1 && data().category.size() <= 80
+        && data().frequency in ['weekly', 'monthly', 'yearly']
+        && isLocalDate(data().startDate)
+        && optString('description', 200)
+        && optLocalDate('nextDueDate')
+        && optLocalDate('lastProcessedDate')
+        && optLocalDate('endDate')
+        && optBool('isActive')
+        && optTime('createdAt')
+        && optTime('updatedAt')
+        && legacyIdOk();
+    }
+
+    match /recurring_transactions/{recId} {
+      allow get: if signedIn() && (resource == null || resource.data.userId == uid());
+      allow list: if ownsExisting();
+      allow create: if ownsNew() && validRecurring();
+      allow update: if ownsExistingAndKeeps() && validRecurring();
+      allow delete: if ownsExisting();
+    }
+
+    // ---------- settings/{uid} ----------
+
+    function validSettings(userId) {
+      return smallDoc()
+        && data().userId == userId
+        && optString('periodName', 80)
+        && optLocalDate('periodStartDate')
+        && optLocalDate('periodEndDate')
+        && optAmount('monthlyIncome')
+        && optAmount('fixedExpenses')
+        && optString('currency', 8)
+        && optEnum('financialGoal', ['debt_reduction', 'savings', 'investment', 'stability'])
+        && optEnum('savingsStyle', ['strict', 'balanced', 'relaxed'])
+        && optEnum('riskTolerance', ['low', 'medium', 'high'])
+        && optString('activePeriodId', 128)
+        && optIntRange('payday', 1, 31)
+        && optTime('updatedAt');
+    }
+
+    match /settings/{userId} {
+      // Kimlik yoluyla: ilk girişte doküman yokken de okunabilir.
+      allow get: if signedIn() && uid() == userId;
+      allow list: if false;
+      allow create, update: if signedIn() && uid() == userId && validSettings(userId);
+      allow delete: if signedIn() && uid() == userId;
+    }
+
+    // ---------- ai_usage/{uid}: yalnız sunucu yazar ----------
+
+    match /ai_usage/{userId} {
+      allow get: if signedIn() && uid() == userId;
+      allow list, write: if false;
+    }
+
+    // Diğer her şey kapalı.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
