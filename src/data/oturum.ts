@@ -46,6 +46,10 @@ export interface SilmeSonucu {
   islem: number;
   donem: number;
   duzenli: number;
+  /** Apple ile girmiş kullanıcıda token iptali sonucu */
+  appleIptal: "yapildi" | "basarisiz" | "gerekmedi";
+  /** Doluysa ekran başarı mesajından sonra bunu da gösterir (silme tamamlandı, Apple bağlantısı kaldı) */
+  uyari: string | null;
 }
 
 export interface AktarimSonucu {
@@ -238,11 +242,23 @@ export const useOturum = create<OturumStore>((set, get) => {
           cihazDeposu().removeItem(ACTIVE_GUEST_KEY);
           sohbetiSil(k.uid);
           girissiz();
-          return { islem: p.islemler.length, donem: p.donemler.length, duzenli: p.duzenliler.length };
+          return {
+            islem: p.islemler.length,
+            donem: p.donemler.length,
+            duzenli: p.duzenliler.length,
+            appleIptal: "gerekmedi",
+            uyari: null,
+          };
         }
         const r = await auth.hesabiKaliciSil(parola);
         sohbetiSil(k.uid);
-        return { islem: r.transactions, donem: r.budget_periods, duzenli: r.recurring_transactions };
+        return {
+          islem: r.transactions,
+          donem: r.budget_periods,
+          duzenli: r.recurring_transactions,
+          appleIptal: r.appleIptal,
+          uyari: r.uyari,
+        };
       }),
 
     devamEdilebilirMisafir() {

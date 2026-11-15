@@ -28,9 +28,11 @@ import {
 import { httpsCallable } from "firebase/functions";
 import { UygulamaHatasi } from "@/data/hatalar";
 import { firebaseHazir, fonksiyonlar, kimlikDogrulama } from "../firebase";
+import { appleKoduIptalEt, silmeAkisi, type AppleIptalBelirteci, type AppleIptalDurumu } from "./appleIptal";
 import { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
 
 export { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
+export { APPLE_IPTAL_UYARISI, type AppleIptalDurumu } from "./appleIptal";
 
 export type Saglayici = "google" | "apple" | "password";
 
@@ -73,8 +75,8 @@ export function aktifKullanici(): User | null {
 
 interface SaglayiciSonucu {
   credential: AuthCredential;
-  /** Apple token iptali için (web: access token, iOS: authorization code) */
-  appleToken?: string;
+  /** Apple token iptali için (iOS native: yetkilendirme kodu, web: access token) */
+  appleIptal?: AppleIptalBelirteci;
 }
 
 async function nativeKimlik(s: "google" | "apple"): Promise<SaglayiciSonucu> {
@@ -88,8 +90,10 @@ async function nativeKimlik(s: "google" | "apple"): Promise<SaglayiciSonucu> {
   const c = r.credential;
   if (!c?.idToken) throw new UygulamaHatasi("SAGLAYICI_YOK");
   const credential = new OAuthProvider("apple.com").credential({ idToken: c.idToken, rawNonce: c.nonce });
-  const appleToken = c.accessToken ?? c.authorizationCode;
-  return appleToken ? { credential, appleToken } : { credential };
+  // iOS eklentisi yetkilendirme kodunu verir (access token vermez): iptal kodla yapılır.
+  if (c.authorizationCode) return { credential, appleIptal: { tur: "kod", deger: c.authorizationCode } };
+  if (c.accessToken) return { credential, appleIptal: { tur: "erisim", deger: c.accessToken } };
+  return { credential };
 }
 
 function webSaglayici(s: "google" | "apple"): GoogleAuthProvider | OAuthProvider {
@@ -238,7 +242,7 @@ export async function cikisYap(): Promise<void> {
 }
 
 /** Hassas işlem öncesi yeniden doğrulama. Apple ise token iptali için token döner. */
-export async function yenidenDogrula(parola?: string): Promise<{ appleToken?: string }> {
+export async function yenidenDogrula(parola?: string): Promise<{ appleIptal?: AppleIptalBelirteci }> {
   const u = aktifKullanici();
   if (!u) throw new UygulamaHatasi("OTURUM_YOK");
   const s = saglayiciAdi(u);
@@ -251,11 +255,11 @@ export async function yenidenDogrula(parola?: string): Promise<{ appleToken?: st
     if (Capacitor.isNativePlatform()) {
       const r = await nativeKimlik(s);
       await reauthenticateWithCredential(u, r.credential);
-      return r.appleToken ? { appleToken: r.appleToken } : {};
+      return r.appleIptal ? { appleIptal: r.appleIptal } : {};
     }
     const r = await reauthenticateWithPopup(u, webSaglayici(s));
     const token = s === "apple" ? OAuthProvider.credentialFromResult(r)?.accessToken : undefined;
-    return token ? { appleToken: token } : {};
+    return token ? { appleIptal: { tur: "erisim", deger: token } } : {};
   } catch (e) {
     hataVer(s === "password" ? null : s, e);
   }
@@ -267,34 +271,57 @@ export interface SunucuSilmeSonucu {
   recurring_transactions: number;
 }
 
+/** Apple token iptali: kod -> Identity Toolkit REST (iOS SDK ile aynı istek), access token -> Firebase JS. */
+async function appleIptalEt(b: AppleIptalBelirteci): Promise<void> {
+  const auth = kimlikDogrulama();
+  if (b.tur === "erisim") {
+    await revokeAccessToken(auth, b.deger);
+    return;
+  }
+  const u = auth.currentUser;
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  await appleKoduIptalEt({ apiKey: import.meta.env.VITE_FIREBASE_API_KEY, idToken: await u.getIdToken(), kod: b.deger });
+}
+
+export interface HesapSilmeSonucu extends SunucuSilmeSonucu {
+  appleIptal: AppleIptalDurumu;
+  /** Apple iptali başarısızsa kullanıcıya gösterilecek düz mesaj (silme yine tamamlandı) */
+  uyari: string | null;
+}
+
 /**
- * Hesap silme (P2 deleteAccount sözleşmesi): yeniden doğrula, Apple token iptali (en iyi çaba), sunucu silme, çıkış.
- * Apple iptalinin native'de hangi token'la çalıştığı cihazda doğrulanmadı (P4-gunluk.md).
+ * Hesap silme (P2 deleteAccount sözleşmesi): yeniden doğrula, Apple token iptali, sunucu silme, çıkış.
+ * İptal başarısızsa silme sürer ve `uyari` dolar (gerekçe: appleIptal.ts silmeAkisi).
  */
-export async function hesabiKaliciSil(parola?: string): Promise<SunucuSilmeSonucu> {
+export async function hesabiKaliciSil(parola?: string): Promise<HesapSilmeSonucu> {
   const u = aktifKullanici();
   if (!u) throw new UygulamaHatasi("OTURUM_YOK");
-  const { appleToken } = await yenidenDogrula(parola);
-  if (saglayiciAdi(u) === "apple" && appleToken) {
-    await revokeAccessToken(kimlikDogrulama(), appleToken).catch(() => undefined);
-  }
-  let sonuc: SunucuSilmeSonucu;
-  try {
-    const fn = httpsCallable<Record<string, never>, { deleted?: Partial<SunucuSilmeSonucu> }>(
-      fonksiyonlar(),
-      "deleteAccount",
-      { timeout: 70_000 },
-    );
-    const r = await fn({});
-    const d = r.data.deleted ?? {};
-    sonuc = {
-      transactions: Number(d.transactions ?? 0),
-      budget_periods: Number(d.budget_periods ?? 0),
-      recurring_transactions: Number(d.recurring_transactions ?? 0),
-    };
-  } catch (e) {
-    throw silmeHatasinaCevir(e);
-  }
-  await cikisYap().catch(() => undefined);
-  return sonuc;
+  const apple = saglayiciAdi(u) === "apple";
+  const r = await silmeAkisi<SunucuSilmeSonucu>({
+    async yenidenDogrula() {
+      const { appleIptal } = await yenidenDogrula(parola);
+      return appleIptal ? { apple, belirtec: appleIptal } : { apple };
+    },
+    iptalEt: appleIptalEt,
+    async sunucuSil() {
+      try {
+        const fn = httpsCallable<Record<string, never>, { deleted?: Partial<SunucuSilmeSonucu> }>(
+          fonksiyonlar(),
+          "deleteAccount",
+          { timeout: 70_000 },
+        );
+        const res = await fn({});
+        const d = res.data.deleted ?? {};
+        return {
+          transactions: Number(d.transactions ?? 0),
+          budget_periods: Number(d.budget_periods ?? 0),
+          recurring_transactions: Number(d.recurring_transactions ?? 0),
+        };
+      } catch (e) {
+        throw silmeHatasinaCevir(e);
+      }
+    },
+    cikis: cikisYap,
+  });
+  return { ...r.sonuc, appleIptal: r.appleIptal, uyari: r.uyari };
 }
