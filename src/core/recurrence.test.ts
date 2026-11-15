@@ -7,12 +7,14 @@ import {
   effectiveTransactions,
   isAutoTransaction,
   isLegacyAutoTransaction,
+  nextDueDateAfterEdit,
   nextOccurrenceAfter,
   occurrencesBetween,
   processRecurring,
   stripAutoSuffix,
 } from "./recurrence";
 import { D, rec, rng, tx } from "./testkit";
+import { computeBudget } from "./budget";
 import { addDays, daysInclusive } from "./date";
 
 const legacyAuto = (date: string, name: string, amount: number, extra: Partial<Transaction> = {}): Transaction =>
@@ -154,6 +156,38 @@ describe("recurrence: üretim", () => {
     expect(out.create.length).toBe(1);
     expect(out.create[0]).toMatchObject({ type: "income", category: "kira_geliri", recurringId: "g" });
     expect(isAutoTransaction(out.create[0] as Transaction)).toBe(false);
+  });
+});
+
+describe("recurrence: ilk ödeme tarihini düzenleme (denetim 3.4.6)", () => {
+  // 5 Ocak'ta başlamış, 5 Kasım'a kadar işlenmiş aylık ödeme
+  const eski = rec("r1", "monthly", "2026-01-05", 20000, { description: "Netflix", nextDueDate: D("2026-12-05") });
+  const odenen = tx("2026-11-05", 20000, { id: "r1_2026-11-05", category: "abonelik", description: "Netflix", recurringId: "r1", dueDate: D("2026-11-05") });
+  const kasim = { start: D("2026-11-01"), end: D("2026-11-30"), plannedIncome: 3_000_000, fixedExpenses: 0 };
+
+  it("imleç yeni güne taşınır: sonraki vade 10 Aralık", () => {
+    expect(nextDueDateAfterEdit(eski, { frequency: "monthly", startDate: D("2026-01-10") })).toBe("2026-12-10");
+    // Daha erken güne çekilince Aralık atlanmaz
+    expect(nextDueDateAfterEdit(eski, { frequency: "monthly", startDate: D("2026-01-01") })).toBe("2026-12-01");
+    expect(nextDueDateAfterEdit(eski, { frequency: "monthly", startDate: D("2026-01-31") })).toBe("2026-11-30");
+  });
+  it("geçmiş vadeler yeniden üretilmez, bu dönemin planlı tutarı değişmez", () => {
+    const yeniKural = { frequency: "monthly" as const, startDate: D("2026-01-10") };
+    const duzenlenmis = { ...eski, ...yeniKural, nextDueDate: nextDueDateAfterEdit(eski, yeniKural) };
+    expect(processRecurring([duzenlenmis], [odenen], D("2026-11-20"), 1)).toEqual({ create: [], update: [] });
+    const once = computeBudget({ period: kasim, transactions: [odenen], recurrences: [eski], today: D("2026-11-20") });
+    const sonra = computeBudget({ period: kasim, transactions: [odenen], recurrences: [duzenlenmis], today: D("2026-11-20") });
+    expect(sonra.planned).toBe(20000);
+    expect(sonra.planned).toBe(once.planned);
+    expect(sonra.dailyLimit).toBe(once.dailyLimit);
+    // Aralık'ta yeni günde tek vade
+    expect(processRecurring([duzenlenmis], [odenen], D("2026-12-15"), 1).create.map((t) => t.date)).toEqual(["2026-12-10"]);
+  });
+  it("hiç işlenmemiş ödemede yeni başlangıç kullanılır; sıklık değişiminde en yakın vade", () => {
+    const yeni = rec("r2", "monthly", "2026-11-25", 100);
+    expect(nextDueDateAfterEdit(yeni, { frequency: "monthly", startDate: D("2026-11-18") })).toBe("2026-11-18");
+    expect(nextDueDateAfterEdit(eski, { frequency: "weekly", startDate: D("2026-01-05") })).toBe("2026-12-07");
+    expect(nextDueDateAfterEdit(eski, { frequency: "monthly", startDate: D("2027-03-10") })).toBe("2027-03-10");
   });
 });
 

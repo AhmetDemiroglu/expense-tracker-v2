@@ -184,12 +184,31 @@ export function processRecurring(
   return { create, update };
 }
 
-/**
- * Düzenli ödeme eklenirken ya da ilk ödeme tarihi düzenlenirken yazılacak imleç.
- * Eski sürümde tarih düzenlemek imleci değiştirmiyordu (denetim 3.4.6).
- */
+/** YENİ eklenen düzenli ödemenin imleci: ilk vade başlangıç günüdür (geçmişteyse kaçan vadeler üretilir). */
 export function initialNextDueDate(rule: RecurrenceRule): LocalDate {
   return rule.startDate;
+}
+
+/**
+ * Var olan düzenli ödemenin ilk ödeme tarihi ya da sıklığı DÜZENLENİNCE yazılacak imleç.
+ * Eski sürümde düzenleme imleci değiştirmiyordu (denetim 3.4.6). İmleci başlangıca çekmek ise
+ * geçmiş vadelerin hepsini yeni günle yeniden üretir: bu yüzden ödenmiş çevrimler korunur,
+ * yeni imleç eski imlece EN YAKIN yeni vadedir (5'inden 10'una: 5 Aralık -> 10 Aralık; 1'ine: 1 Aralık).
+ * Hiç işlenmemiş ödemede (imleç başlangıçtaysa) yeni başlangıç kullanılır.
+ */
+export function nextDueDateAfterEdit(
+  previous: Pick<Recurring, "startDate" | "nextDueDate">,
+  edited: RecurrenceRule,
+): LocalDate {
+  const cursor = previous.nextDueDate;
+  if (cursor <= previous.startDate) return edited.startDate;
+  const window = 367;
+  const after = occurrencesBetween(edited, cursor, addDays(cursor, window))[0];
+  const beforeList = occurrencesBetween(edited, addDays(cursor, -window), addDays(cursor, -1));
+  const before = beforeList[beforeList.length - 1];
+  if (after === undefined) return before ?? edited.startDate;
+  if (before === undefined) return after;
+  return diffDays(before, cursor) < diffDays(cursor, after) ? before : after;
 }
 
 export interface DedupeResult {

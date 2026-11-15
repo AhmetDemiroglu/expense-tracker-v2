@@ -79,6 +79,13 @@ describe("budget: günlük limit (tek tanım)", () => {
     expect(b24.dailyLimit).toBe(285714); // 20.000 / 7
     expect(b26.dailyLimit).toBe(tl(4000)); // 20.000 / 5
     expect(b26.dailyLimit ?? 0).toBeGreaterThan(b24.dailyLimit ?? 0);
+    // Kira günü (PLAN 4 formülü aynen): kira o günün harcamasıdır, limit 30.000 / 6, gün "aşım" görünür.
+    const b25 = computeBudget(input("2026-11-25", [kira]));
+    expect(b25.dailyLimit).toBe(tl(5000));
+    expect(b25.todaySpent).toBe(tl(10000));
+    expect(b25.todayRemaining).toBe(tl(-5000));
+    expect(b25.todayStatus).toBe("over");
+    expect(b25.balance).toBe(tl(20000));
   });
   it("gelecek tarihli gelir günü gelene kadar limite girmez, bakiyede görünür", () => {
     const prim = income("2026-11-20", tl(5000));
