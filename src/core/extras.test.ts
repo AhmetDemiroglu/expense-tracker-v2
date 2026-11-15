@@ -199,7 +199,7 @@ describe("index: dışa açılan API", () => {
       "parseLocalDate", "localDate", "dateParts", "today", "addDays", "diffDays", "daysInclusive", "eachDay", "minDate", "maxDate",
       "weekdayIndex", "startOfWeek", "weekDays", "daysInMonth", "startOfMonth", "endOfMonth", "addMonthsAnchored", "addYearsAnchored",
       "monthGrid", "formatDateTr", "kurusFromTl", "tlFromKurus", "parseAmount", "formatMoney", "formatAmountInput", "sumKurus",
-      "splitEvenly", "percentOf", "isCategoryKey", "categoryDef", "categoryLabel", "categoryLegacyName", "categoryFromLegacy",
+      "splitEvenly", "percentOf", "percentage", "isCategoryKey", "categoryDef", "categoryLabel", "categoryLegacyName", "categoryFromLegacy",
       "readTransaction", "readPeriod", "readRecurring", "readSettings", "readGuestList", "writeTransaction", "writePeriod",
       "writeRecurring", "writeSettings", "withId", "activationPatch", "activePeriod", "guestStorageKeys", "isInPeriod", "periodDays",
       "remainingDays", "periodPhase", "daysUntilStart", "periodsOverlap", "findOverlaps", "validatePeriod", "assignPeriod",

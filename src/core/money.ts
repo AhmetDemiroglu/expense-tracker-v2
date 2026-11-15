@@ -66,6 +66,19 @@ export function percentOf(part: Kurus, whole: Kurus): number | null {
   return clean(part < 0 ? -r : r);
 }
 
+/**
+ * Tutarın yüzdesi, tamsayı kuruş: percentage(80.000 kuruş, 15) = 12.000 kuruş.
+ * En yakın kuruşa yuvarlar, yarım sıfırdan uzağa (percentOf ile aynı kural). Kesirli yüzde (12,5) kabul.
+ * Sonlu olmayan girdi 0 döner. Sınırlama yapmaz: 100 üstü ve negatif yüzde olduğu gibi hesaplanır.
+ */
+export function percentage(whole: Kurus, percent: number): Kurus {
+  if (!Number.isFinite(whole) || !Number.isFinite(percent)) return 0;
+  const v = (Math.abs(whole) * Math.abs(percent)) / 100;
+  if (!Number.isFinite(v)) return 0;
+  const r = Math.floor(Number(v.toFixed(6)) + 0.5);
+  return clean(whole < 0 !== percent < 0 ? -r : r);
+}
+
 export type ParseAmountFailure = "empty" | "invalid" | "zero" | "negative" | "too_large";
 export type ParseAmountResult =
   | { ok: true; kurus: Kurus }

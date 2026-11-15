@@ -5,6 +5,7 @@ import {
   isValidAmount,
   kurusFromTl,
   parseAmount,
+  percentage,
   percentOf,
   splitEvenly,
   sumKurus,
@@ -165,6 +166,35 @@ describe("money: bölme ve yüzde", () => {
       expect(parts.length).toBe(n);
       expect(sumKurus(parts)).toBe(total);
       expect(Math.max(...parts) - Math.min(...parts)).toBeLessThanOrEqual(1);
+    }
+  });
+  it("tutarın yüzdesi: tamsayı kuruş, en yakına, yarım sıfırdan uzağa", () => {
+    expect(percentage(8_000_000, 15)).toBe(1_200_000);
+    expect(percentage(125050, 10)).toBe(12505);
+    expect(percentage(1005, 10)).toBe(101); // 100,5 -> 101
+    expect(percentage(1004, 10)).toBe(100);
+    expect(percentage(999, 12.5)).toBe(125); // 124,875
+    expect(percentage(33, 33)).toBe(11); // 10,89
+    expect(percentage(-1005, 10)).toBe(-101);
+    expect(percentage(1005, -10)).toBe(-101);
+    expect(percentage(-1005, -10)).toBe(101);
+    expect(percentage(5000, 0)).toBe(0);
+    expect(percentage(0, 50)).toBe(0);
+    expect(Object.is(percentage(0, -50), 0)).toBe(true);
+    expect(percentage(5000, 100)).toBe(5000);
+    expect(percentage(5000, 150)).toBe(7500);
+    for (const [w, p] of [[NaN, 10], [100, NaN], [Infinity, 10], [100, Infinity]] as const) expect(percentage(w, p)).toBe(0);
+  });
+  it("tutarın yüzdesi rastgele: sonuç tamsayı, tam değerden en fazla yarım kuruş uzak, percentOf ile tutarlı", () => {
+    const r = rng(77);
+    for (let i = 0; i < 5000; i++) {
+      const whole = r.int(1, 2_000_000_000);
+      const pct = r.int(0, 100);
+      const out = percentage(whole, pct);
+      expect(Number.isInteger(out)).toBe(true);
+      expect(out * 100 - whole * pct).toBeGreaterThanOrEqual(-50);
+      expect(out * 100 - whole * pct).toBeLessThanOrEqual(50);
+      if (whole >= 10_000) expect(percentOf(out, whole)).toBe(pct);
     }
   });
   it("yüzde: payda 0 ise null, NaN yok", () => {
