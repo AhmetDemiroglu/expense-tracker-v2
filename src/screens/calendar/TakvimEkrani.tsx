@@ -121,8 +121,8 @@ export function TakvimEkrani(_: TabProps) {
   return (
     <TabPage header={header}>
       {cevrimdisi && durum === "hazir" ? <CevrimdisiSerit metin={tr.takvim.cevrimdisi} /> : null}
-      <Card data-tour="takvim-izgara" pad="none" className="flex min-h-0 flex-1 flex-col gap-1 px-2 pt-2 pb-2">
-        <div className="grid shrink-0 grid-cols-7" aria-hidden="true">
+      <Card data-tour="takvim-izgara" pad="none" className="flex min-h-0 flex-1 flex-col gap-1 px-1 pt-2 pb-2">
+        <div className="grid shrink-0 grid-cols-7 gap-0.5" aria-hidden="true">
           {WEEKDAY_SHORT_TR.map((d) => (
             <span key={d} className="py-1 text-center text-xs font-medium text-text-3">
               {d}
@@ -138,7 +138,7 @@ export function TakvimEkrani(_: TabProps) {
             style={{ animation: gorunum.yon && !az ? `f-month-${gorunum.yon > 0 ? "next" : "prev"} var(--f-dur) var(--f-ease) both` : undefined }}
           >
             {bos.map((hafta, wi) => (
-              <div key={wi} role="row" className="grid min-h-11 flex-1 grid-cols-7 gap-1">
+              <div key={wi} role="row" className="grid min-h-11 flex-1 grid-cols-7 gap-0.5">
                 {hafta.map((h, di) => {
                   const hucre = hucreler?.[wi]?.[di];
                   return yukleniyor ? (

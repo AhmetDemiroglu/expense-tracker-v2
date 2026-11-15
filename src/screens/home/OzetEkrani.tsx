@@ -260,8 +260,8 @@ function GecmisKart({ ozet }: { ozet: BudgetSnapshot }) {
         <MiniDeger etiket={tr.ozet.tasarruf}>
           <span className="num text-base font-medium text-text">{ozet.savingsRate !== null ? tr.ozet.tasarrufYuzde(ozet.savingsRate) : "-"}</span>
         </MiniDeger>
-        <MiniDeger etiket={tr.ozet.kalanGun}>
-          <span className="num text-base font-medium text-text">{ozet.remainingDays}</span>
+        <MiniDeger etiket={tr.ozet.donemSuresi}>
+          <span className="text-base font-medium text-text">{tr.ozet.gunSayisi(ozet.totalDays)}</span>
         </MiniDeger>
       </div>
       <Button variant="secondary" full onClick={() => sec(null)}>

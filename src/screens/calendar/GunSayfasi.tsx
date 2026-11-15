@@ -61,9 +61,8 @@ export function GunSayfasi({ gun, onClose }: { gun: LocalDate | null; onClose: (
   const duzenle = (t: Transaction) => sheets.open("kayit-ekle", { id: t.id });
   const sil = async (t: Transaction) => {
     if (t.installmentGroupId) {
-      /* Taksit silme seçimi (yalnız bu / kalanlar) kayıt sayfasında. */
-      toast(tr.takvim.taksitSil);
-      duzenle(t);
+      /* Taksit silme seçimi (yalnız bu / kalan taksitler) P6'nın "kayit-sil" sayfasında. */
+      sheets.open("kayit-sil", { id: t.id });
       return;
     }
     try {

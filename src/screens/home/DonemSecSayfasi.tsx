@@ -60,7 +60,7 @@ export function DonemSecSayfasi({ open, close }: SheetScreenProps) {
                       {o.name}
                       {aktifMi ? <span className="rounded-pill bg-accent px-2 py-0.5 text-xs font-medium text-on-accent">{tr.ozet.aktif}</span> : null}
                     </span>
-                    <span className="num text-xs text-text-3">{tr.ozet.donemAraligi(formatDateTr(o.start, "short"), formatDateTr(o.end, "short"))}</span>
+                    <span className="text-xs text-text-3">{tr.ozet.donemAraligi(formatDateTr(o.start, "short"), formatDateTr(o.end, "short"))}</span>
                   </span>
                   <Amount value={o.balance} size="sm" decimals={false} />
                   <span className="grid h-6 w-6 shrink-0 place-items-center text-accent">{secili ? <Check size={20} aria-hidden="true" /> : null}</span>

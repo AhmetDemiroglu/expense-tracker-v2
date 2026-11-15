@@ -45,7 +45,6 @@ export const takvim = {
   kayitYokMetin: "Bu güne bir gelir ya da gider ekleyebilirsin.",
   buGuneEkle: "Bu güne ekle",
   silindi: "Kayıt silindi",
-  taksitSil: "Taksitli kaydı silmek için kaydı aç",
   gelir: "Gelir",
 
   yuklenemedi: "Takvim yüklenemedi",

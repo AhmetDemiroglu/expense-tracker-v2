@@ -12,6 +12,8 @@ export const ozet = {
   bugunAsim: "Bugün aşım",
   kalanGun: "Kalan gün",
   baslangic: "Başlangıç",
+  donemSuresi: "Dönem süresi",
+  gunSayisi: (n: number) => `${n} gün`,
   gunSonra: (n: number) => (n === 1 ? "Yarın" : `${n} gün sonra`),
   ilkGunLimiti: "İlk gün limiti",
   haftaEtiketi: "Bu haftanın günlük harcamaları",
