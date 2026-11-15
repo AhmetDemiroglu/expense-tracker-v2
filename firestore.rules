@@ -108,6 +108,8 @@ service cloud.firestore {
         && optString('installmentGroupId', 128)
         && optIntRange('installmentIndex', 1, 36)
         && optIntRange('installmentCount', 1, 36)
+        // Önceden girilmiş (planlı) gider işareti, çekirdek sözleşmesi sürüm 3.
+        && optBool('planned')
         // Kimlik `<x>_<yyyy-MM-dd>` biçimindeyse düzenli ödeme işlemidir: `recurringId` ve `dueDate` kimlikle aynı olmalı.
         // Otomatik ve UUID kimliklerde alt çizgi + tarih yok, bu koşula girmez.
         && (!docId.matches('^.+_[0-9]{4}-[0-9]{2}-[0-9]{2}$')

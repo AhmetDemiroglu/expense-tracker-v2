@@ -172,6 +172,14 @@ describe("yeni alanlar", () => {
     await assertFails(setDoc(doc(db, "transactions", "rec1_2026-11-05"), { ...oldTx }));
   });
 
+  it("planlı gider işareti: yoksa ya da bool ise geçer, başka tür ret", async () => {
+    const db = alice();
+    await assertSucceeds(addDoc(collection(db, "transactions"), { ...oldTx, date: "2026-11-20", planned: true }));
+    await assertSucceeds(addDoc(collection(db, "transactions"), { ...oldTx, planned: false }));
+    await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, planned: "true" }));
+    await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, planned: 1 }));
+  });
+
   it("taksit alanları 1-36", async () => {
     const db = alice();
     const base = { ...oldTx, installmentGroupId: "g1", installmentCount: 6, createdAt: serverTimestamp() };
