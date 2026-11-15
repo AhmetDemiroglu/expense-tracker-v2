@@ -1,0 +1,249 @@
+// Kimlik: Google ve Apple (native eklenti, web'de popup), e-posta + parola, çıkış, yeniden doğrulama, hesap silme.
+// Native giriş skipNativeAuth ile kimlik bilgisini döner; oturum JS SDK'da signInWithCredential ile açılır
+// (callable ID token'ı JS SDK'dan ekler: P2 notu).
+
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
+import {
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  OAuthProvider,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  revokeAccessToken,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+  type AuthCredential,
+  type User,
+} from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
+import { UygulamaHatasi } from "@/data/hatalar";
+import { firebaseHazir, fonksiyonlar, kimlikDogrulama } from "../firebase";
+import { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
+
+export { girisHatasinaCevir, silmeHatasinaCevir } from "./hatalar";
+
+export type Saglayici = "google" | "apple" | "password";
+
+/** Oturum boyunca "yapılandırılmamış" hatası alan sağlayıcı gizlenir (çökme yok). */
+const kapali = new Set<Saglayici>();
+
+export function girisSecenekleri(): { google: boolean; apple: boolean; eposta: true } {
+  const hazir = firebaseHazir();
+  const p = Capacitor.getPlatform();
+  const native = Capacitor.isNativePlatform();
+  const eklenti = !native || Capacitor.isPluginAvailable("FirebaseAuthentication");
+  return {
+    google: hazir && eklenti && !kapali.has("google"),
+    // Android'de Apple girişi sunulmaz (skipNativeAuth ile desteklenmiyor, plan: iOS ve web).
+    apple: hazir && eklenti && (p === "ios" || p === "web") && !kapali.has("apple"),
+    eposta: true,
+  };
+}
+
+function hataVer(saglayici: Saglayici | null, e: unknown): never {
+  const h = girisHatasinaCevir(e);
+  if (saglayici && h.kod === "SAGLAYICI_YOK") kapali.add(saglayici);
+  throw h;
+}
+
+export function saglayiciAdi(u: User): Saglayici {
+  const ids = u.providerData.map((p) => p.providerId);
+  if (ids.includes("apple.com")) return "apple";
+  if (ids.includes("google.com")) return "google";
+  return "password";
+}
+
+export function oturumuDinle(cb: (u: User | null) => void): () => void {
+  return onAuthStateChanged(kimlikDogrulama(), cb);
+}
+
+export function aktifKullanici(): User | null {
+  return firebaseHazir() ? kimlikDogrulama().currentUser : null;
+}
+
+interface SaglayiciSonucu {
+  credential: AuthCredential;
+  /** Apple token iptali için (web: access token, iOS: authorization code) */
+  appleToken?: string;
+}
+
+async function nativeKimlik(s: "google" | "apple"): Promise<SaglayiciSonucu> {
+  if (s === "google") {
+    const r = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+    const c = r.credential;
+    if (!c?.idToken) throw new UygulamaHatasi("SAGLAYICI_YOK");
+    return { credential: GoogleAuthProvider.credential(c.idToken, c.accessToken ?? null) };
+  }
+  const r = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
+  const c = r.credential;
+  if (!c?.idToken) throw new UygulamaHatasi("SAGLAYICI_YOK");
+  const credential = new OAuthProvider("apple.com").credential({ idToken: c.idToken, rawNonce: c.nonce });
+  const appleToken = c.accessToken ?? c.authorizationCode;
+  return appleToken ? { credential, appleToken } : { credential };
+}
+
+function webSaglayici(s: "google" | "apple"): GoogleAuthProvider | OAuthProvider {
+  if (s === "google") {
+    const g = new GoogleAuthProvider();
+    g.setCustomParameters({ prompt: "select_account" });
+    return g;
+  }
+  const a = new OAuthProvider("apple.com");
+  a.addScope("email");
+  a.addScope("name");
+  a.setCustomParameters({ locale: "tr" });
+  return a;
+}
+
+async function saglayiciIleGir(s: "google" | "apple"): Promise<void> {
+  if (!girisSecenekleri()[s]) throw new UygulamaHatasi("SAGLAYICI_YOK");
+  try {
+    const auth = kimlikDogrulama();
+    if (Capacitor.isNativePlatform()) {
+      const { credential } = await nativeKimlik(s);
+      await signInWithCredential(auth, credential);
+    } else {
+      await signInWithPopup(auth, webSaglayici(s));
+    }
+  } catch (e) {
+    hataVer(s, e);
+  }
+}
+
+export function googleIleGir(): Promise<void> {
+  return saglayiciIleGir("google");
+}
+
+export function appleIleGir(): Promise<void> {
+  return saglayiciIleGir("apple");
+}
+
+export async function epostaIleGir(eposta: string, parola: string): Promise<void> {
+  try {
+    await signInWithEmailAndPassword(kimlikDogrulama(), eposta.trim(), parola);
+  } catch (e) {
+    hataVer(null, e);
+  }
+}
+
+export async function kayitOl(eposta: string, parola: string, ad?: string): Promise<void> {
+  try {
+    const r = await createUserWithEmailAndPassword(kimlikDogrulama(), eposta.trim(), parola);
+    if (ad?.trim()) await updateProfile(r.user, { displayName: ad.trim().slice(0, 40) });
+    // Doğrulama e-postası gönderilemese de hesap açıldı: kayıt başarısız sayılmaz.
+    await sendEmailVerification(r.user).catch(() => undefined);
+  } catch (e) {
+    hataVer(null, e);
+  }
+}
+
+export async function dogrulamaGonder(): Promise<void> {
+  const u = aktifKullanici();
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  try {
+    await sendEmailVerification(u);
+  } catch (e) {
+    hataVer(null, e);
+  }
+}
+
+export async function sifreSifirla(eposta: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(kimlikDogrulama(), eposta.trim());
+  } catch (e) {
+    const h = girisHatasinaCevir(e);
+    // Hesap var mı yok mu bilgisi sızmasın: "kullanıcı yok" başarı gibi davranır.
+    if (h.kod === "HATALI_GIRIS") return;
+    throw h;
+  }
+}
+
+/** Doğrulama bağlantısına tıkladıktan sonra: güncel durum. */
+export async function epostaDurumunuYenile(): Promise<boolean> {
+  const u = aktifKullanici();
+  if (!u) return false;
+  try {
+    await u.reload();
+  } catch (e) {
+    hataVer(null, e);
+  }
+  return kimlikDogrulama().currentUser?.emailVerified ?? false;
+}
+
+/** Native sağlayıcı oturumu (Google hesap seçici bir dahaki girişte yeniden çıksın) ve Firebase oturumu kapanır. */
+export async function cikisYap(): Promise<void> {
+  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("FirebaseAuthentication")) {
+    await FirebaseAuthentication.signOut().catch(() => undefined);
+  }
+  if (firebaseHazir()) await signOut(kimlikDogrulama());
+}
+
+/** Hassas işlem öncesi yeniden doğrulama. Apple ise token iptali için token döner. */
+export async function yenidenDogrula(parola?: string): Promise<{ appleToken?: string }> {
+  const u = aktifKullanici();
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  const s = saglayiciAdi(u);
+  try {
+    if (s === "password") {
+      if (!u.email || !parola) throw new UygulamaHatasi("YENIDEN_GIRIS", { mesaj: "Devam etmek için parolanı gir." });
+      await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, parola));
+      return {};
+    }
+    if (Capacitor.isNativePlatform()) {
+      const r = await nativeKimlik(s);
+      await reauthenticateWithCredential(u, r.credential);
+      return r.appleToken ? { appleToken: r.appleToken } : {};
+    }
+    const r = await reauthenticateWithPopup(u, webSaglayici(s));
+    const token = s === "apple" ? OAuthProvider.credentialFromResult(r)?.accessToken : undefined;
+    return token ? { appleToken: token } : {};
+  } catch (e) {
+    hataVer(s === "password" ? null : s, e);
+  }
+}
+
+export interface SunucuSilmeSonucu {
+  transactions: number;
+  budget_periods: number;
+  recurring_transactions: number;
+}
+
+/**
+ * Hesap silme (P2 deleteAccount sözleşmesi): yeniden doğrula, Apple token iptali (en iyi çaba), sunucu silme, çıkış.
+ * Apple iptalinin native'de hangi token'la çalıştığı cihazda doğrulanmadı (P4-gunluk.md).
+ */
+export async function hesabiKaliciSil(parola?: string): Promise<SunucuSilmeSonucu> {
+  const u = aktifKullanici();
+  if (!u) throw new UygulamaHatasi("OTURUM_YOK");
+  const { appleToken } = await yenidenDogrula(parola);
+  if (saglayiciAdi(u) === "apple" && appleToken) {
+    await revokeAccessToken(kimlikDogrulama(), appleToken).catch(() => undefined);
+  }
+  let sonuc: SunucuSilmeSonucu;
+  try {
+    const fn = httpsCallable<Record<string, never>, { deleted?: Partial<SunucuSilmeSonucu> }>(
+      fonksiyonlar(),
+      "deleteAccount",
+      { timeout: 70_000 },
+    );
+    const r = await fn({});
+    const d = r.data.deleted ?? {};
+    sonuc = {
+      transactions: Number(d.transactions ?? 0),
+      budget_periods: Number(d.budget_periods ?? 0),
+      recurring_transactions: Number(d.recurring_transactions ?? 0),
+    };
+  } catch (e) {
+    throw silmeHatasinaCevir(e);
+  }
+  await cikisYap().catch(() => undefined);
+  return sonuc;
+}
