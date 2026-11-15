@@ -5,6 +5,8 @@ fiş okuma ve Nova asistanı. Android'de yayında (`com.fintel.app`), iOS sürü
 
 Sürüm 3.0 baştan yazıldı. Eski kod git geçmişinde durur.
 
+Web sürümü: https://app.fintel.septimuslab.com (eski adres https://expense-tracker-v2-f5a0b.web.app de çalışır). Tanıtım: https://fintel.septimuslab.com/marketing/
+
 ## Teknoloji
 
 - React 19, TypeScript (strict), Vite 7, Tailwind 4
