@@ -26,8 +26,8 @@ import {
   Field,
   haptic,
   IconButton,
-  Nova,
   NovaAvatar,
+  NovaSahne,
   ScreenHeader,
   toast,
   TourInfoButton,
@@ -37,10 +37,11 @@ import {
   type TourStep,
 } from "@/ui";
 import { AyarSayfasi } from "./AyarSayfasi";
+import "./nova.css";
 import { Bloklar } from "./Bloklar";
 import { bicimCoz, kisalt, uzunluk } from "./bicimleyici";
 import { useNovaDurumu } from "./durum";
-import { RaporKarti } from "./RaporKarti";
+import { RaporSayfasi, RaporSeridi } from "./RaporKarti";
 import { novaDurumu } from "./ruhHali";
 
 const TUR_ID = "nova";
@@ -73,6 +74,7 @@ export function NovaSekmesi({ active }: TabProps) {
 
   const [metin, setMetin] = useState("");
   const [ayarAcik, setAyarAcik] = useState(false);
+  const [raporAcik, setRaporAcik] = useState(false);
   const [selam, setSelam] = useState(false);
   const [yazan, setYazan] = useState<Yazan | null>(null);
   const kaydirma = useRef<HTMLDivElement>(null);
@@ -213,8 +215,9 @@ export function NovaSekmesi({ active }: TabProps) {
       className="pb-0"
       header={
         <ScreenHeader
+          left={<NovaAvatar mood={durum.ruh} size={40} className="mr-1" />}
           title={tr.nova.baslik}
-          subtitle={`${tr.nova.mod[mod]} · ${tr.nova.stil[stil]}`}
+          subtitle={tr.nova.durum[durum.anahtar]}
           right={
             <>
               <TourInfoButton id={TUR_ID} steps={TUR_ADIMLARI} />
@@ -231,24 +234,28 @@ export function NovaSekmesi({ active }: TabProps) {
         />
       }
     >
+      <span className="sr-only" role="status" aria-live="polite">
+        {tr.nova.durum[durum.anahtar]}
+      </span>
+
       {tamEkran ? (
-        <Card variant="glass" pad="none" className="shrink-0">
-          <div className="flex items-center gap-3 px-4 py-2" role="status" aria-live="polite">
-            <Nova mood={durum.ruh} size={64} label="Nova" />
-            <p className="min-w-0 flex-1 text-base font-semibold text-text">{tr.nova.durum[durum.anahtar]}</p>
-          </div>
-        </Card>
+        <RaporSeridi
+          rapor={rapor}
+          yukleniyor={raporYukleniyor}
+          hata={raporHatasi}
+          eski={eski}
+          onYenile={() => void useNovaDurumu.getState().raporuYenile()}
+          onAc={() => setRaporAcik(true)}
+        />
       ) : null}
 
-      <div ref={kaydirma} className="scroll-y flex min-h-0 flex-1 flex-col gap-3">
+      {/* Kayan tek bölge sohbettir. Kenarlardaki yumuşak geçiş kaydırmanın köşeli kesilmesini önler. */}
+      <div ref={kaydirma} className="scroll-y nova-fade flex min-h-0 flex-1 flex-col gap-3">
         {govde ?? (
           <>
-            <RaporKarti rapor={rapor} yukleniyor={raporYukleniyor} hata={raporHatasi} eski={eski} onYenile={() => void useNovaDurumu.getState().raporuYenile()} />
             <div className="flex shrink-0 flex-col gap-3" aria-label={tr.nova.sohbet.baslik}>
               {mesajlar.length === 0 && !bekliyor ? (
-                <Card variant="flat" className="shrink-0">
-                  <p className="text-center text-sm text-text-3">{tr.nova.sohbet.bos}</p>
-                </Card>
+                <NovaSahne mood={durum.ruh} size={96} surface="solid" title={tr.nova.sohbet.sahneBaslik} text={tr.nova.sohbet.bos} className="shrink-0" />
               ) : null}
               {mesajlar.map((m) => {
                 if (m.rol === "user") {
@@ -263,14 +270,14 @@ export function NovaSekmesi({ active }: TabProps) {
                 return (
                   <div key={m.id} className="flex items-end gap-2">
                     <NovaAvatar mood={yanitMoodu(m.id)} size={28} />
-                    <div className="flex min-w-0 max-w-[85%] flex-col items-start gap-1">
-                      <div className="rounded-card rounded-bl-md bg-surface-2 px-4 py-3 text-text">
-                        <Bloklar bloklar={yaziyor ? kisalt(bloklar, yazan.n) : bloklar} />
-                      </div>
-                      {!yaziyor ? (
-                        <Button variant="text" size="sm" className="px-2" icon={<Copy size={16} aria-hidden="true" />} onClick={() => void kopyala(m.metin)}>
-                          {tr.nova.sohbet.kopyala}
-                        </Button>
+                    <div className="min-w-0 max-w-[85%] rounded-card rounded-bl-md bg-surface-2 px-4 py-3 text-text">
+                      <Bloklar bloklar={yaziyor ? kisalt(bloklar, yazan.n) : bloklar} />
+                      {!yaziyor && m.id === sonModelId ? (
+                        <div className="-mb-2 flex justify-end">
+                          <IconButton label={tr.nova.sohbet.kopyala} onClick={() => void kopyala(m.metin)}>
+                            <Copy size={16} aria-hidden="true" />
+                          </IconButton>
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -299,7 +306,7 @@ export function NovaSekmesi({ active }: TabProps) {
       </div>
 
       <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + 8px)" : "var(--content-bottom)" }}>
-        <Card variant="solid" pad="none" className="flex flex-col gap-2 px-3 pt-3 pb-2">
+        <Card variant="solid" pad="none" className="flex flex-col gap-2 px-3 pt-2 pb-2">
           {tamEkran ? (
             <>
               <div className="scroll-x -mx-1 flex gap-2 px-1" data-swipe-lock="" data-tour="nova-sorular" aria-label={tr.nova.sohbet.hizliSorular}>
@@ -330,6 +337,14 @@ export function NovaSekmesi({ active }: TabProps) {
         </Card>
       </div>
 
+      <RaporSayfasi
+        open={raporAcik}
+        onClose={() => setRaporAcik(false)}
+        rapor={rapor}
+        yukleniyor={raporYukleniyor}
+        eski={eski}
+        onYenile={() => void useNovaDurumu.getState().raporuYenile()}
+      />
       <AyarSayfasi open={ayarAcik} onClose={() => setAyarAcik(false)} />
     </TabPage>
   );

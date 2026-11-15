@@ -1,10 +1,11 @@
-/* Rapor kartı: dönem durumu, tespitler (en fazla 4), öneriler (en fazla 3), Nova notu. Sayılar çekirdekten (kategori dağılımı). */
-import { RefreshCw } from "lucide-react";
+/* Rapor iki parçadır: ekranda tek satırlık şerit (sohbete yer kalsın), ayrıntı alt sayfada.
+   Sayılar çekirdekten (kategori dağılımı), model yalnız yüzdeyi önerir. */
+import { AlertTriangle, ChevronRight, RefreshCw } from "lucide-react";
 import { categoryLabel } from "@/core";
 import { tr } from "@/metin";
 import { useKategoriDagilimi } from "@/data";
 import type { RaporYaniti } from "@/services/ai";
-import { Amount, Button, NovaAvatar, ProgressBar, Section, SkeletonRows, type NovaMood } from "@/ui";
+import { Amount, Button, Card, NovaAvatar, ProgressBar, Sheet, Spinner, type NovaMood } from "@/ui";
 import { Bloklar } from "./Bloklar";
 import { bicimCoz } from "./bicimleyici";
 import type { RaporHatasi } from "./durum";
@@ -12,54 +13,99 @@ import { olasiTasarruf } from "./tasarruf";
 
 const RAPOR_RUHU: Record<RaporYaniti["durum"]["ruhHali"], NovaMood> = { positive: "mutlu", neutral: "selam", critical: "uyari" };
 
-export interface RaporKartiProps {
+export interface RaporSeridiProps {
   rapor: RaporYaniti | null;
   yukleniyor: boolean;
   hata: RaporHatasi | null;
   eski: boolean;
   onYenile: () => void;
+  onAc: () => void;
 }
 
-export function RaporKarti({ rapor, yukleniyor, hata, eski, onYenile }: RaporKartiProps) {
+/** Sohbetin üstündeki tek satır: durum etiketi, sayılar ve ayrıntı oku. */
+export function RaporSeridi({ rapor, yukleniyor, hata, eski, onYenile, onAc }: RaporSeridiProps) {
+  const r = tr.nova.rapor;
+  if (yukleniyor) {
+    return (
+      <Card variant="solid" pad="none" className="shrink-0">
+        <div className="flex min-h-14 items-center gap-3 px-3" aria-busy="true">
+          <NovaAvatar mood="analiz" size={28} />
+          <p className="min-w-0 flex-1 text-sm font-medium text-text-2">{r.yenileniyor}</p>
+          <Spinner size={18} />
+        </div>
+      </Card>
+    );
+  }
+  if (hata) {
+    const kota = hata.kod === "QUOTA_EXCEEDED";
+    return (
+      <Card variant="solid" pad="none" className="shrink-0">
+        <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2" role="alert">
+          <NovaAvatar mood={kota ? "uyari" : "uzgun"} size={28} />
+          <p className="min-w-0 flex-1 text-sm text-text-2">{kota ? tr.nova.hata.kotaSifirlanma : tr.nova.hata.raporBaslik}</p>
+          {kota ? null : (
+            <Button variant="text" size="sm" onClick={onYenile}>
+              {tr.nova.hata.tekrar}
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  }
+  if (!rapor) {
+    return (
+      <Card variant="solid" pad="none" className="shrink-0">
+        <button type="button" onClick={onYenile} className="pressable flex min-h-14 w-full items-center gap-3 px-3 text-left">
+          <NovaAvatar mood="analiz" size={28} />
+          <span className="min-w-0 flex-1 text-sm font-semibold text-text">{r.hazirla}</span>
+          <ChevronRight size={18} className="shrink-0 text-text-3" aria-hidden="true" />
+        </button>
+      </Card>
+    );
+  }
+  return (
+    <Card variant="solid" pad="none" className="shrink-0" data-tour="nova-rapor">
+      <button type="button" onClick={onAc} className="pressable flex min-h-14 w-full items-center gap-3 px-3 text-left">
+        <NovaAvatar mood={RAPOR_RUHU[rapor.durum.ruhHali]} size={28} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-sm font-semibold text-text">{r.durumEtiketi[rapor.durum.ruhHali]}</span>
+          <span className="text-xs text-text-3">{r.sayilar(Math.min(4, rapor.tespitler.length), Math.min(3, rapor.oneriler.length))}</span>
+        </span>
+        {eski ? <AlertTriangle size={18} className="shrink-0 text-warn" aria-label={r.degisti} /> : null}
+        <ChevronRight size={18} className="shrink-0 text-text-3" aria-hidden="true" />
+      </button>
+    </Card>
+  );
+}
+
+export interface RaporSayfasiProps {
+  open: boolean;
+  onClose: () => void;
+  rapor: RaporYaniti | null;
+  yukleniyor: boolean;
+  eski: boolean;
+  onYenile: () => void;
+}
+
+/** Ayrıntı: durum, tespitler (en fazla 4), öneriler (en fazla 3), Nova notu. */
+export function RaporSayfasi({ open, onClose, rapor, yukleniyor, eski, onYenile }: RaporSayfasiProps) {
   const dagilim = useKategoriDagilimi();
   const r = tr.nova.rapor;
   return (
-    <Section
+    <Sheet
+      open={open}
+      onClose={onClose}
       title={r.baslik}
-      data-tour="nova-rapor"
-      right={
-        rapor || hata ? (
-          <Button variant="text" size="sm" icon={<RefreshCw size={16} aria-hidden="true" />} onClick={onYenile} disabled={yukleniyor}>
-            {r.yenile}
-          </Button>
-        ) : null
+      size="half"
+      expandable
+      footer={
+        <Button full variant={eski ? "primary" : "secondary"} loading={yukleniyor} icon={<RefreshCw size={18} aria-hidden="true" />} onClick={onYenile}>
+          {eski ? r.degisti : r.yenile}
+        </Button>
       }
     >
-      {yukleniyor ? (
-        <div className="flex flex-col gap-3" aria-busy="true" aria-label={r.yenileniyor}>
-          <div className="flex items-center gap-3">
-            <NovaAvatar mood="analiz" size={36} />
-            <p className="text-sm font-medium text-text-2">{r.yenileniyor}</p>
-          </div>
-          <SkeletonRows count={3} />
-        </div>
-      ) : hata ? (
-        <div className="flex flex-col gap-3" role="alert">
-          <div className="flex items-center gap-3">
-            <NovaAvatar mood={hata.kod === "QUOTA_EXCEEDED" ? "uyari" : "uzgun"} size={36} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-text">{hata.kod === "QUOTA_EXCEEDED" ? tr.nova.hata.kotaBaslik : tr.nova.hata.raporBaslik}</p>
-              <p className="text-sm text-text-2">{hata.kod === "QUOTA_EXCEEDED" ? tr.nova.hata.kotaSifirlanma : hata.mesaj}</p>
-            </div>
-          </div>
-        </div>
-      ) : rapor ? (
-        <div className="flex flex-col gap-4">
-          {eski ? (
-            <Button variant="secondary" size="sm" full icon={<RefreshCw size={16} aria-hidden="true" />} onClick={onYenile}>
-              {r.degisti}
-            </Button>
-          ) : null}
+      {rapor ? (
+        <div className="flex flex-col gap-4 pb-2">
           <div className="flex items-start gap-3">
             <NovaAvatar mood={RAPOR_RUHU[rapor.durum.ruhHali]} size={36} />
             <div className="min-w-0 flex-1">
@@ -70,7 +116,7 @@ export function RaporKarti({ rapor, yukleniyor, hata, eski, onYenile }: RaporKar
           {rapor.tespitler.length ? (
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium text-text-3">{r.tespitler}</p>
-              <ul className="selectable flex flex-col gap-1.5 pl-5 text-sm leading-relaxed text-text list-disc">
+              <ul className="selectable flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed text-text">
                 {rapor.tespitler.slice(0, 4).map((t, i) => (
                   <li key={i}>{t}</li>
                 ))}
@@ -116,13 +162,8 @@ export function RaporKarti({ rapor, yukleniyor, hata, eski, onYenile }: RaporKar
           ) : null}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-text-2">{r.bos}</p>
-          <Button full onClick={onYenile}>
-            {r.hazirla}
-          </Button>
-        </div>
+        <p className="py-4 text-center text-sm text-text-2">{r.bos}</p>
       )}
-    </Section>
+    </Sheet>
   );
 }
