@@ -94,6 +94,20 @@ Yazı kuralları:
    yüzeyde yoğun ton (14 px bulanıklık) kullanılır.
 6. Gürültü, gökkuşağı saçağı, dekoratif dalga yok.
 
+## Yerleşim kuralı: yüzen yazı yok
+
+Ahmet kararı (2026-11-15): her öğenin yeri ve sınırı belli olur.
+1. Üst bar belirgin bir yüzeydir (cam kapsül ya da kenarlı bar). Logo ve düğmeler onun içinde durur.
+2. Ekran başlığı, dönem adı ve eylem simgeleri bir başlık yüzeyinin içindedir. Zemin üstünde çıplak başlık, etiket, tutar ya da düğme olmaz.
+3. Bölüm başlığı ait olduğu kartın içinde başlık satırıdır. Boş durum metni ve listeler de bir yüzeyin içindedir.
+4. İstisna: tam ekran açılış ve karşılama.
+
+## Nova
+
+Nova bir karakterdir: vizör ekranlı küçük robot. Gözleri, kaşları, ağzı ve kolları vardır, el sallar, ruh hali değişir
+(selam, mutlu, üzgün, düşünüyor, konuşuyor, uyarı, başarı, uyku, analiz, şaşkın). Kod ile çizilmiş hareketli SVG'dir.
+Yıldız, ışıltı ve "yapay zeka" kalıp simgeleri kullanılmaz. Bileşen: `src/ui/nova`.
+
 ## Düzen
 
 1. Ana ekran: kalan bütçe ve günlük limit solda, haftanın günlük harcama çubukları sağda. Bugünün çubuğu vurgulu.
