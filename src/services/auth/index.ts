@@ -227,7 +227,11 @@ export async function epostaDurumunuYenile(): Promise<boolean> {
 
 /** Native sağlayıcı oturumu (Google hesap seçici bir dahaki girişte yeniden çıksın) ve Firebase oturumu kapanır. */
 export async function cikisYap(): Promise<void> {
-  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("FirebaseAuthentication")) {
+  // Native signOut yalnız Google/Apple kullanıcısında: skipNativeAuth ile native oturum yok, çağrı yalnız hesap
+  // seçicisini sıfırlar. iOS'ta GoogleService-Info.plist yokken native Auth.auth() NSException ile çöker
+  // (.catch yakalayamaz); e-posta kullanıcısında hiç çağrılmaz. Google/Apple girişi plist olmadan zaten açılamaz.
+  const u = aktifKullanici();
+  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("FirebaseAuthentication") && u && saglayiciAdi(u) !== "password") {
     await FirebaseAuthentication.signOut().catch(() => undefined);
   }
   if (firebaseHazir()) await signOut(kimlikDogrulama());
