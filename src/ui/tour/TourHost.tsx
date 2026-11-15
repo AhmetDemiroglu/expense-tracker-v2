@@ -19,7 +19,7 @@ import { cn } from "../cn";
 import { haptic } from "../haptics";
 import { keyboardInset, safeInsets } from "../layout";
 import { twoFrames } from "../motion";
-import { holeFor, isInView, placeBubble, sameRect, type Rect, type Viewport } from "./placement";
+import { holeFor, holeMaxHeightFor, isInView, placeBubble, sameRect, type Rect, type Viewport } from "./placement";
 import { advanceTour, endTour, useTourStore, type TourStep } from "./store";
 
 const FIND_TIMEOUT = 900;
@@ -174,8 +174,12 @@ function StepView({ step, index, total, last }: { step: TourStep; index: number;
     return () => ro.disconnect();
   }, []);
 
-  const hole = target && vp ? holeFor(target, vp, { padding: step.padding, shape: step.shape }) : null;
-  const place = hole && vp && size ? placeBubble(hole, size, vp, step.placement) : null;
+  /* Uzun hedefte (kısa ekran, büyük yazı) balon deliğin üstüne ya da altına sığmazsa delik kısaltılır: üst kısım gösterilir. */
+  const hole0 = target && vp ? holeFor(target, vp, { padding: step.padding, shape: step.shape }) : null;
+  const place0 = hole0 && vp && size ? placeBubble(hole0, size, vp, step.placement) : null;
+  const kisalt = !!(target && vp && size && hole0 && place0?.side === "over" && step.shape !== "circle");
+  const hole = kisalt && target && vp && size && hole0 ? holeFor(target, vp, { padding: step.padding, shape: step.shape, maxH: holeMaxHeightFor(size.h, vp, hole0.y) }) : hole0;
+  const place = kisalt && hole && vp && size ? placeBubble(hole, size, vp, step.placement) : place0;
   const ready = hole !== null && place !== null;
 
   const next = () => {

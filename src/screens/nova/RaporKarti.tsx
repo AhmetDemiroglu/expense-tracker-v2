@@ -27,7 +27,7 @@ export function RaporSeridi({ rapor, yukleniyor, hata, eski, onYenile, onAc }: R
   const r = tr.nova.rapor;
   if (yukleniyor) {
     return (
-      <Card variant="solid" pad="none" className="shrink-0">
+      <Card variant="solid" pad="none" className="shrink-0" data-tour="nova-rapor">
         <div className="flex min-h-14 items-center gap-3 px-3" aria-busy="true">
           <NovaAvatar mood="analiz" size={28} />
           <p className="min-w-0 flex-1 text-sm font-medium text-text-2">{r.yenileniyor}</p>
@@ -39,7 +39,7 @@ export function RaporSeridi({ rapor, yukleniyor, hata, eski, onYenile, onAc }: R
   if (hata) {
     const kota = hata.kod === "QUOTA_EXCEEDED";
     return (
-      <Card variant="solid" pad="none" className="shrink-0">
+      <Card variant="solid" pad="none" className="shrink-0" data-tour="nova-rapor">
         <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2" role="alert">
           <NovaAvatar mood={kota ? "uyari" : "uzgun"} size={28} />
           <p className="min-w-0 flex-1 text-sm text-text-2">{kota ? tr.nova.hata.kotaSifirlanma : tr.nova.hata.raporBaslik}</p>
@@ -54,7 +54,7 @@ export function RaporSeridi({ rapor, yukleniyor, hata, eski, onYenile, onAc }: R
   }
   if (!rapor) {
     return (
-      <Card variant="solid" pad="none" className="shrink-0">
+      <Card variant="solid" pad="none" className="shrink-0" data-tour="nova-rapor">
         <button type="button" onClick={onYenile} className="pressable flex min-h-14 w-full items-center gap-3 px-3 text-left">
           <NovaAvatar mood="analiz" size={28} />
           <span className="min-w-0 flex-1 text-sm font-semibold text-text">{r.hazirla}</span>

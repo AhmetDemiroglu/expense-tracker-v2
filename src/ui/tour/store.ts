@@ -16,9 +16,17 @@ export interface TourStep {
 
 interface TourState {
   active: { id: string; steps: readonly TourStep[]; index: number; run: number } | null;
+  /** Açılış animasyonu bitti mi. Bitmeden hiçbir tur başlamaz (karşılama, giriş ve ilk kurulum kapının içinde olduğu için
+      kabuk, yani turun hedefleri, zaten bunlar bitmeden çizilmez). */
+  hazir: boolean;
 }
 
-export const useTourStore = create<TourState>(() => ({ active: null }));
+export const useTourStore = create<TourState>(() => ({ active: null, hazir: false }));
+
+/** App açılış animasyonu bitince çağırır; turlar bundan sonra başlayabilir. */
+export function tourHazir(hazir = true): void {
+  useTourStore.setState({ hazir });
+}
 
 const PREFIX = "fintel_tour_";
 export const MAX_STEPS = 5;
@@ -58,7 +66,8 @@ let run = 0;
 
 /** Turu başlatır. Başka tur açıksa başlatmaz. En çok 5 adım gösterilir. */
 export function startTour(id: string, steps: readonly TourStep[]): boolean {
-  if (useTourStore.getState().active || !steps.length) return false;
+  const st = useTourStore.getState();
+  if (st.active || !st.hazir || !steps.length) return false;
   useTourStore.setState({ active: { id, steps: steps.slice(0, MAX_STEPS), index: 0, run: ++run } });
   return true;
 }

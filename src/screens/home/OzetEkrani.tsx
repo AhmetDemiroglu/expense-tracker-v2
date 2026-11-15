@@ -5,7 +5,7 @@ import { CalendarPlus, RotateCcw } from "lucide-react";
 import { WEEKDAY_NAMES_TR, WEEKDAY_SHORT_TR, formatDateTr, formatMoney, isInPeriod, type BudgetSnapshot, type DayInfo, type Period } from "@/core";
 import { useBugun, useEtkinIslemler, useHafta, useVeri } from "@/data";
 import { tr } from "@/metin";
-import { TabPage, nav, sheets, type TabProps } from "@/shell";
+import { TabPage, nav, sheets, useSheets, type TabProps } from "@/shell";
 import {
   Amount,
   Button,
@@ -19,6 +19,7 @@ import {
   SkeletonRows,
   TourInfoButton,
   WeekBars,
+  useAutoTour,
   cn,
   type NovaMood,
   type TourStep,
@@ -30,19 +31,23 @@ import { useCevrimdisi, useGorunenDonem } from "./ortak";
 import { CevrimdisiSerit, IslemSatiri } from "./parcalar";
 import { useGorunenButce } from "./gorunenButce";
 
-const OZET_TURU: TourStep[] = tr.ozet.tur.map((a) => ({ ...a }));
+const OZET_TURU: TourStep[] = tr.ipucu.ozet.map((a) => ({ ...a }));
 
 function aralik(p: Pick<Period, "start" | "end">): string {
   return tr.ozet.donemAraligi(formatDateTr(p.start, "dayMonth"), formatDateTr(p.end, "dayMonth"));
 }
 
-export function OzetEkrani(_: TabProps) {
+export function OzetEkrani({ active }: TabProps) {
   const durum = useVeri((s) => s.durum);
   const ayarDurumu = useVeri((s) => s.ayarDurumu);
   const { donem, aktifMi, ozet } = useGorunenButce();
   const cevrimdisi = useCevrimdisi();
   const [dagilim, setDagilim] = useState<DagilimTuru | null>(null);
   const [yeniDonem, setYeniDonem] = useState(false);
+  const sayfaAcik = useSheets((s) => s.current !== null);
+
+  /* İlk açılış turu: Özet önde, veri hazır, aktif dönem var, üstte alt sayfa yok. */
+  useAutoTour("ozet", OZET_TURU, { when: active && !sayfaAcik && durum === "hazir" && !!donem && !!ozet && aktifMi && ozet.phase === "active", delay: 900 });
 
   const header = (
     <div data-tour="ozet-donem">

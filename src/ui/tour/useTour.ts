@@ -9,13 +9,14 @@ export function useTour(): { start: (id: string, steps: readonly TourStep[]) => 
 /** Turu bir kez, kendiliğinden gösterir. when: ekran önde ve verisi hazır olduğunda true. */
 export function useAutoTour(id: string, steps: readonly TourStep[], opts: { when: boolean; delay?: number }): void {
   const { when, delay = 700 } = opts;
+  const hazir = useTourStore((s) => s.hazir);
   useEffect(() => {
-    if (!when || isTourSeen(id)) return;
+    if (!when || !hazir || isTourSeen(id)) return;
     const timer = setTimeout(() => {
       if (!isTourSeen(id)) startTour(id, steps);
     }, delay);
     return () => clearTimeout(timer);
     // Adım listesi her çizimde yeni dizi olabilir: yalnız id ve when izlenir.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, when, delay]);
+  }, [id, when, hazir, delay]);
 }

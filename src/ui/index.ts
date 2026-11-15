@@ -33,4 +33,4 @@ export { PullToRefresh, type PullToRefreshProps } from "./PullToRefresh";
 
 export { TourInfoButton } from "./tour/TourInfoButton";
 export { useTour, useAutoTour } from "./tour/useTour";
-export { resetTours, isTourSeen, type TourStep } from "./tour/store";
+export { resetTours, isTourSeen, tourHazir, type TourStep } from "./tour/store";

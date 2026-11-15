@@ -29,7 +29,7 @@ const MARGIN = 8;
 const EDGE = 12;
 
 /** Hedefin çevresindeki vurgu deliği. Çok uzun hedef kullanılabilir alanın %45'iyle sınırlanır, delik ekranda kalır. */
-export function holeFor(target: Rect, vp: Viewport, opts: { padding?: number; shape?: Shape } = {}): Hole {
+export function holeFor(target: Rect, vp: Viewport, opts: { padding?: number; shape?: Shape; maxH?: number } = {}): Hole {
   const pad = opts.padding ?? 8;
   const shape = opts.shape ?? "rect";
   let x = target.x - pad;
@@ -47,7 +47,7 @@ export function holeFor(target: Rect, vp: Viewport, opts: { padding?: number; sh
   const minX = vp.left + 4;
   const minY = vp.top + 4;
   const maxW = vp.w - vp.left - vp.right - 8;
-  const maxH = shape === "circle" ? usableH - 8 : Math.max(48, usableH * 0.45);
+  const maxH = shape === "circle" ? usableH - 8 : Math.max(48, opts.maxH ?? usableH * 0.45);
   if (h > maxH) {
     /* Üst kısmı göster: açıklama balonuna yer kalsın. */
     h = maxH;
@@ -116,4 +116,9 @@ export function sameRect(a: Rect | null, b: Rect | null, tol = 0.5): boolean {
 export function nextIndex(from: number, count: number, missing: ReadonlySet<number>): number {
   for (let i = from; i < count; i++) if (!missing.has(i)) return i;
   return -1;
+}
+
+/** Balon deliğin ALTINA sığsın diye deliğin en çok olabileceği yükseklik (kısa ekran, büyük yazı). holeY: deliğin üst kenarı. */
+export function holeMaxHeightFor(bubbleH: number, vp: Viewport, holeY: number, gap = 14): number {
+  return Math.max(48, vp.h - vp.bottom - MARGIN - gap - bubbleH - holeY);
 }

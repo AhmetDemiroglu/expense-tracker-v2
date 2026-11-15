@@ -1,9 +1,9 @@
 /* Uygulama girişi (P3). EKRAN PAKETLERİ BU DOSYAYA DOKUNMAZ: her ekran klasörü kendi kaydını verir
    (src/screens/<klasör>/kayit.tsx, `export const kayit: ScreenKayit`), burası hepsini toplar. */
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Splash } from "@/brand";
 import { AppShell, buildRegistry, type ScreenKayit } from "@/shell";
-import { UiHost } from "@/ui";
+import { UiHost, tourHazir } from "@/ui";
 
 const modules = import.meta.glob<{ kayit?: ScreenKayit }>("./screens/*/kayit.tsx", { eager: true });
 const registry = buildRegistry(
@@ -22,6 +22,9 @@ const showVitrin = import.meta.env.DEV && new URLSearchParams(window.location.se
 
 export default function App() {
   const [splash, setSplash] = useState(true);
+  useEffect(() => {
+    if (showVitrin) tourHazir();
+  }, []);
 
   if (showVitrin && Vitrin) {
     return (
@@ -41,7 +44,13 @@ export default function App() {
     <>
       {gated}
       <UiHost />
-      {splash ? <Splash ready={ready} onDone={() => setSplash(false)} /> : null}
+      {splash ? <Splash
+          ready={ready}
+          onDone={() => {
+            setSplash(false);
+            tourHazir();
+          }}
+        /> : null}
     </>
   );
 }

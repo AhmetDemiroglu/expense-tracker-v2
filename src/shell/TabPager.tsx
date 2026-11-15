@@ -100,8 +100,8 @@ export function TabPager({ tabs }: { tabs: Partial<Record<TabKey, ComponentType<
             <section
               key={key}
               aria-label={tr.ortak.sekme[key]}
-              aria-hidden={!here}
-              inert={!here}
+              aria-hidden={!here || covered}
+              inert={!here || covered}
               className="relative h-full"
               style={{ width: `${100 / COUNT}%`, visibility: here || moving ? undefined : "hidden" }}
             >

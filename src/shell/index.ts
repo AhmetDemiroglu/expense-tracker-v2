@@ -6,7 +6,7 @@ export { TabBar, TopBar } from "./bars";
 export { TabPager } from "./TabPager";
 export { nav, useNav } from "./router/nav";
 export { TABS, type TabKey, type StackEntry, type NavState } from "./router/stack";
-export { sheets } from "./sheets";
+export { sheets, useSheets } from "./sheets";
 export { useScreenActive } from "./active";
 export { buildRegistry, type ScreenKayit, type TabProps, type ScreenProps, type SheetScreenProps, type Registry } from "./registry";
 export { initBackButton } from "./backButton";

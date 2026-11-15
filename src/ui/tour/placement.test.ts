@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { holeFor, isInView, nextIndex, placeBubble, sameRect, type Viewport } from "./placement";
+import { holeFor, holeMaxHeightFor, isInView, nextIndex, placeBubble, sameRect, type Viewport } from "./placement";
 
 const SIZES: [string, Viewport][] = [
   ["360x640", { w: 360, h: 640, top: 24, bottom: 0, left: 0, right: 0 }],
@@ -100,5 +100,21 @@ describe("tur yerleşimi", () => {
     expect(sameRect(null, null)).toBe(true);
     expect(nextIndex(1, 4, new Set([1, 2]))).toBe(3);
     expect(nextIndex(2, 3, new Set([2]))).toBe(-1);
+  });
+});
+
+describe("uzun hedefte delik kısaltma", () => {
+  it("kısa ekran ve büyük yazıda balon sığmıyorsa delik kısaltılır, balon artık deliğin üstüne binmez", () => {
+    const vp: Viewport = { w: 360, h: 640, top: 24, bottom: 0, left: 0, right: 0 };
+    const balon = { w: 336, h: 250 };
+    const hedef = { x: 16, y: 132, w: 328, h: 330 };
+    const ilk = holeFor(hedef, vp);
+    expect(placeBubble(ilk, balon, vp).side).toBe("over");
+    const kisa = holeFor(hedef, vp, { maxH: holeMaxHeightFor(balon.h, vp, ilk.y) });
+    const p = placeBubble(kisa, balon, vp);
+    expect(p.side).toBe("below");
+    expect(p.y).toBeGreaterThanOrEqual(kisa.y + kisa.h);
+    expect(p.y + balon.h).toBeLessThanOrEqual(vp.h - vp.bottom - 8 + 0.01);
+    expect(kisa.h).toBeGreaterThanOrEqual(48);
   });
 });
