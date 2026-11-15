@@ -93,7 +93,7 @@ export function Glass({ tone = "clear", lens = false, radius = "card", as, class
   const id = `fg${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const ref = useRef<HTMLElement>(null);
   const allowed = useSyncExternalStore(subscribeLens, isLensEnabled, () => false);
-  const [map, setMap] = useState<string | null>(null);
+  const [map, setMap] = useState<{ url: string; w: number; h: number } | null>(null);
   const wantLens = lens && allowed;
 
   useLayoutEffect(() => {
@@ -106,7 +106,8 @@ export function Glass({ tone = "clear", lens = false, radius = "card", as, class
       const height = Math.round(el.offsetHeight);
       if (width < 2 || height < 2) return;
       const r = Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0, height / 2);
-      setMap(buildDisplacementMap(width, height, r));
+      const url = buildDisplacementMap(width, height, r);
+      setMap(url ? { url, w: width, h: height } : null);
     };
     /* İlk harita eşzamanlı: boş feImage bütün arka planı kaydırır. */
     generate();
@@ -129,7 +130,8 @@ export function Glass({ tone = "clear", lens = false, radius = "card", as, class
         {lensOn ? (
           <svg width="0" height="0" className="absolute" focusable="false">
             <filter id={id} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-              <feImage href={map} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="lensMap" />
+              {/* Ölçü px olarak verilir: yüzde verilince Chromium haritayı yanlış kutuya çiziyor (köşede yıldız biçimli iz). */}
+              <feImage href={map.url} x="0" y="0" width={map.w} height={map.h} preserveAspectRatio="none" result="lensMap" />
               <feDisplacementMap in="SourceGraphic" in2="lensMap" scale={LENS_SCALE} xChannelSelector="R" yChannelSelector="G" />
             </filter>
           </svg>

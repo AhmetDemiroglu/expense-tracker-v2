@@ -54,7 +54,7 @@ export function StackHost({ screens }: { screens: Record<string, ComponentType<S
       if (l.mode === "pop") {
         el.style.transition = t;
         el.style.transform = "translate3d(100%,0,0)";
-        el.style.visibility = "visible";
+        el.style.visibility = "";
         if (dim) {
           dim.style.transition = o;
           dim.style.opacity = "0";
@@ -82,7 +82,7 @@ export function StackHost({ screens }: { screens: Record<string, ComponentType<S
       }
       el.style.transition = t;
       el.style.transform = depth === 0 ? "translate3d(0,0,0)" : `translate3d(${UNDER}%,0,0)`;
-      el.style.visibility = depth >= 2 ? "hidden" : "visible";
+      el.style.visibility = depth >= 2 ? "hidden" : "";
       if (dim) {
         dim.style.transition = o;
         dim.style.opacity = String(DIM);
@@ -95,7 +95,7 @@ export function StackHost({ screens }: { screens: Record<string, ComponentType<S
       root.style.transition = t;
       if (liveIds.length === 0) {
         root.style.transform = "";
-        root.style.visibility = "visible";
+        root.style.visibility = "";
       } else {
         root.style.transform = `translate3d(${UNDER}%,0,0)`;
         /* Üst ekran yerine oturunca kök gizlenir (cam ve içerik boşuna çizilmesin). */
@@ -148,7 +148,7 @@ export function StackHost({ screens }: { screens: Record<string, ComponentType<S
       const under: HTMLElement | null = below ? (els.current.get(below.entry.id) ?? null) : rootEl();
       if (hideRoot.current) clearTimeout(hideRoot.current);
       if (under) {
-        under.style.visibility = "visible";
+        under.style.visibility = "";
         under.style.transition = "none";
       }
       topEl.style.transition = "none";
@@ -181,7 +181,7 @@ export function StackHost({ screens }: { screens: Record<string, ComponentType<S
   });
 
   return (
-    <div ref={host} className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: "var(--z-stack)", touchAction: "pan-y" }}>
+    <div ref={host} className="f-clip pointer-events-none absolute inset-0" style={{ zIndex: "var(--z-stack)", touchAction: "pan-y" }}>
       {layers.map((l) => {
         const Comp = screens[l.entry.name];
         const top = live[live.length - 1];

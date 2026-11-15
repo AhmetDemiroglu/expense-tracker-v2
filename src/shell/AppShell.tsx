@@ -35,7 +35,7 @@ export function AppShell({ tabs, screens = NO_SCREENS, sheets: sheetRegistry, on
     initBackButton();
   }, []);
   return (
-    <div className="f-backdrop fixed inset-0 overflow-hidden text-text">
+    <div className="f-backdrop f-clip fixed inset-0 text-text">
       <div className="absolute inset-0 will-change-transform">
         <TabPager tabs={tabs} />
         <TopBar onProfile={onProfile} />

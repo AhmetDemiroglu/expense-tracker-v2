@@ -4,7 +4,8 @@
       Böylece dönüşümlü (transform) kapsayıcı, alt sayfa, güvenli alan ve görünüm kayması sonucu değiştirmez.
    2. Ölçümden önce: adımın before işi, document.fonts.ready, iki kare, hedef "oturana" kadar bekleme
       (art arda üç karede aynı ölçü: ekran geçişi ve alt sayfa animasyonu bitmiş demektir).
-   3. Hedef görünür alanda değilse ortaya kaydırılır, iki kare beklenir, yeniden oturması beklenir.
+   3. Hedef görünür alanda değilse kendi kaydırma kabının ortasına getirilir (scrollIntoView YOK), iki kare beklenir,
+      yeniden oturması beklenir.
    4. Adım boyunca hedef her karede yeniden ölçülür (düzen sonradan kayarsa delik izler). ResizeObserver, visualViewport,
       pencere boyutu ve yön değişiminde güvenli alan ve klavye payları yenilenir.
    5. Balon ölçülür, sığdığı tarafa konur, sığmıyorsa yön değiştirir.
@@ -37,6 +38,21 @@ function findTarget(name: string): HTMLElement | null {
     return el;
   }
   return null;
+}
+
+/** Hedefi, içinde durduğu KAYDIRILABİLİR kabın ortasına getirir. scrollIntoView kullanılmaz: o, overflow: hidden
+    kapları da (sekme kaydırıcı, kabuk) kaydırır ve bütün düzeni bozar. Kaydırma yapıldıysa true. */
+function scrollToCenter(el: HTMLElement): boolean {
+  for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+    const oy = getComputedStyle(a).overflowY;
+    if ((oy !== "auto" && oy !== "scroll") || a.scrollHeight <= a.clientHeight + 1) continue;
+    const box = a.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const before = a.scrollTop;
+    a.scrollTop = before + (r.top + r.height / 2) - (box.top + box.height / 2);
+    return a.scrollTop !== before;
+  }
+  return false;
 }
 
 function StepView({ step, index, total, last }: { step: TourStep; index: number; total: number; last: boolean }) {
@@ -102,8 +118,7 @@ function StepView({ step, index, total, last }: { step: TourStep; index: number;
       await settle(el);
       const v0 = viewport();
       const r0 = rectOf(el);
-      if (v0 && r0 && !isInView(r0, v0)) {
-        el.scrollIntoView({ block: "center", inline: "nearest" });
+      if (v0 && r0 && !isInView(r0, v0, 0) && scrollToCenter(el)) {
         await twoFrames();
         await settle(el);
       }

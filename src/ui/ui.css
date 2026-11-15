@@ -107,6 +107,12 @@
       var(--f-bg);
   }
 
+  /* Kırpar ama kaydırılamaz: odak ya da scrollIntoView gizli taşmayı kaydırıp düzeni bozamaz. */
+  .f-clip {
+    overflow: hidden;
+    overflow: clip;
+  }
+
   .scroll-y {
     overflow-y: auto;
     overflow-x: hidden;

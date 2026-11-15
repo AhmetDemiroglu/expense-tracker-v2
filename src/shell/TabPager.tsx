@@ -90,7 +90,7 @@ export function TabPager({ tabs }: { tabs: Partial<Record<TabKey, ComponentType<
   });
 
   return (
-    <div ref={viewport} className="absolute inset-0 overflow-hidden" style={{ touchAction: "pan-y" }}>
+    <div ref={viewport} className="f-clip absolute inset-0" style={{ touchAction: "pan-y" }}>
       <div ref={track} className="flex h-full will-change-transform" style={{ width: `${COUNT * 100}%` }}>
         {TABS.map((key, i) => {
           const Comp = tabs[key] ?? Placeholder;
@@ -103,7 +103,7 @@ export function TabPager({ tabs }: { tabs: Partial<Record<TabKey, ComponentType<
               aria-hidden={!here}
               inert={!here}
               className="relative h-full"
-              style={{ width: `${100 / COUNT}%`, visibility: here || moving ? "visible" : "hidden" }}
+              style={{ width: `${100 / COUNT}%`, visibility: here || moving ? undefined : "hidden" }}
             >
               <ActiveContext.Provider value={active}>
                 <Comp active={active} />

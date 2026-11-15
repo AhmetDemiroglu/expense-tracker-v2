@@ -14,7 +14,7 @@ export interface SplashProps {
   ready?: Promise<unknown>;
 }
 
-const ANIM_MS = 1040;
+const ANIM_MS = 980;
 const EXIT_MS = 160;
 const MAX_WAIT_MS = 2500;
 

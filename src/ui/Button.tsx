@@ -21,12 +21,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
 }
 
-/* Tehlike düğmesi uyarı tonundadır: gider kırmızısı yalnız tutar ve durum içindir (marka kuralı). */
+/* Tehlike düğmesi uyarı tonunda ve çerçevelidir: gider kırmızısı yalnız tutar ve durum içindir (marka kuralı),
+   dolu uyarı tonu gece temasında birincil düğmeye (bakır) karışıyor. */
 const VARIANT: Record<ButtonVariant, string> = {
   primary: "bg-accent text-on-accent",
   secondary: "bg-surface-2 text-text",
   text: "bg-transparent text-accent",
-  danger: "bg-warn text-bg",
+  danger: "border-2 border-warn bg-transparent text-warn",
 };
 const SIZE = {
   sm: "min-h-11 px-4 text-sm",
