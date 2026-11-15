@@ -70,7 +70,7 @@ export function girisHatasinaCevir(e: unknown): UygulamaHatasi {
     default:
       break;
   }
-  if (SAGLAYICI_YOK_KODLARI.has(code) || /not (implemented|available)|GoogleService-Info|no (google|apple)/i.test(message)) {
+  if (SAGLAYICI_YOK_KODLARI.has(code) || /not (implemented|available|enabled)|GoogleService-Info|no (google|apple)/i.test(message)) {
     return new UygulamaHatasi("SAGLAYICI_YOK", { neden: e });
   }
   return new UygulamaHatasi("BILINMEYEN", { neden: e, mesaj: "Giriş yapılamadı. Yeniden dene." });

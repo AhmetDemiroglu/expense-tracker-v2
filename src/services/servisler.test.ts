@@ -76,6 +76,7 @@ describe("giriş hata eşleme", () => {
       [{ code: "auth/requires-recent-login" }, "YENIDEN_GIRIS"],
       [{ code: "auth/operation-not-allowed" }, "SAGLAYICI_YOK"],
       [{ code: "UNIMPLEMENTED", message: "not implemented on web" }, "SAGLAYICI_YOK"],
+      [{ message: "Google sign-in provider is not enabled. Make sure to add the provider" }, "SAGLAYICI_YOK"],
       [{ code: "x", message: '{"error":{"code":400}}' }, "BILINMEYEN"],
     ];
     for (const [e, kod] of vakalar) {
