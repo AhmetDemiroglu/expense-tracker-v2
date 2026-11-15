@@ -94,6 +94,7 @@ export const kayitlar = {
     dosyaAlt: "Görsel ya da PDF",
     okunuyor: "Fiş okunuyor",
     okunuyorMetin: "Tutar, tarih ve işletme aranıyor.",
+    tekrarOku: "Tekrar oku",
     iptal: "İptal",
     iptalEdildi: "Okuma iptal edildi",
     tamam: "Fiş okundu",

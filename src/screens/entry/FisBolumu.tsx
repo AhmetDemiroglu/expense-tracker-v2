@@ -141,7 +141,7 @@ export function FisBolumu({ bugun, onSonuc, kapat }: Props) {
               <span className="text-sm text-text-2">{tr.kayitlar.fis.tamamMetin}</span>
             </div>
             <Button variant="secondary" size="sm" onClick={() => setKaynakAcik(true)}>
-              {tr.ortak.yenile}
+              {tr.kayitlar.fis.tekrarOku}
             </Button>
           </div>
           {durum.f.tarihOkunamadi ? <p className="text-sm font-medium text-warn">{tr.kayitlar.fis.tarihYok}</p> : null}

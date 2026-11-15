@@ -1,6 +1,7 @@
 /* Kayıtlar listesinin saf mantığı: süzme, dönem ve gün gruplama. DOM yok, testli.
    Gün neti: listedeki kayıtların gelir eksi gider toplamı (sumKurus ile). Bütçe hesabı değildir. */
 import {
+  addDays,
   categoryLabel,
   formatAmountInput,
   groupByPeriod,
@@ -98,3 +99,20 @@ export function kalanTaksitler(hepsi: readonly Transaction[], t: Transaction): T
 }
 
 export type { TxType };
+
+/** Gün başlığı: Bugün, Dün ya da null (tarih yazılır). */
+export function gunEtiketi(date: LocalDate, bugun: LocalDate): "bugun" | "dun" | null {
+  return date === bugun ? "bugun" : date === addDays(bugun, -1) ? "dun" : null;
+}
+
+/** Uzun listede ilk `limit` kaydı gösterir (pencereleme): gün gruplarını keser. */
+export function pencele(gunler: readonly GunGrubu[], limit: number): GunGrubu[] {
+  const sonuc: GunGrubu[] = [];
+  let kalan = limit;
+  for (const g of gunler) {
+    if (kalan <= 0) break;
+    sonuc.push(kalan >= g.islemler.length ? g : { ...g, islemler: g.islemler.slice(0, kalan) });
+    kalan -= g.islemler.length;
+  }
+  return sonuc;
+}

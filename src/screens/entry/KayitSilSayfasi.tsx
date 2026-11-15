@@ -21,7 +21,7 @@ export function KayitSilSayfasi({ open, close, params }: SheetScreenProps) {
   const grup = t.installmentGroupId ? hepsi.filter((x) => x.installmentGroupId === t.installmentGroupId) : [];
   const kalan = kalanTaksitler(hepsi, t);
   const taksitli = grup.length > 1;
-  const ad = stripAutoSuffix(t.description).trim() || categoryLabel(t.category);
+  const ad = (stripAutoSuffix(t.description).trim() || categoryLabel(t.category)).replace(/\s*\(\d+\/\d+\)$/, "");
 
   const sil = async (liste: typeof grup, mesaj: string) => {
     close();

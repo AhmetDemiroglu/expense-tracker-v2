@@ -40,3 +40,12 @@ describe("baslikMetni", () => {
     expect(baslikMetni(tx("a", "2026-11-14", 1, "expense", { description: "Netflix (Otomatik)", category: "abonelik" }))).toBe("Netflix");
   });
 });
+
+import { pencele } from "./grup";
+describe("pencele", () => {
+  it("ilk N kaydı gün gruplarını keserek verir", () => {
+    const g = (date: string, n: number) => ({ date: d(date), net: 0, islemler: Array.from({ length: n }, (_, i) => tx(`${date}-${i}`, date, 1, "expense")) });
+    const r = pencele([g("2026-11-15", 3), g("2026-11-14", 3), g("2026-11-13", 3)], 4);
+    expect(r.map((x) => x.islemler.length)).toEqual([3, 1]);
+  });
+});

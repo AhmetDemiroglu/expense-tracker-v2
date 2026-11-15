@@ -229,13 +229,9 @@ export function KayitEkleSayfasi({ open, close, params }: SheetScreenProps) {
             {planli ? <p className="text-sm text-text-2">{t.form.planliNot}</p> : null}
           </div>
 
-          {tur === "expense" ? (
+          {tur === "expense" && !duzenleme ? (
             <div className="flex flex-col gap-2">
               <Etiket ad={t.form.taksit} />
-              {duzenleme ? (
-                <p className="text-sm text-text-3">{t.form.taksitDuzenleNotu}</p>
-              ) : (
-                <>
                   <div className="flex items-center gap-3">
                     <IconButton label={t.form.taksitAzalt} variant="tinted" onClick={() => { haptic.selection(); setTaksit((n) => Math.max(1, n - 1)); }}>
                       <Minus size={20} />
@@ -252,16 +248,14 @@ export function KayitEkleSayfasi({ open, close, params }: SheetScreenProps) {
                       {onizleme.esit ? (
                         <>
                           <span>{t.form.taksitOnizleme.x(onizleme.adet)}</span>
-                          <Amount value={onizleme.ilkTutar} size="sm" kind="expense" decimals />
+                          <Amount value={onizleme.ilkTutar} size="sm" decimals />
                         </>
                       ) : (
                         <span>{t.form.taksitOnizleme.ilkBuyuk(onizleme.adet)}</span>
                       )}
-                      <span>{`, ${t.form.taksitOnizleme.son(onizleme.sonAy, onizleme.sonYil)}`}</span>
+                      <span>{t.form.taksitOnizleme.son(onizleme.sonAy, onizleme.sonYil)}</span>
                     </p>
                   ) : null}
-                </>
-              )}
             </div>
           ) : null}
 
