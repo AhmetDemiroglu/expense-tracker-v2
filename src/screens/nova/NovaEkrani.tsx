@@ -203,10 +203,11 @@ export function NovaSekmesi({ active }: TabProps) {
 
   /* Sohbet ve yazma değişince en alta kaydır (scrollIntoView yasak: scrollTop). */
   const yazanN = yazan?.n ?? 0;
+  const yaziliyor = metin.trim().length > 0;
   useEffect(() => {
     const el = kaydirma.current;
-    if (el) el.scrollTop = tamEkran ? el.scrollHeight : 0;
-  }, [tamEkran, mesajlar.length, bekliyor, sohbetHata, yazanN]);
+    if (el) el.scrollTop = tamEkran && mesajlar.length > 0 ? el.scrollHeight : 0;
+  }, [tamEkran, mesajlar.length, bekliyor, sohbetHata, yazanN, yaziliyor]);
 
   const yanitMoodu = (id: string): NovaMood => (id === sonModelId ? (yazan?.id === id ? "konusuyor" : durum.ruh === "dusunuyor" || durum.ruh === "analiz" ? "mutlu" : durum.ruh) : "mutlu");
 
@@ -238,24 +239,21 @@ export function NovaSekmesi({ active }: TabProps) {
         {tr.nova.durum[durum.anahtar]}
       </span>
 
-      {tamEkran ? (
-        <RaporSeridi
-          rapor={rapor}
-          yukleniyor={raporYukleniyor}
-          hata={raporHatasi}
-          eski={eski}
-          onYenile={() => void useNovaDurumu.getState().raporuYenile()}
-          onAc={() => setRaporAcik(true)}
-        />
-      ) : null}
-
       {/* Kayan tek bölge sohbettir. Kenarlardaki yumuşak geçiş kaydırmanın köşeli kesilmesini önler. */}
       <div ref={kaydirma} className="scroll-y nova-fade flex min-h-0 flex-1 flex-col gap-3">
         {govde ?? (
           <>
+            <RaporSeridi
+              rapor={rapor}
+              yukleniyor={raporYukleniyor}
+              hata={raporHatasi}
+              eski={eski}
+              onYenile={() => void useNovaDurumu.getState().raporuYenile()}
+              onAc={() => setRaporAcik(true)}
+            />
             <div className="flex shrink-0 flex-col gap-3" aria-label={tr.nova.sohbet.baslik}>
               {mesajlar.length === 0 && !bekliyor ? (
-                <NovaSahne mood={durum.ruh} size={96} surface="solid" title={tr.nova.sohbet.sahneBaslik} text={tr.nova.sohbet.bos} className="shrink-0" />
+                <NovaSahne mood={durum.ruh} size={84} surface="solid" title={tr.nova.sohbet.sahneBaslik} className="shrink-0" />
               ) : null}
               {mesajlar.map((m) => {
                 if (m.rol === "user") {
@@ -294,6 +292,16 @@ export function NovaSekmesi({ active }: TabProps) {
                 </div>
               ) : null}
               {sohbetHata ? <SohbetHatasi hata={sohbetHata} cevrimici={cevrimici} onTekrar={tekrarDene} /> : null}
+              {/* Hızlı sorular akışın sonunda: yazarken ve yanıt beklenirken gizlenir, alt yüzey tek satır kalır. */}
+              {!metin.trim() && !bekliyor ? (
+                <div className="scroll-x -mx-1 flex shrink-0 gap-2 px-1" data-swipe-lock="" data-tour="nova-sorular" aria-label={tr.nova.sohbet.hizliSorular}>
+                  {tr.nova.sohbet.sorular.map((q) => (
+                    <Chip key={q.ad} onClick={() => gonder(q.soru)}>
+                      {q.ad}
+                    </Chip>
+                  ))}
+                </div>
+              ) : null}
               {!cevrimici && !sohbetHata ? (
                 <Card variant="flat" className="shrink-0">
                   <p className="text-sm font-semibold text-text">{tr.nova.hata.cevrimdisiBaslik}</p>
@@ -306,16 +314,9 @@ export function NovaSekmesi({ active }: TabProps) {
       </div>
 
       <div className="shrink-0" style={{ paddingBottom: klavye ? "calc(var(--kb-h) + 8px)" : "var(--content-bottom)" }}>
-        <Card variant="solid" pad="none" className="flex flex-col gap-2 px-3 pt-2 pb-2">
+        <Card variant="solid" pad="none" className="flex flex-col gap-1 px-3 pt-2 pb-1.5">
           {tamEkran ? (
             <>
-              <div className="scroll-x -mx-1 flex gap-2 px-1" data-swipe-lock="" data-tour="nova-sorular" aria-label={tr.nova.sohbet.hizliSorular}>
-                {tr.nova.sohbet.sorular.map((q) => (
-                  <Chip key={q.ad} onClick={() => gonder(q.soru)}>
-                    {q.ad}
-                  </Chip>
-                ))}
-              </div>
               <div data-tour="nova-giris">
                 <Field
                   value={metin}
