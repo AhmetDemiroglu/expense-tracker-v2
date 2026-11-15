@@ -107,13 +107,25 @@ async function gorselYukle(blob: Blob): Promise<ImageBitmap | HTMLImageElement> 
 }
 
 /** Herhangi bir görsel blob'unu küçültülmüş JPEG'e çevirir. */
-export async function gorseliHazirla(blob: Blob): Promise<HazirGorsel> {
+/** HEIC/HEIF mi (tür ya da uzantı). Saf (testli). */
+export function heicMi(tur: string, ad = ""): boolean {
+  return /^image\/hei[cf](-sequence)?$/i.test(tur) || /\.hei[cf]$/i.test(ad);
+}
+
+export const HEIC_MESAJI = "Bu fotoğraf biçimi okunamadı, kamerayla çek ya da JPEG seç.";
+
+/**
+ * Herhangi bir görseli (HEIC dahil) küçültülmüş JPEG'e çevirir. Sunucu HEIC almaz: çıktı her zaman JPEG.
+ * Tarayıcı görseli açamazsa düz Türkçe hata (HEIC için ayrı mesaj).
+ */
+export async function gorseliHazirla(blob: Blob, ad = ""): Promise<HazirGorsel> {
   if (blob.size > HAM_SINIR) throw new UygulamaHatasi("DOSYA_BUYUK");
+  const heic = heicMi(blob.type, ad || (blob instanceof File ? blob.name : ""));
   let kaynak: ImageBitmap | HTMLImageElement;
   try {
     kaynak = await gorselYukle(blob);
   } catch (e) {
-    throw new UygulamaHatasi("GORSEL_BOZUK", { neden: e });
+    throw new UygulamaHatasi("GORSEL_BOZUK", heic ? { neden: e, mesaj: HEIC_MESAJI } : { neden: e });
   }
   const gw = "naturalWidth" in kaynak ? kaynak.naturalWidth : kaynak.width;
   const gh = "naturalHeight" in kaynak ? kaynak.naturalHeight : kaynak.height;
@@ -134,6 +146,10 @@ export async function gorseliHazirla(blob: Blob): Promise<HazirGorsel> {
     kalite -= 0.15;
     dataUrl = canvas.toDataURL("image/jpeg", kalite);
     data = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  }
+  // JPEG kodlayamayan tarayıcı PNG'ye düşer: sunucuya yanlış tür gitmesin.
+  if (!dataUrl.startsWith("data:image/jpeg")) {
+    throw new UygulamaHatasi("GORSEL_BOZUK", heic ? { mesaj: HEIC_MESAJI } : {});
   }
   const bayt = base64Bayt(data);
   if (bayt > AZAMI_BAYT) throw new UygulamaHatasi("DOSYA_BUYUK");

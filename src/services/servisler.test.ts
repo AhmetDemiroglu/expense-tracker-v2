@@ -111,3 +111,21 @@ describe("PDF fiş dosyası", async () => {
     await expect(pdfHazirla(new Blob([new Uint8Array(AZAMI_PDF_BAYT + 1)]))).rejects.toMatchObject({ kod: "DOSYA_BUYUK" });
   });
 });
+
+describe("HEIC görsel", async () => {
+  const { HEIC_MESAJI, gorseliHazirla, heicMi } = await import("./kamera");
+
+  it("tür ya da uzantıdan tanınır", () => {
+    expect(heicMi("image/heic")).toBe(true);
+    expect(heicMi("image/heif-sequence")).toBe(true);
+    expect(heicMi("", "IMG_0001.HEIC")).toBe(true);
+    expect(heicMi("image/jpeg", "a.jpg")).toBe(false);
+  });
+
+  it("açılamayan HEIC olduğu gibi gönderilmez, düz Türkçe mesajla durur", async () => {
+    // Node'da görsel çözücü yok: tarayıcının HEIC'i açamadığı durumla aynı.
+    const heic = new Blob([new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])], { type: "image/heic" });
+    await expect(gorseliHazirla(heic, "IMG_0001.HEIC")).rejects.toMatchObject({ kod: "GORSEL_BOZUK", mesaj: HEIC_MESAJI });
+    await expect(gorseliHazirla(new Blob([new Uint8Array(4)], { type: "image/png" }))).rejects.toMatchObject({ kod: "GORSEL_BOZUK" });
+  });
+});
