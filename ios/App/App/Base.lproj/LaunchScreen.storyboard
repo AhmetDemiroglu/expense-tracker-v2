@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24093.7" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="FT-VC-1">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24053.1"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="FT-SCENE-1">
+            <objects>
+                <viewController id="FT-VC-1" sceneMemberID="viewController">
+                    <view key="view" userInteractionEnabled="NO" contentMode="scaleToFill" id="FT-ContainerView">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <subviews>
+                            <!-- Düz zemin, ortalı simge (gündüz ve gece görseli varlık kataloğunda). Uygulamadaki hareketli
+                                 açılışın simgesiyle aynı boy (104 pt) ve aynı yer: isim satırı için 30 pt yukarıda. -->
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="SplashScreenLogo" translatesAutoresizingMaskIntoConstraints="NO" id="FT-Logo">
+                                <rect key="frame" x="144.5" y="344" width="104" height="104"/>
+                            </imageView>
+                        </subviews>
+                        <constraints>
+                            <constraint firstItem="FT-Logo" firstAttribute="centerX" secondItem="FT-ContainerView" secondAttribute="centerX" id="ft-cx"/>
+                            <constraint firstItem="FT-Logo" firstAttribute="centerY" secondItem="FT-ContainerView" secondAttribute="centerY" constant="-30" id="ft-cy"/>
+                            <constraint firstItem="FT-Logo" firstAttribute="width" constant="104" id="ft-w"/>
+                            <constraint firstItem="FT-Logo" firstAttribute="height" constant="104" id="ft-h"/>
+                        </constraints>
+                        <color key="backgroundColor" name="SplashScreenBackground"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="FT-FR-1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="0.0" y="0.0"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="SplashScreenLogo" width="220" height="220"/>
+        <namedColor name="SplashScreenBackground">
+            <color red="0.965" green="0.961" blue="0.945" alpha="1.000" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>
