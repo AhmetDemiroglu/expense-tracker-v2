@@ -18,7 +18,7 @@ const COUNT = TABS.length;
 function Placeholder() {
   return (
     <TabPage>
-      <EmptyState className="flex-1" title={tr.ortak.bos.hazirlaniyor} />
+      <EmptyState mood="uyku" title={tr.ortak.bos.hazirlaniyor} />
     </TabPage>
   );
 }

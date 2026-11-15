@@ -9,7 +9,7 @@
   --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --kb-h: 0px; /* klavyenin görünüme bindiği pay (layout.ts yazar) */
 
-  --topbar-h: 56px;
+  --topbar-h: 64px;
   --tabbar-h: 60px;
   --tabbar-bottom: max(var(--safe-bottom), 12px);
   --content-top: calc(var(--safe-top) + var(--topbar-h));
@@ -434,5 +434,80 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- Nova ---------- */
+:root {
+  --f-nova-body: color-mix(in srgb, var(--f-accent) 13%, var(--f-surface));
+  --f-nova-rim: color-mix(in srgb, var(--f-accent) 34%, var(--f-surface));
+  --f-nova-visor: var(--f-text);
+  --f-nova-face: var(--f-copper);
+}
+:root[data-theme="dark"] {
+  --f-nova-body: color-mix(in srgb, var(--f-text) 20%, var(--f-surface));
+  --f-nova-rim: color-mix(in srgb, var(--f-text) 42%, var(--f-surface));
+  --f-nova-visor: var(--f-bg);
+}
+@layer components {
+  .f-nova-breathe {
+    animation: f-nova-breathe 4200ms ease-in-out infinite;
+  }
+  .f-nova-hop {
+    animation: f-nova-hop 900ms var(--f-ease) 2;
+  }
+  .f-nova-wave {
+    animation: f-nova-wave 900ms ease-in-out infinite;
+  }
+  .f-nova-talk {
+    animation: f-nova-talk 420ms ease-in-out infinite;
+  }
+  .f-nova-scan {
+    animation: f-nova-scan 1600ms ease-in-out infinite;
+  }
+}
+@keyframes f-nova-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes f-nova-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes f-nova-wave {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+@keyframes f-nova-talk {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes f-nova-scan {
+  0%,
+  100% {
+    transform: translateY(2px);
+  }
+  50% {
+    transform: translateY(35px);
   }
 }

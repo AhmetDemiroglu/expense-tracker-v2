@@ -1,6 +1,6 @@
-/* Üst bar (yatay logo + profil), alt yüzen cam kapsül (4 sekme) ve ayrı yüzen bakır ekle düğmesi. */
-import { useEffect, useRef } from "react";
-import { CalendarDays, House, Plus, ReceiptText, Sparkles, UserRound } from "lucide-react";
+/* Üst bar (cam kapsül: yatay logo + profil), alt yüzen cam kapsül (4 sekme) ve ayrı yüzen bakır ekle düğmesi. */
+import { useEffect, useRef, type ComponentType } from "react";
+import { CalendarDays, House, Plus, ReceiptText, UserRound } from "lucide-react";
 import { Logo } from "@/brand/Logo";
 import { tr } from "@/metin";
 import { IconButton } from "@/ui/Button";
@@ -8,24 +8,27 @@ import { cn } from "@/ui/cn";
 import { Glass } from "@/ui/Glass";
 import { haptic } from "@/ui/haptics";
 import { useKeyboardOpen } from "@/ui/layout";
+import { NovaGlyph } from "@/ui/nova/Nova";
 import { pagerPosition } from "./active";
 import { nav, useNav } from "./router/nav";
 import { TABS, tabIndex, type TabKey } from "./router/stack";
 
+/** Üst bar: cam kapsül. Logo ve profil düğmesi bu yüzeyin içinde durur (yüzen öğe yok). */
 export function TopBar({ onProfile }: { onProfile?: () => void }) {
   return (
-    <header className="absolute inset-x-0 top-0 flex items-end pt-(--safe-top)" style={{ zIndex: "var(--z-bar)", height: "var(--content-top)" }}>
-      <div className="flex h-(--topbar-h) w-full items-center justify-between pr-2 pl-(--page-x)">
-        <Logo variant="horizontal" height={30} />
+    <header className="absolute inset-x-0 top-0 flex items-end px-(--page-x) pt-(--safe-top)" style={{ zIndex: "var(--z-bar)", height: "var(--content-top)" }}>
+      <Glass tone="dense" lens radius="pill" className="mb-1.5 flex min-h-13 w-full items-center justify-between py-1 pr-1 pl-5">
+        <Logo variant="horizontal" height={28} />
         <IconButton label={tr.ortak.profil} variant="tinted" onClick={onProfile} data-tour="profil">
           <UserRound size={20} aria-hidden="true" />
         </IconButton>
-      </div>
+      </Glass>
     </header>
   );
 }
 
-const ICONS: Record<TabKey, typeof House> = { ozet: House, takvim: CalendarDays, kayitlar: ReceiptText, nova: Sparkles };
+type TabIcon = ComponentType<{ size?: number; strokeWidth?: number }>;
+const ICONS: Record<TabKey, TabIcon> = { ozet: House, takvim: CalendarDays, kayitlar: ReceiptText, nova: NovaGlyph };
 
 export interface TabBarProps {
   onAdd?: () => void;

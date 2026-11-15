@@ -21,9 +21,14 @@ import {
   IconButton,
   Keypad,
   ListRow,
+  NOVA_MOODS,
+  Nova,
+  NovaAvatar,
+  NovaSahne,
   ProgressBar,
   Ring,
-  SectionLabel,
+  ScreenHeader,
+  Section,
   Segmented,
   Sheet,
   SkeletonRows,
@@ -41,6 +46,7 @@ import {
   toast,
   useAutoTour,
   useTheme,
+  type NovaMood,
   type ThemePref,
   type TourStep,
   type WeekBarDay,
@@ -93,13 +99,7 @@ function OzetSekmesi() {
   const active = useScreenActive();
   useAutoTour("vitrin-ozet", OZET_TURU, { when: active });
   return (
-    <TabPage>
-      <div className="flex items-center justify-between">
-        <button type="button" className="min-h-11 text-left text-base font-semibold text-text" onClick={() => toast("Dönem seçici burada açılır")}>
-          Kasım 2026
-        </button>
-        <TourInfoButton id="vitrin-ozet" steps={OZET_TURU} />
-      </div>
+    <TabPage header={<ScreenHeader title="Kasım 2026" subtitle="1 - 30 Kasım" onTitleClick={() => toast("Dönem seçici burada açılır")} right={<TourInfoButton id="vitrin-ozet" steps={OZET_TURU} />} />}>
       <Card lens data-tour="ozet-kart" className="flex flex-col gap-3">
         <div className="flex items-end justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
@@ -129,12 +129,11 @@ function OzetSekmesi() {
           </Card>
         ))}
       </div>
-      <SectionLabel>Son hareketler</SectionLabel>
-      <Card variant="solid" pad="none" className="scroll-y min-h-0">
-        {ORNEK.slice(0, 2).map((k) => (
+      <Section title="Son hareketler" pad="none" scroll right={<Button variant="text" size="sm" onClick={() => nav.setTab("kayitlar")}>Tümü</Button>}>
+        {ORNEK.slice(0, 3).map((k) => (
           <KayitSatiri key={k.id} k={k} />
         ))}
-      </Card>
+      </Section>
     </TabPage>
   );
 }
@@ -151,7 +150,9 @@ function TakvimSekmesi() {
           Seçilen gün: <span className="font-semibold text-text">{formatDateTr(gun, "long")}</span>. Takvimin üstünde yana kaydırmak ayı değiştirir, sekmeyi değil (data-swipe-lock).
         </p>
       </Card>
-      <WeekBars days={GUNLER} limit={LIMIT} onSelect={(i) => toast(GUNLER[i]?.label ?? "")} />
+      <Section title="Bu hafta" variant="glass">
+        <WeekBars days={GUNLER} limit={LIMIT} onSelect={(i) => toast(GUNLER[i]?.label ?? "")} />
+      </Section>
     </TabPage>
   );
 }
@@ -182,17 +183,33 @@ function KayitlarSekmesi() {
           ))}
         </Card>
       ) : (
-        <EmptyState art="arama" title="Sonuç yok" text="Başka bir kelime dene." />
+        <EmptyState mood="dusunuyor" title="Sonuç yok" text="Başka bir kelime dene." />
       )}
     </TabPage>
   );
 }
 
 function NovaSekmesi() {
+  const [mood, setMood] = useState<NovaMood>("selam");
   return (
-    <TabPage scroll>
-      <EmptyState art="nova" title="Nova hazırlanıyor" text="Yükleniyor durumu için iskelet satırlar aşağıda." action={<Button onClick={() => nav.push("parcalar")}>Parçaları aç</Button>} />
-      <SkeletonRows count={3} />
+    <TabPage scroll header={<ScreenHeader title="Nova" subtitle="Bütçe yardımcın" right={<NovaAvatar mood={mood} size={32} />} />}>
+      <NovaSahne mood={mood} title="Merhaba, ben Nova" text="Ruh halini aşağıdan değiştir. Yüz yumuşak geçişle değişir." action={<Button onClick={() => nav.push("parcalar")}>Parçaları aç</Button>} />
+      <Section title="Ruh hali">
+        <div className="flex flex-wrap gap-2">
+          {NOVA_MOODS.map((m) => (
+            <Chip key={m} selected={m === mood} onClick={() => setMood(m)}>
+              {m}
+            </Chip>
+          ))}
+        </div>
+      </Section>
+      <Section title="Sohbet örneği">
+        <div className="flex items-end gap-2">
+          <NovaAvatar mood="konusuyor" size={28} />
+          <p className="selectable rounded-card bg-surface-2 px-4 py-3 text-sm text-text">Bu hafta market harcaman geçen haftadan az. Böyle devam.</p>
+        </div>
+        <SkeletonRows count={2} />
+      </Section>
     </TabPage>
   );
 }
@@ -200,12 +217,7 @@ function NovaSekmesi() {
 /* ---------- Üst ekranlar ---------- */
 
 function Bolum({ ad, children }: { ad: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <SectionLabel>{ad}</SectionLabel>
-      {children}
-    </section>
-  );
+  return <Section title={ad}>{children}</Section>;
 }
 
 function ParcalarEkrani(_: ScreenProps) {
@@ -263,7 +275,7 @@ function ParcalarEkrani(_: ScreenProps) {
           <Logo variant="vertical" height={96} />
           <Logo variant="slogan" height={44} />
         </Card>
-        <div className="flex justify-center py-1">
+        <div className="flex justify-center rounded-control bg-surface-2 py-3">
           <SeptimusImza />
         </div>
       </Bolum>
@@ -310,7 +322,7 @@ function ParcalarEkrani(_: ScreenProps) {
           <Spinner />
         </div>
         <Segmented value={tur} onChange={setTur} options={[{ value: "gider", label: "Gider" }, { value: "gelir", label: "Gelir" }]} full />
-        <div className="scroll-x -mx-(--page-x) flex gap-2 px-(--page-x)" data-swipe-lock="">
+        <div className="scroll-x -mx-4 flex gap-2 px-4" data-swipe-lock="">
           {["Market", "Yeme içme", "Toplu taşıma", "Kira", "Fatura", "Eğlence"].map((c) => (
             <Chip key={c} selected={cip === c} onClick={() => setCip(c)}>
               {c}
@@ -400,14 +412,26 @@ function ParcalarEkrani(_: ScreenProps) {
         </div>
       </Bolum>
 
-      <Bolum ad="Boş durumlar">
-        <div className="grid grid-cols-2 gap-2">
-          {(["kayit", "takvim", "nova", "arama", "genel"] as const).map((a) => (
-            <Card key={a} variant="solid" pad="none">
-              <EmptyState art={a} title={a} className="px-2 py-4" />
-            </Card>
+      <Bolum ad="Nova: ruh halleri">
+        <div className="grid grid-cols-5 gap-x-1 gap-y-3">
+          {NOVA_MOODS.map((m) => (
+            <div key={m} className="flex min-w-0 flex-col items-center gap-1" data-nova={m}>
+              <Nova mood={m} size={64} label={m} />
+              <span className="text-xs text-text-2">{m}</span>
+            </div>
           ))}
         </div>
+      </Bolum>
+      <Bolum ad="Nova: boyutlar">
+        <div className="flex items-end justify-around gap-2" data-nova-boyut="">
+          <Nova mood="selam" size={28} />
+          <NovaAvatar mood="mutlu" size={28} />
+          <Nova mood="selam" size={64} />
+          <Nova mood="selam" size={160} />
+        </div>
+      </Bolum>
+      <Bolum ad="Boş durum">
+        <EmptyState surface="none" mood="uyku" title="Henüz kayıt yok" text="İlk kaydını eklediğinde burada görünür." action={<Button size="sm">Kayıt ekle</Button>} />
       </Bolum>
 
       <Sheet
