@@ -66,8 +66,8 @@ function KurulumAdimlari({ kapat }: { kapat?: () => void }) {
         <ProgressBar value={(adim + 1) / 3} tone="copper" label={t.ust(adim + 1, 3)} />
         <p className="text-xs text-text-3">{t.ust(adim + 1, 3)}</p>
       </Card>
-      <NovaSahne mood={mood} size={104} title={baslik} text={metin} />
-      <Section title={adim === 0 ? t.maas.etiket : adim === 1 ? t.gelir.etiket : t.gider.etiket} variant="solid">
+      <NovaSahne mood={mood} size={88} title={baslik} text={metin} />
+      <Section title={adim === 0 ? t.maas.etiket : undefined} variant="solid">
         {adim === 0 ? (
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">

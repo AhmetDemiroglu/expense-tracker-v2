@@ -33,7 +33,7 @@ export function NovaProfiliEkrani() {
 
   return (
     <Screen title={t.baslik}>
-      <NovaSahne mood="mutlu" size={96} title={t.baslik} text={t.metin} />
+      <NovaSahne mood="mutlu" size={96} title={t.sahneBaslik} text={t.metin} />
       <Section title={t.hedef.baslik} variant="solid" pad="none">
         {HEDEFLER.map((h, i) => (
           <div key={h}>

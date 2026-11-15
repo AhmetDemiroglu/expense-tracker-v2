@@ -97,7 +97,7 @@ function TarihDugmesi({ etiket, deger, onClick }: { etiket: string; deger: Local
       <span className="text-xs font-medium text-text-3">{etiket}</span>
       <span className="flex items-center gap-1.5 text-base font-medium text-text">
         <CalendarDays size={16} className="text-text-3" aria-hidden="true" />
-        {formatDateTr(deger, "long")}
+        {formatDateTr(deger, "numeric")}
       </span>
     </button>
   );

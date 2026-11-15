@@ -90,6 +90,7 @@ export const ayarlar = {
 
   nova: {
     baslik: "Nova profili",
+    sahneBaslik: "Seni tanımak istiyorum",
     metin: "Nova önerilerini bu profile göre kurar. Dönemi değiştirmek profilini silmez.",
     hedef: {
       baslik: "Finansal hedef",
