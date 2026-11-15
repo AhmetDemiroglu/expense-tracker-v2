@@ -129,6 +129,16 @@ describe("eski sürüm yazma biçimi", () => {
     void savingsStyle;
     void riskTolerance;
     await assertSucceeds(setDoc(doc(db, "settings", "alice"), withoutNova));
+    // Çok eski dokümanda userId yoksa Nova kaydı onu yaymadan yazar: kabul.
+    const { userId, ...noUser } = oldSettings;
+    void userId;
+    await assertSucceeds(setDoc(doc(db, "settings", "alice"), noUser));
+  });
+
+  it("dönem: uzun ad ve uzun açıklama (eski formda sınır yoktu)", async () => {
+    const db = alice();
+    await assertSucceeds(addDoc(collection(db, "budget_periods"), { ...oldPeriod, name: "D".repeat(150) }));
+    await assertSucceeds(addDoc(collection(db, "transactions"), { ...oldTx, description: "x".repeat(300) }));
   });
 
   it("dönem: istemci UUID ile setDoc ve addDoc, startDate sıralı liste", async () => {
@@ -249,7 +259,7 @@ describe("alan doğrulama", () => {
     await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, date: "14.11.2026" }));
     await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, type: "transfer" }));
     await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, category: "x".repeat(81) }));
-    await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, description: "x".repeat(201) }));
+    await assertFails(addDoc(collection(db, "transactions"), { ...oldTx, description: "x".repeat(501) }));
     await assertFails(addDoc(collection(db, "recurring_transactions"), { ...oldRecurring, frequency: "daily" }));
     await assertFails(addDoc(collection(db, "budget_periods"), { ...oldPeriod, startDate: "2026-12-01" }));
   });

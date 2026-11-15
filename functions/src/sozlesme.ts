@@ -37,7 +37,19 @@ const timeZone = z
 
 const kurus = z.number().int().min(-MAX_KURUS).max(MAX_KURUS);
 const kurusPositive = z.number().int().min(0).max(MAX_KURUS);
-const shortText = (max: number) => z.string().max(max);
+/** Uzun metin reddedilmez, kırpılır (istemci her yeri kırpmak zorunda kalmasın). Ham üst sınır 2000. */
+const shortText = (max: number) =>
+  z
+    .string()
+    .max(2000)
+    .transform((s) => s.slice(0, max));
+
+/** Fazla satır reddedilmez, ilk `max` satır alınır. Ham üst sınır 500. */
+const capped = <T extends z.ZodTypeAny>(item: T, max: number) =>
+  z
+    .array(item)
+    .max(500)
+    .transform((a) => a.slice(0, max));
 
 export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 export type ImageMimeType = (typeof IMAGE_MIME_TYPES)[number];
@@ -97,29 +109,25 @@ const financeContext = z.object({
     todayRemaining: kurus.nullable(),
     savingsRatePercent: z.number().int().min(-1000).max(100).nullable(),
   }),
-  categories: z
-    .array(z.object({ key: shortText(40), name: shortText(80), amount: kurusPositive }))
-    .max(30),
-  recurring: z
-    .array(
-      z.object({
-        name: shortText(80),
-        amount: kurusPositive,
-        frequency: z.enum(["weekly", "monthly", "yearly"]),
-      }),
-    )
-    .max(30),
-  recent: z
-    .array(
-      z.object({
-        date: localDate,
-        categoryName: shortText(80),
-        amount: kurusPositive,
-        type: z.enum(["income", "expense"]),
-        description: shortText(80),
-      }),
-    )
-    .max(30),
+  categories: capped(z.object({ key: shortText(40), name: shortText(80), amount: kurusPositive }), 30),
+  recurring: capped(
+    z.object({
+      name: shortText(80),
+      amount: kurusPositive,
+      frequency: z.enum(["weekly", "monthly", "yearly"]),
+    }),
+    30,
+  ),
+  recent: capped(
+    z.object({
+      date: localDate,
+      categoryName: shortText(80),
+      amount: kurusPositive,
+      type: z.enum(["income", "expense"]),
+      description: shortText(80),
+    }),
+    30,
+  ),
   previousPeriod: z
     .object({
       name: shortText(80),

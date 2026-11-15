@@ -13,6 +13,8 @@ export type GenerateRequest = {
   thinking: ThinkingLevel;
   /** Verilirse yanıt JSON olur ve bu şemayla kısıtlanır. */
   responseJsonSchema?: Record<string, unknown>;
+  /** Düz metin yanıtta sınıra takılan ama boş olmayan metni kabul et (sohbet). */
+  acceptTruncated?: boolean;
 };
 
 /** Yanıt metnini doğrular, uymuyorsa hata fırlatır (yedek modele düşülür). */
@@ -68,7 +70,7 @@ type GeminiResponse = {
 };
 
 /** Yanıttan düşünce olmayan metni çıkarır. Sorun varsa Failure döner. */
-export function extractText(data: unknown): { text: string } | Failure {
+export function extractText(data: unknown, acceptTruncated = false): { text: string } | Failure {
   const res = (data ?? {}) as GeminiResponse;
   if (res.promptFeedback?.blockReason) {
     return { kind: "bad", reason: `blocked:${res.promptFeedback.blockReason}` };
@@ -76,12 +78,13 @@ export function extractText(data: unknown): { text: string } | Failure {
   const cand = res.candidates?.[0];
   if (!cand) return { kind: "bad", reason: "no-candidate" };
   const finish = cand.finishReason ?? "STOP";
-  if (finish !== "STOP") return { kind: "bad", reason: `finish:${finish}` };
   const text = (cand.content?.parts ?? [])
     .filter((p) => !p.thought && typeof p.text === "string")
     .map((p) => p.text)
     .join("")
     .trim();
+  const truncatedOk = acceptTruncated && finish === "MAX_TOKENS" && text.length > 0;
+  if (finish !== "STOP" && !truncatedOk) return { kind: "bad", reason: `finish:${finish}` };
   if (!text) return { kind: "bad", reason: "empty" };
   return { text };
 }
@@ -129,7 +132,7 @@ async function attempt<T>(
     return { kind: RETRYABLE_STATUS.has(res.status) ? "unavailable" : "bad", reason: `http:${res.status} ${body}` };
   }
 
-  const extracted = extractText(await res.json());
+  const extracted = extractText(await res.json(), req.acceptTruncated === true);
   if (!("text" in extracted)) return extracted;
 
   try {

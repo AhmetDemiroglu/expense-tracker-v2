@@ -99,7 +99,7 @@ service cloud.firestore {
         && data().type in ['income', 'expense']
         && isLocalDate(data().date)
         && data().category is string && data().category.size() >= 1 && data().category.size() <= 80
-        && optString('description', 200)
+        && optString('description', 500)
         && optTime('createdAt')
         && optTime('updatedAt')
         && legacyIdOk()
@@ -130,7 +130,7 @@ service cloud.firestore {
 
     function validPeriod() {
       return smallDoc()
-        && data().name is string && data().name.size() >= 1 && data().name.size() <= 80
+        && data().name is string && data().name.size() >= 1 && data().name.size() <= 200
         && isLocalDate(data().startDate)
         && isLocalDate(data().endDate)
         && data().startDate <= data().endDate
@@ -159,7 +159,7 @@ service cloud.firestore {
         && data().category is string && data().category.size() >= 1 && data().category.size() <= 80
         && data().frequency in ['weekly', 'monthly', 'yearly']
         && isLocalDate(data().startDate)
-        && optString('description', 200)
+        && optString('description', 500)
         && optLocalDate('nextDueDate')
         && optLocalDate('lastProcessedDate')
         && optLocalDate('endDate')
@@ -181,8 +181,9 @@ service cloud.firestore {
 
     function validSettings(userId) {
       return smallDoc()
-        && data().userId == userId
-        && optString('periodName', 80)
+        // Eski sürüm userId'yi her zaman yazar; çok eski bir dokümanda yoksa yayılarak eksik yazılabilir.
+        && data().get('userId', userId) == userId
+        && optString('periodName', 200)
         && optLocalDate('periodStartDate')
         && optLocalDate('periodEndDate')
         && optAmount('monthlyIncome')

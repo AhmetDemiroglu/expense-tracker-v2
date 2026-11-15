@@ -48,7 +48,9 @@ export async function handleAi(caller: Caller, raw: unknown, deps: AiDeps): Prom
   try {
     return await run(req, usage, deps);
   } catch (e) {
-    // AI yanıt vermediyse ya da beklenmeyen hata olduysa hak iade edilir.
+    // Hak yalnız AI'a ulaşılamadıysa iade edilir. AI_BAD_RESPONSE iade edilmez:
+    // modeller faturalandı, iade sınırsız tekrar açığı yaratır.
+    if (isApiError(e, "AI_BAD_RESPONSE")) throw e;
     await deps.quota.refund(uid, req.op, deps.now());
     if (isApiError(e)) throw e;
     deps.gemini.logger.warn("ai unexpected", { op: req.op, error: e instanceof Error ? e.name : "unknown" });
@@ -103,6 +105,7 @@ async function run(req: ValidatedRequest, usage: Usage, deps: AiDeps): Promise<A
           contents: req.messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
           maxOutputTokens: MAX_OUTPUT_TOKENS.chat,
           thinking: THINKING_BY_OP.chat,
+          acceptTruncated: true,
         },
         parseChat,
       );

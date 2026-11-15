@@ -38,8 +38,8 @@ export const MAX_OUTPUT_TOKENS: Record<AiOp, number> = {
   chat: 2048,
 };
 
-/** Tek Gemini isteği için zaman aşımı. İki model denenirse toplam fonksiyon süresinin altında kalır. */
-export const GEMINI_TIMEOUT_MS = 40_000;
+/** Tek Gemini isteği için zaman aşımı. İki deneme (~50 sn) callable istemcinin varsayılan 70 sn süresinin altında kalır. */
+export const GEMINI_TIMEOUT_MS = 25_000;
 export const FUNCTION_TIMEOUT_SECONDS = 120;
 
 /** deleteAccount: son giriş bundan eskiyse yeniden doğrulama istenir. */
