@@ -191,6 +191,49 @@ describe("recurrence: ilk ödeme tarihini düzenleme (denetim 3.4.6)", () => {
   });
 });
 
+describe("recurrence: eski kaymış kayıtla eşleştirme kuralı", () => {
+  const mart = { start: D("2026-03-01"), end: D("2026-03-31"), plannedIncome: 3_000_000, fixedExpenses: 0 };
+  it("aylık: eski sürümün 28'ine yazdığı kayıt, 31'i vadesiyle aynı takvim ayında eşleşir (imleç güncellenmemiş olsa bile)", () => {
+    // Eski sürüm 28 Mart'ı yazdı, imleç güncellemesi düştü: imleç hâlâ 28 Mart.
+    const r = rec("r1", "monthly", "2026-01-31", 20000, { description: "Netflix", nextDueDate: D("2026-03-28") });
+    const eski = legacyAuto("2026-03-28", "Netflix", 20000);
+    const out = processRecurring([r], [eski], D("2026-03-31"), 1);
+    expect(out.create).toEqual([]);
+    expect(out.update[0]?.nextDueDate).toBe("2026-04-30");
+    const b = computeBudget({ period: mart, transactions: [eski], recurrences: [r], today: D("2026-03-29") });
+    expect(b.autoPaid).toBe(20000);
+    expect(b.duePending).toBe(0);
+    // Nisan'da kayıt yok: 30 Nisan vadesi üretilir.
+    expect(processRecurring([r], [eski], D("2026-04-30"), 1).create.map((t) => t.date)).toEqual(["2026-04-30"]);
+  });
+  it("yıllık: 28 Şubat'a kaymış eski kayıt o yılın vadesiyle eşleşir, sonraki yılla eşleşmez", () => {
+    const r = rec("y1", "yearly", "2028-02-29", 120000, { description: "Sigorta", nextDueDate: D("2032-02-28") });
+    const eski = legacyAuto("2032-02-28", "Sigorta", 120000);
+    expect(processRecurring([r], [eski], D("2032-03-05"), 1).create).toEqual([]);
+    expect(processRecurring([r], [eski], D("2033-03-05"), 1).create.map((t) => t.date)).toEqual(["2033-02-28"]);
+  });
+  it("haftalık: takvim ayı kuralı uygulanmaz, eski kayıt yalnız kendi günündeki vadeyle eşleşir", () => {
+    const r = rec("w1", "weekly", "2026-11-02", 10000, { description: "Spor" });
+    const eski = legacyAuto("2026-11-02", "Spor", 10000);
+    // Aynı ayda 5 vade var: 2 Kasım eşleşir, diğer dördü üretilir.
+    expect(processRecurring([r], [eski], D("2026-11-30"), 1).create.map((t) => t.date)).toEqual(["2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30"]);
+    const kasim = { start: D("2026-11-01"), end: D("2026-11-30"), plannedIncome: 3_000_000, fixedExpenses: 0 };
+    const b = computeBudget({ period: kasim, transactions: [eski], recurrences: [r], today: D("2026-11-03") });
+    expect(b.autoPaid).toBe(10000);
+    expect(b.duePending).toBe(40000);
+    expect(b.planned).toBe(50000);
+    // Bir gün kaymış eski kayıt haftalıkta eşleşmez (tolerans yok): o haftanın vadesi ayrıca sayılır.
+    const kaymis = legacyAuto("2026-11-10", "Spor", 10000);
+    expect(processRecurring([r], [kaymis], D("2026-11-09"), 1).create.map((t) => t.date)).toEqual(["2026-11-02", "2026-11-09"]);
+  });
+  it("yeni kayıtta kural birebirdir: aynı ayda başka günün vadesiyle eşleşmez; başka adlı eski kayıt da eşleşmez", () => {
+    const r = rec("r1", "monthly", "2026-01-31", 20000, { description: "Netflix", nextDueDate: D("2026-03-31") });
+    const yeniBaskaGun = tx("2026-03-28", 20000, { category: "abonelik", description: "Netflix", recurringId: "r1", dueDate: D("2026-02-28") });
+    expect(processRecurring([r], [yeniBaskaGun], D("2026-03-31"), 1).create.map((t) => t.date)).toEqual(["2026-03-31"]);
+    expect(processRecurring([r], [legacyAuto("2026-03-28", "Spotify", 20000)], D("2026-03-31"), 1).create.map((t) => t.date)).toEqual(["2026-03-31"]);
+  });
+});
+
 describe("recurrence: otomatik işlemin tanınması ve çift kayıt", () => {
   it("yeni alan ya da eski ek ile tanınır", () => {
     expect(isAutoTransaction(tx("2026-11-01", 100, { recurringId: "r1" }))).toBe(true);

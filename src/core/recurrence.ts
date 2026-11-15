@@ -105,20 +105,36 @@ function legacyKey(date: LocalDate, description: string): string {
   return `${date}|${trFold(stripAutoSuffix(description))}`;
 }
 
-/** Hangi vadelerin zaten işlemi var: yeni kayıt kimlikle, eski kayıt ad + günle eşleşir. */
+/**
+ * Hangi vadelerin zaten işlemi var. Eşleştirme kuralı:
+ * 1. Yeni kayıt: recurringId + vade günü (dueDate) birebir.
+ * 2. Eski " (Otomatik)" kaydı: ad (eksiz, katlanmış) + aynı gün.
+ * 3. Eski kayıt, AYLIK ve YILLIK ödemede: ad + aynı takvim ayı. Eski sürüm 31'i vadesini 28'ine kaydırıp
+ *    yazdığı için gün tutmaz; aylık ve yıllık ödemenin bir takvim ayında en fazla bir vadesi vardır.
+ * Haftalık ödemede 3. kural YOKTUR (ayda 4-5 vade): yalnız aynı gün eşleşir. Gün toleransı kullanılmaz.
+ */
 export interface OccurrenceIndex {
-  has(rec: Pick<Recurring, "id" | "description">, due: LocalDate): boolean;
+  has(rec: Pick<Recurring, "id" | "description"> & { frequency?: Frequency }, due: LocalDate): boolean;
 }
 
 export function indexGenerated(transactions: readonly Transaction[]): OccurrenceIndex {
   const fresh = new Set<string>();
   const legacy = new Set<string>();
+  const legacyMonth = new Set<string>();
+  const monthKey = (date: LocalDate, description: string): string =>
+    `${date.slice(0, 7)}|${trFold(stripAutoSuffix(description))}`;
   for (const t of transactions) {
     if (t.recurringId) fresh.add(newKey(t.recurringId, vade(t)));
-    else if (isLegacyAutoTransaction(t)) legacy.add(legacyKey(t.date, t.description));
+    else if (isLegacyAutoTransaction(t)) {
+      legacy.add(legacyKey(t.date, t.description));
+      legacyMonth.add(monthKey(t.date, t.description));
+    }
   }
   return {
-    has: (rec, due) => fresh.has(newKey(rec.id, due)) || legacy.has(legacyKey(due, rec.description)),
+    has: (rec, due) =>
+      fresh.has(newKey(rec.id, due)) ||
+      legacy.has(legacyKey(due, rec.description)) ||
+      ((rec.frequency === "monthly" || rec.frequency === "yearly") && legacyMonth.has(monthKey(due, rec.description))),
   };
 }
 
