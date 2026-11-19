@@ -43,4 +43,9 @@
     <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!--
+      Dikey kilit (screenOrientation="portrait") yüzünden Android android.hardware.screen.portrait özelliğini
+      zorunlu sayıyor, Play Console tablet/Chromebook/XR için kullanılabilirlik uyarısı veriyor. İsteğe bağlı işaretlenir.
+    -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>
 </manifest>
